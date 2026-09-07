@@ -823,11 +823,30 @@
     font-size:14px;
   }
 
+  /* ---------- REVISÃO DE CONTRIBUIÇÃO (comparar antes/depois) ---------- */
+  .contrib-modal{max-width:640px;}
+  .contrib-preview-meta{font-size:13px;color:var(--muted);margin-bottom:10px;}
+  .contrib-sheet{max-height:260px;overflow-y:auto;padding:16px;font-size:14px;}
+  .contrib-compare{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+  .contrib-compare-label{
+    font-size:11.5px;
+    font-weight:700;
+    text-transform:uppercase;
+    letter-spacing:0.4px;
+    color:var(--muted);
+    margin-bottom:6px;
+  }
+  .contrib-links-list{display:flex;flex-direction:column;gap:10px;margin-bottom:6px;}
+  .contrib-link-row{display:flex;align-items:center;gap:10px;font-size:13px;flex-wrap:wrap;}
+  .contrib-link-old{color:var(--muted);text-decoration:line-through;word-break:break-all;}
+  .contrib-link-arrow{color:var(--leaf);}
+  .contrib-link-new{color:var(--ink);font-weight:600;word-break:break-all;}
+
   @media (max-width:600px){
     .container{padding:20px 16px 100px;}
     .topbar{padding:14px 16px;}
     .paper{padding:18px 16px 14px;border-radius:16px;}
-    .user-email{display:none;}
+    .contrib-compare{grid-template-columns:1fr;}
   }
 </style>
 <body>
@@ -870,6 +889,12 @@
   //   drop policy if exists "usuario remove seus favoritos" on cifrario_favorites;
   //   create policy "usuario remove seus favoritos" on cifrario_favorites for delete using (auth.uid() = user_id);
   //
+  //   create table if not exists cifrario_lists (
+  //     id text primary key,
+  //     name text,
+  //     song_ids jsonb,
+  //     updated_at timestamptz
+  //   );
   //   alter table cifrario_lists add column if not exists user_id uuid references auth.users(id) on delete cascade;
   //   alter table cifrario_lists enable row level security;
   //   drop policy if exists "acesso publico" on cifrario_lists;
@@ -963,6 +988,38 @@
   //   create policy "editores editam musicas" on cifrario_songs for update using (exists (select 1 from cifrario_profiles p where p.id = auth.uid() and p.role in ('editor','admin')));
   //   drop policy if exists "editores excluem musicas" on cifrario_songs;
   //   create policy "editores excluem musicas" on cifrario_songs for delete using (exists (select 1 from cifrario_profiles p where p.id = auth.uid() and p.role in ('editor','admin')));
+  //
+  //   -- ADICIONAL: nome de exibição + detalhes de cada contribuição
+  //   alter table cifrario_profiles add column if not exists display_name text;
+  //   alter table cifrario_contributions add column if not exists payload jsonb;
+  //
+  //   -- substitui a função anterior: agora também protege UPDATE (impede que
+  //   -- o próprio usuário altere seu papel/exp; só o nome de exibição é livre)
+  //   create or replace function cifrario_enforce_role()
+  //   returns trigger language plpgsql as $$
+  //   begin
+  //     if tg_op = 'INSERT' then
+  //       if new.email = '23caiocaio05@gmail.com' then
+  //         new.role := 'admin';
+  //       else
+  //         new.role := 'viewer';
+  //       end if;
+  //     elsif tg_op = 'UPDATE' then
+  //       if auth.jwt() ->> 'email' <> '23caiocaio05@gmail.com' then
+  //         new.role := old.role;
+  //         new.exp := old.exp;
+  //         new.email := old.email;
+  //       end if;
+  //       if new.email = '23caiocaio05@gmail.com' then
+  //         new.role := 'admin';
+  //       end if;
+  //     end if;
+  //     return new;
+  //   end;
+  //   $$;
+  //
+  //   drop policy if exists "usuario atualiza seu proprio perfil" on cifrario_profiles;
+  //   create policy "usuario atualiza seu proprio perfil" on cifrario_profiles for update using (auth.uid() = id) with check (auth.uid() = id);
   //
   // Além disso, em Authentication > URL Configuration, adicione o endereço
   // onde este app está hospedado (ex.: https://seu-usuario.github.io/acervo-dos-rezos/)
@@ -1395,6 +1452,30 @@
     return { level, progress };
   }
 
+  async function askDisplayName(){
+    return new Promise(resolve=>{
+      const overlay = document.createElement('div');
+      overlay.className = 'confirm-overlay';
+      overlay.innerHTML = `
+        <div class="confirm-box">
+          <h3>Bem-vindo(a)!</h3>
+          <p>Como você gostaria de ser chamado(a) no Acervo dos Rezos?</p>
+          <input id="displayNameInput" placeholder="Seu nome" style="width:100%;margin-bottom:16px;">
+          <div class="confirm-actions"><button class="btn-primary" data-choice="ok">Salvar</button></div>
+        </div>`;
+      document.body.appendChild(overlay);
+      const inp = overlay.querySelector('#displayNameInput');
+      setTimeout(()=>{ inp.focus(); }, 0);
+      function submit(){
+        const val = inp.value.trim();
+        overlay.remove();
+        resolve(val);
+      }
+      overlay.querySelector('[data-choice="ok"]').addEventListener('click', submit);
+      inp.addEventListener('keydown', e=>{ if(e.key==='Enter'){ e.preventDefault(); submit(); } });
+    });
+  }
+
   async function loadProfile(){
     try {
       const uidCurrent = state.session.user.id;
@@ -1402,7 +1483,7 @@
       if(!res.ok) throw new Error('http-' + res.status);
       const rows = await res.json();
       if(rows.length){
-        state.profile = { role: rows[0].role, exp: rows[0].exp };
+        state.profile = { role: rows[0].role, exp: rows[0].exp, display_name: rows[0].display_name || '' };
       } else {
         const insertRes = await authFetch(`${SUPABASE_URL}/rest/v1/cifrario_profiles`, {
           method: 'POST',
@@ -1411,15 +1492,25 @@
         });
         if(insertRes.ok){
           const inserted = await insertRes.json();
-          state.profile = { role: inserted[0].role, exp: inserted[0].exp };
+          state.profile = { role: inserted[0].role, exp: inserted[0].exp, display_name: '' };
         } else {
-          state.profile = { role: 'viewer', exp: 0 };
+          state.profile = { role: 'viewer', exp: 0, display_name: '' };
+        }
+        render();
+        const name = await askDisplayName();
+        if(name){
+          state.profile.display_name = name;
+          try {
+            await authFetch(`${SUPABASE_URL}/rest/v1/cifrario_profiles?id=eq.${uidCurrent}`, {
+              method: 'PATCH', body: JSON.stringify({ display_name: name })
+            });
+          } catch(e){ console.error('Erro ao salvar nome de exibição:', e); }
         }
       }
       checkExpCelebration();
     } catch (e) {
       console.error('Erro ao carregar perfil:', e);
-      state.profile = { role: 'viewer', exp: 0 };
+      state.profile = { role: 'viewer', exp: 0, display_name: '' };
     }
     render();
   }
@@ -1459,7 +1550,8 @@
 
   // Registra uma contribuição. Se quem contribuiu for o administrador, os
   // pontos são creditados na hora; para os demais, fica pendente de aprovação.
-  async function recordContribution(kind, points, song){
+  // "payload" guarda o conteúdo exato da alteração, mostrado ao admin na aprovação.
+  async function recordContribution(kind, points, song, payload){
     if(!state.session || !isEditor() || points <= 0) return;
     const contribId = uid();
     const approved = isAdmin();
@@ -1470,7 +1562,7 @@
         body: JSON.stringify([{
           id: contribId, user_id: state.session.user.id, email: state.session.user.email,
           song_id: song ? song.id : null, song_title: song ? song.title : '',
-          kind, points, status: approved ? 'approved' : 'pending'
+          kind, points, status: approved ? 'approved' : 'pending', payload: payload || null
         }])
       });
       if(approved){
@@ -1970,7 +2062,7 @@
         await persistSong(song);
         showToast('Links salvos.');
         overlay.remove();
-        if(newlyAdded > 0) await recordContribution('link', newlyAdded * 10, song);
+        if(newlyAdded > 0) await recordContribution('link', newlyAdded * 10, song, { before: { links: oldLinks }, after: { links: newLinksVal } });
         render();
       }
     });
@@ -2010,10 +2102,87 @@
           <div class="admin-row-sub">${escapeHtml(c.email)} · ${CONTRIB_KIND_LABEL[c.kind] || c.kind} · +${c.points} Exp</div>
         </div>
         <div class="admin-row-actions">
-          <button class="btn-primary" data-action="approveContribution" data-id="${c.id}">Aprovar</button>
-          <button class="btn-secondary" data-action="rejectContribution" data-id="${c.id}">Recusar</button>
+          <button class="btn-primary" data-action="viewContribution" data-id="${c.id}">Ver e revisar</button>
         </div>
       </div>`).join('') + `</div>`;
+  }
+
+  // Renderiza o conteúdo exato de uma contribuição (o que foi escrito/alterado)
+  // para o admin conferir antes de aprovar.
+  function contributionDetailHtml(contrib){
+    const payload = contrib.payload || {};
+    if(contrib.kind === 'new_manual' || contrib.kind === 'new_pdf'){
+      const song = payload.after || {};
+      const metaBits = [];
+      if(song.artist) metaBits.push(escapeHtml(song.artist));
+      if(song.tone) metaBits.push('Tom: ' + escapeHtml(song.tone));
+      if(song.theme) metaBits.push(escapeHtml(song.theme));
+      const linesHtml = (song.lines || []).map(lineHtml).join('');
+      return `
+        ${metaBits.length ? `<div class="contrib-preview-meta">${metaBits.join(' · ')}</div>` : ''}
+        <div class="paper sheet contrib-sheet">${linesHtml || '<p class="muted-note">Sem letra.</p>'}</div>
+      `;
+    }
+    if(contrib.kind === 'edit'){
+      const before = payload.before || {};
+      const after = payload.after || {};
+      const beforeLines = (before.lines || []).map(lineHtml).join('');
+      const afterLines = (after.lines || []).map(lineHtml).join('');
+      return `
+        <div class="contrib-compare">
+          <div>
+            <div class="contrib-compare-label">Antes</div>
+            <div class="paper sheet contrib-sheet">${beforeLines || '<p class="muted-note">Sem conteúdo anterior.</p>'}</div>
+          </div>
+          <div>
+            <div class="contrib-compare-label">Depois</div>
+            <div class="paper sheet contrib-sheet">${afterLines || '<p class="muted-note">Sem conteúdo.</p>'}</div>
+          </div>
+        </div>
+      `;
+    }
+    if(contrib.kind === 'link'){
+      const before = (payload.before && payload.before.links) || {};
+      const after = (payload.after && payload.after.links) || {};
+      const labels = { youtube: 'YouTube', spotify: 'Spotify', deezer: 'Deezer', other: 'Outro link' };
+      const rows = Object.keys(labels)
+        .filter(k => (before[k] || '') !== (after[k] || ''))
+        .map(k => `
+          <div class="contrib-link-row">
+            <strong>${labels[k]}</strong>
+            <div class="contrib-link-old">${before[k] ? escapeHtml(before[k]) : '<em>vazio</em>'}</div>
+            <div class="contrib-link-arrow">&#8594;</div>
+            <div class="contrib-link-new">${after[k] ? escapeHtml(after[k]) : '<em>vazio</em>'}</div>
+          </div>`).join('');
+      return `<div class="contrib-links-list">${rows || '<p class="muted-note">Nenhuma alteração registrada.</p>'}</div>`;
+    }
+    return '<p class="muted-note">Sem detalhes disponíveis para esta contribuição.</p>';
+  }
+
+  function openContributionDetailModal(contribId){
+    const contrib = (state.pendingContributions || []).find(c => c.id === contribId);
+    if(!contrib) return;
+    const overlay = document.createElement('div');
+    overlay.className = 'confirm-overlay';
+    overlay.innerHTML = `
+      <div class="confirm-box contrib-modal">
+        <h3>${escapeHtml(contrib.song_title || 'Sem título')}</h3>
+        <p class="modal-sub">${escapeHtml(contrib.email)} · ${CONTRIB_KIND_LABEL[contrib.kind] || contrib.kind} · +${contrib.points} Exp</p>
+        ${contributionDetailHtml(contrib)}
+        <div class="confirm-actions">
+          <button class="btn-secondary" data-choice="close" style="color:var(--ink);border-color:var(--border);">Fechar</button>
+          <button class="btn-secondary" data-choice="reject">Recusar</button>
+          <button class="btn-primary" data-choice="approve">Aprovar</button>
+        </div>
+      </div>`;
+    document.body.appendChild(overlay);
+    overlay.addEventListener('click', async e=>{
+      const btn = e.target.closest('[data-choice]');
+      if(!btn){ if(e.target===overlay) overlay.remove(); return; }
+      if(btn.dataset.choice === 'close'){ overlay.remove(); return; }
+      if(btn.dataset.choice === 'approve'){ overlay.remove(); await approveContribution(contribId); }
+      if(btn.dataset.choice === 'reject'){ overlay.remove(); await rejectContribution(contribId); }
+    });
   }
 
   function renderAdmin(){
@@ -2173,7 +2342,7 @@
   function editorRequestButtonHtml(){
     if(state.editorRequestStatus === 'pending') return `<span class="request-status-chip">Solicitação em análise</span>`;
     if(state.editorRequestStatus === 'rejected') return `<button class="btn-secondary" data-action="requestEditor">Solicitação recusada — tentar de novo</button>`;
-    return `<button class="btn-secondary" data-action="requestEditor">Solicitar acesso de editor</button>`;
+    return `<button class="btn-secondary" data-action="requestEditor">Quero contribuir com as cifras!</button>`;
   }
 
   function renderList(){
@@ -2206,7 +2375,7 @@
         <div class="brand"><img src="${LOGO_ICON}" class="brand-logo" alt="Acervo dos Rezos"> Acervo <span class="dot">dos</span> Rezos</div>
         <div class="topbar-actions">
           <span class="level-chip" title="Exp de Rezo">Nv. ${level} · ${progress}/100</span>
-          <span class="user-email">${escapeHtml(state.session.user.email)}</span>
+          <span class="user-email">${escapeHtml((state.profile && state.profile.display_name) || state.session.user.email)}</span>
           ${isAdmin() ? `<button class="icon-btn" data-action="goAdmin">Administração</button>` : ''}
           <button class="icon-btn" data-action="goLists">Minhas listas</button>
           <button class="icon-btn" data-action="signOut">Sair</button>
@@ -2610,6 +2779,11 @@
     const title = (titleEl ? titleEl.value : ed.title).trim() || 'Sem título';
     const artist = (artistEl ? artistEl.value : ed.artist).trim();
     const isNewSong = !ed.id;
+    const oldSong = !isNewSong ? state.songs.find(s=>s.id===ed.id) : null;
+    const oldSnapshot = oldSong ? {
+      title: oldSong.title, artist: oldSong.artist, tone: oldSong.tone,
+      theme: oldSong.theme, lines: JSON.parse(JSON.stringify(oldSong.lines))
+    } : null;
     const song = {
       id: ed.id || uid(),
       title, artist,
@@ -2622,12 +2796,13 @@
     if(idx>=0) state.songs[idx] = song; else state.songs.push(song);
     await persistSong(song);
     showToast('Música salva.');
+    const newSnapshot = { title: song.title, artist: song.artist, tone: song.tone, theme: song.theme, lines: song.lines };
     if(isNewSong){
       const points = ed.source === 'pdf' ? 30 : 50;
       const kind = ed.source === 'pdf' ? 'new_pdf' : 'new_manual';
-      await recordContribution(kind, points, song);
+      await recordContribution(kind, points, song, { after: newSnapshot });
     } else {
-      await recordContribution('edit', 10, song);
+      await recordContribution('edit', 10, song, { before: oldSnapshot, after: newSnapshot });
     }
     state.editor = null;
     goView(song.id);
@@ -3161,6 +3336,7 @@
     else if(action==='rejectEditorRequest') await rejectEditorRequest(id);
     else if(action==='approveContribution') await approveContribution(id);
     else if(action==='rejectContribution') await rejectContribution(id);
+    else if(action==='viewContribution') openContributionDetailModal(id);
   });
 
   /* fecha o menu de 3 pontos ao clicar fora dele */
