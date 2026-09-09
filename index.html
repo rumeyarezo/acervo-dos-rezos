@@ -145,6 +145,8 @@
   .icon-btn:hover{color:var(--on-dark);border-color:var(--muted-on-dark);}
   .icon-btn.danger:hover{color:#ff9ba3;border-color:#ff9ba3;}
   .icon-btn.fav-on{color:var(--gold-light);border-color:var(--gold-light);}
+  .like-icon-btn{display:inline-flex;align-items:center;gap:6px;}
+  .like-icon-btn span{color:var(--on-dark);font-weight:600;}
 
   .container{
     max-width:780px;
@@ -244,10 +246,13 @@
     border:1px solid var(--border);
     border-radius:var(--radius-card);
     padding:16px;
+    padding-bottom:38px;
     position:relative;
+    z-index:1;
     transition:border-color .15s ease, transform .15s ease, box-shadow .15s ease;
     box-shadow:0 6px 16px rgba(12,20,14,0.10);
   }
+  .song-card.menu-open{z-index:40;}
   .song-card:hover{border-color:var(--gold);transform:translateY(-2px);box-shadow:0 12px 24px rgba(12,20,14,0.16);}
   .song-card h3{
     margin:0 0 4px;
@@ -270,14 +275,23 @@
     padding:3px 9px;
     border-radius:999px;
   }
-  .fav-badge{
+  .like-btn{
     position:absolute;
-    top:12px;
     left:12px;
-    color:var(--gold);
-    font-size:15px;
-    line-height:1;
+    bottom:10px;
+    display:flex;
+    align-items:center;
+    gap:5px;
+    background:none;
+    border:none;
+    padding:4px;
+    cursor:pointer;
   }
+  .like-btn:hover{opacity:0.8;}
+  .like-count{font-size:12.5px;font-weight:700;color:#233e2b;line-height:1;}
+  .liked-list-card{padding-bottom:16px;}
+  .liked-list-card .card-actions{position:static;display:inline-flex;margin-bottom:8px;}
+  .liked-list-card .card-actions svg{width:24px;height:24px;}
   .song-card .card-actions{
     position:absolute;
     top:10px;
@@ -495,20 +509,25 @@
   }
   .reading-popup .play-toggle{color:var(--ink);border-color:var(--border);background:var(--surface-soft);}
   .reading-popup .play-toggle.active{background:var(--gold);color:#1a1105;border-color:var(--gold);}
-  .reading-popup .speed-label{color:var(--ink-soft);}
-  .reading-popup .speed-value{color:var(--ink);}
+  .reading-popup .speed-value{color:var(--ink);flex:none;}
+  .reading-popup .speed-control{width:100%;}
+  .reading-popup .speed-slider{flex:1;min-width:0;width:auto;}
   .reading-controls-row{
     display:flex;
-    gap:6px;
-    justify-content:center;
-    flex-wrap:wrap;
+    gap:8px;
+    margin-top:10px;
   }
   .reading-controls-row .btn-secondary{
+    flex:1;
+    min-width:0;
     color:var(--ink);
     border-color:var(--border);
     background:var(--surface-soft);
     font-size:12.5px;
-    padding:8px 10px;
+    padding:8px 6px;
+    white-space:nowrap;
+    overflow:hidden;
+    text-overflow:ellipsis;
   }
   .reading-controls-row .btn-secondary:hover{border-color:var(--gold);}
   .reading-controls-row .btn-secondary:disabled{opacity:0.4;cursor:default;}
@@ -1078,6 +1097,9 @@
   //   drop policy if exists "ve todos os perfis" on cifrario_profiles;
   //   drop policy if exists "usuario ve seu proprio perfil" on cifrario_profiles;
   //   create policy "usuario ve seu proprio perfil" on cifrario_profiles for select using (auth.uid() = id or auth.jwt()->>'email' = '23caiocaio05@gmail.com');
+  //
+  //   -- ADICIONAL: curtidas (coração nos cards) — contagem pública por música
+  //   alter table cifrario_songs add column if not exists like_count integer not null default 0;
   //
   // Além disso, em Authentication > URL Configuration, adicione o endereço
   // onde este app está hospedado (ex.: https://seu-usuario.github.io/acervo-dos-rezos/)
@@ -1875,7 +1897,8 @@
         youtube: r.links.youtube||'', spotify: r.links.spotify||'',
         deezer: r.links.deezer||'', other: r.links.other||''
       } : { youtube:'', spotify:'', deezer:'', other:'' },
-      lines: Array.isArray(r.lines) ? r.lines : []
+      lines: Array.isArray(r.lines) ? r.lines : [],
+      like_count: r.like_count || 0
     };
   }
 
@@ -2002,6 +2025,22 @@
     render();
   }
 
+  // Ajusta a contagem pública de curtidas de uma música (coluna like_count em
+  // cifrario_songs). Atualiza o estado local na hora para resposta imediata.
+  async function adjustLikeCount(songId, delta){
+    const song = state.songs.find(s=>s.id===songId);
+    const current = song ? (song.like_count || 0) : 0;
+    const newCount = Math.max(0, current + delta);
+    if(song) song.like_count = newCount;
+    try {
+      await authFetch(`${SUPABASE_URL}/rest/v1/${SUPABASE_SONGS_TABLE}?id=eq.${encodeURIComponent(songId)}`, {
+        method: 'PATCH', body: JSON.stringify({ like_count: newCount })
+      });
+    } catch (e) {
+      console.error('Erro ao atualizar contagem de curtidas:', e);
+    }
+  }
+
   async function addFavorite(songId){
     state.favoriteIds.add(songId);
     render();
@@ -2012,10 +2051,12 @@
         body: JSON.stringify([{ user_id: state.session.user.id, song_id: songId }])
       });
       if(!res.ok) throw new Error('http-' + res.status);
+      await adjustLikeCount(songId, 1);
+      render();
     } catch (e) {
-      console.error('Erro ao favoritar:', e);
+      console.error('Erro ao curtir:', e);
       state.favoriteIds.delete(songId);
-      showToast('Não foi possível favoritar.');
+      showToast('Não foi possível curtir esta cifra.');
       render();
     }
   }
@@ -2026,10 +2067,12 @@
     try {
       const res = await authFetch(`${SUPABASE_URL}/rest/v1/cifrario_favorites?song_id=eq.${encodeURIComponent(songId)}&user_id=eq.${state.session.user.id}`, { method: 'DELETE' });
       if(!res.ok) throw new Error('http-' + res.status);
+      await adjustLikeCount(songId, -1);
+      render();
     } catch (e) {
-      console.error('Erro ao desfavoritar:', e);
+      console.error('Erro ao descurtir:', e);
       state.favoriteIds.add(songId);
-      showToast('Não foi possível remover dos favoritos.');
+      showToast('Não foi possível remover a curtida.');
       render();
     }
   }
@@ -2037,13 +2080,23 @@
   async function toggleFavorite(id){
     if(state.favoriteIds.has(id)){
       await removeFavorite(id);
-      showToast('Removida dos favoritos.');
     } else {
       await addFavorite(id);
-      showToast('Adicionada aos favoritos.');
     }
     state.openMenuId = null;
     render();
+  }
+
+  // Ícone de coração inline (contorno verde fininho, miolo branco; sólido
+  // verde quando curtido) — usado nos cards e na tela de leitura.
+  function heartIconHtml(liked){
+    const fill = liked ? '#233e2b' : '#ffffff';
+    return `<svg viewBox="0 0 24 24" width="17" height="17" aria-hidden="true"><path d="M12 21s-6.7-4.35-9.5-8.5C.5 9.5 1.8 5.6 5.4 4.6c2-.55 3.9.2 5.1 1.8l1.5 2 1.5-2c1.2-1.6 3.1-2.35 5.1-1.8 3.6 1 4.9 4.9 2.9 7.9C18.7 16.65 12 21 12 21z" fill="${fill}" stroke="#233e2b" stroke-width="1.6" stroke-linejoin="round"/></svg>`;
+  }
+
+  function goLikedSongs(){
+    state.filterFavOnly = true;
+    goList();
   }
 
   /* ================= NAVIGATION ================= */
@@ -2493,8 +2546,7 @@
     const canEdit = isEditor();
     const linkTitle = 'Adicionar links da música (YouTube, Spotify, Deezer, etc.)';
     return `
-      <div class="song-card" data-action="openSong" data-id="${s.id}">
-        ${isFav ? `<span class="fav-badge" title="Favorita">&#9733;</span>` : ''}
+      <div class="song-card ${menuOpen?'menu-open':''}" data-action="openSong" data-id="${s.id}">
         <div class="card-actions">
           ${canEdit ? `<button class="card-icon" data-action="openLinks" data-id="${s.id}" title="${linkTitle}">&#128279;</button>` : ''}
           <div class="card-menu-wrap" data-id="${s.id}">
@@ -2503,7 +2555,6 @@
             <div class="card-menu">
               ${canEdit ? `<button data-action="editSong" data-id="${s.id}">Editar</button>` : ''}
               <button data-action="openAddToList" data-id="${s.id}">Adicionar a uma lista</button>
-              <button data-action="toggleFavorite" data-id="${s.id}">${isFav ? 'Remover dos favoritos' : 'Favoritar'}</button>
               ${canEdit ? `<button class="danger" data-action="deleteSong" data-id="${s.id}">Excluir</button>` : ''}
             </div>` : ''}
           </div>
@@ -2511,6 +2562,10 @@
         <h3>${escapeHtml(s.title) || 'Sem título'}</h3>
         <div class="artist">${escapeHtml(s.artist) || 'Artista não informado'}</div>
         ${s.theme ? `<div class="theme-tag">${escapeHtml(s.theme)}</div>` : ''}
+        <button class="like-btn" data-action="toggleFavorite" data-id="${s.id}" title="${isFav?'Descurtir':'Curtir'}">
+          ${heartIconHtml(isFav)}
+          <span class="like-count">${s.like_count||0}</span>
+        </button>
       </div>`;
   }
 
@@ -2575,7 +2630,7 @@
             <option value="">Todos os temas</option>
             ${themes.map(t=>`<option value="${escapeHtml(t)}" ${state.filterTheme===t?'selected':''}>${escapeHtml(t)}</option>`).join('')}
           </select>
-          <button class="fav-filter-btn ${state.filterFavOnly?'active':''}" data-action="toggleFavFilter">&#9733; Favoritos</button>
+          <button class="fav-filter-btn ${state.filterFavOnly?'active':''}" data-action="toggleFavFilter">${heartIconHtml(state.filterFavOnly)} Cifras Curtidas</button>
         </div>
         <div class="song-grid">${cards || empty}</div>
       </main>
@@ -2585,6 +2640,13 @@
 
   /* ================= LISTS VIEW (MINHAS LISTAS) ================= */
   function renderLists(){
+    const likedCount = state.favoriteIds.size;
+    const likedCard = `
+      <div class="song-card list-card liked-list-card" data-action="openLikedSongs">
+        <div class="card-actions">${heartIconHtml(true)}</div>
+        <h3>Cifras Curtidas</h3>
+        <div class="artist">${likedCount} música${likedCount===1?'':'s'}</div>
+      </div>`;
     const cards = state.lists.map(l => `
       <div class="song-card list-card" data-action="openListDetail" data-id="${l.id}">
         <div class="card-actions">
@@ -2595,7 +2657,7 @@
         <div class="artist">${l.songIds.length} música${l.songIds.length===1?'':'s'}</div>
       </div>`).join('');
     const empty = `<div class="empty-state">
-        <div class="big">Você ainda não criou nenhuma lista.</div>
+        <div class="big">Você ainda não criou nenhuma lista personalizada.</div>
         <div>Crie listas para organizar músicas por culto, tema ou ocasião.</div>
       </div>`;
     return `
@@ -2610,7 +2672,8 @@
             <button class="btn-primary" data-action="newList">Nova lista</button>
           </div>
         </div>
-        <div class="song-grid">${cards || empty}</div>
+        <div class="song-grid">${likedCard}${cards || ''}</div>
+        ${state.lists.length===0 ? empty : ''}
       </main>
       ${brandWatermark()}
     `;
@@ -2767,7 +2830,7 @@
           <span>${metaBits.join(' · ')}</span>
         </div>
         <div class="topbar-actions">
-          <button class="icon-btn ${isFav?'fav-on':''}" data-action="toggleFavorite" data-id="${song.id}" title="${isFav?'Remover dos favoritos':'Favoritar'}">${isFav?'&#9733;':'&#9734;'}</button>
+          <button class="icon-btn like-icon-btn ${isFav?'fav-on':''}" data-action="toggleFavorite" data-id="${song.id}" title="${isFav?'Descurtir':'Curtir'}">${heartIconHtml(isFav)} <span>${song.like_count||0}</span></button>
           ${isEditor() ? `
           <button class="icon-btn" data-action="editSong" data-id="${song.id}">Editar</button>
           <button class="icon-btn danger" data-action="deleteSong" data-id="${song.id}">Excluir</button>
@@ -2822,14 +2885,15 @@
         <span>Rolagem automática</span>
       </button>
       <div class="speed-control" style="justify-content:center;margin:14px 0;">
-        <span class="speed-label">Velocidade</span>
         <input type="range" id="speedSliderModal" class="speed-slider" min="1" max="100" step="1" value="${state.autoScroll.speed}">
         <span class="speed-value" id="speedValueModal">${state.autoScroll.speed}%</span>
       </div>
       <div class="reading-controls-row">
         <button class="btn-secondary" data-action="navPrev" ${!prevId?'disabled':''}>&#8249; Anterior</button>
-        <button class="btn-secondary" data-action="toggleSheetTheme">${state.sheetTheme==='dark' ? '☀️ Claro' : '🌙 Escuro'}</button>
         <button class="btn-secondary" data-action="navNext" ${!nextId?'disabled':''}>Próxima &#8250;</button>
+      </div>
+      <div class="reading-controls-row reading-controls-row-single">
+        <button class="btn-secondary" data-action="toggleSheetTheme">${state.sheetTheme==='dark' ? '☀️ Modo claro' : '🌙 Modo escuro'}</button>
       </div>`;
     document.body.appendChild(popup);
     const slider = popup.querySelector('#speedSliderModal');
@@ -2847,7 +2911,7 @@
       }
       if(action==='toggleSheetTheme'){
         toggleSheetTheme();
-        btn.textContent = state.sheetTheme==='dark' ? '☀️ Claro' : '🌙 Escuro';
+        btn.textContent = state.sheetTheme==='dark' ? '☀️ Modo claro' : '🌙 Modo escuro';
         return;
       }
       if(action==='navPrev' || action==='navNext'){
@@ -3591,6 +3655,7 @@
       }
     }
     else if(action==='openListDetail') goListDetail(id);
+    else if(action==='openLikedSongs') goLikedSongs();
     else if(action==='renameList'){
       e.stopPropagation();
       const list = state.lists.find(l=>l.id===id);
