@@ -908,11 +908,96 @@
   .contrib-link-arrow{color:var(--leaf);}
   .contrib-link-new{color:var(--ink);font-weight:600;word-break:break-all;}
 
+  /* ---------- ACERVO DE ACORDES ---------- */
+  .chord-filters{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:18px;}
+  .chord-filter-btn{
+    padding:8px 14px;
+    border-radius:999px;
+    background:rgba(255,255,255,0.75);
+    border:1px solid var(--border);
+    color:var(--ink-soft);
+    font-size:13px;
+    font-weight:500;
+    white-space:nowrap;
+  }
+  .chord-filter-btn.active{background:var(--gold);color:#241505;border-color:var(--gold);}
+  .chord-grid{
+    display:grid;
+    grid-template-columns:repeat(auto-fill,minmax(180px,1fr));
+    gap:14px;
+  }
+  .chord-card{
+    background:var(--surface);
+    border:1px solid var(--border);
+    border-radius:var(--radius-card);
+    padding:16px;
+    text-align:center;
+    box-shadow:0 6px 16px rgba(12,20,14,0.10);
+  }
+  .chord-card h3{margin:0 0 10px;font-size:19px;font-family:var(--font-serif);color:var(--ink);}
+  .chord-diagram-wrap{display:flex;justify-content:center;margin:6px 0;}
+  .chord-diagram-svg{display:block;}
+  .chord-info{
+    text-align:left;
+    font-size:12px;
+    color:var(--ink-soft);
+    line-height:1.7;
+    margin-top:8px;
+    padding:0 4px;
+  }
+  .chord-info strong{color:var(--ink);}
+  .chord-usage{
+    margin-top:10px;
+    font-size:12px;
+    font-weight:600;
+    color:var(--leaf);
+    background:var(--leaf-soft);
+    display:inline-block;
+    padding:4px 10px;
+    border-radius:999px;
+  }
+  .chord-diagram-missing{
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    gap:6px;
+    padding:10px 6px;
+  }
+  .chord-diagram-missing-text{font-size:13px;font-weight:700;color:var(--danger);}
+  .chord-diagram-missing-sub{font-size:11.5px;color:var(--muted);line-height:1.4;}
+  .chord-tappable{cursor:pointer;}
+  .chord-tappable:hover{background:rgba(199,154,46,0.32);}
+  .chord-popup-box{text-align:center;max-width:280px;}
+  .chord-popup-box h3{font-size:24px;margin:0 0 12px;font-family:var(--font-serif);color:var(--ink);}
+
+  .chord-admin-actions{display:flex;gap:6px;flex-wrap:wrap;justify-content:center;margin-top:10px;}
+  .chord-admin-actions .btn-secondary{color:var(--ink);border-color:var(--border);font-size:12px;padding:6px 10px;}
+  .chord-admin-actions .danger-text{color:var(--danger);border-color:var(--danger);}
+  .chord-form-box{max-width:480px;text-align:left;}
+  .chord-form-strings{display:flex;gap:6px;justify-content:center;margin:14px 0;flex-wrap:wrap;}
+  .chord-form-string-col{display:flex;flex-direction:column;align-items:center;gap:4px;width:52px;}
+  .chord-form-string-col span{font-size:10px;color:var(--muted);text-align:center;}
+  .chord-form-string-col input{width:100%;padding:6px 4px;text-align:center;font-size:13px;}
+  .chord-form-barre-check{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--ink-soft);margin-bottom:10px;}
+  .chord-form-barre-check input{width:auto;}
+  .chord-form-barre-fields{display:flex;gap:8px;margin-bottom:14px;}
+  .chord-form-barre-fields input{flex:1;}
+  .chord-form-error{
+    background:var(--danger-soft);
+    border:1px solid var(--danger);
+    color:var(--danger);
+    font-size:12.5px;
+    padding:8px 10px;
+    border-radius:var(--radius-control);
+    margin-bottom:12px;
+  }
+
   @media (max-width:600px){
     .container{padding:20px 16px 100px;}
     .topbar{padding:14px 16px;}
     .paper{padding:18px 16px 14px;border-radius:16px;}
     .contrib-compare{grid-template-columns:1fr;}
+    .chord-grid{grid-template-columns:repeat(auto-fill,minmax(150px,1fr));}
   }
 </style>
 <body>
@@ -1101,6 +1186,34 @@
   //   -- ADICIONAL: curtidas (coração nos cards) — contagem pública por música
   //   alter table cifrario_songs add column if not exists like_count integer not null default 0;
   //
+  //   -- ADICIONAL: Acervo de Acordes — diagramas cadastrados pelo administrador
+  //   -- (a biblioteca principal fica no código; esta tabela é só para o admin
+  //   -- complementar/corrigir posições específicas com segurança real via RLS)
+  //   create table if not exists cifrario_chords (
+  //     id text primary key,
+  //     name text,
+  //     normalized_name text,
+  //     root text,
+  //     quality text,
+  //     bass text,
+  //     strings jsonb,
+  //     fingers jsonb,
+  //     barre jsonb,
+  //     validated boolean not null default false,
+  //     active boolean not null default true,
+  //     created_at timestamptz default now(),
+  //     updated_at timestamptz default now()
+  //   );
+  //   alter table cifrario_chords enable row level security;
+  //   drop policy if exists "logados leem acordes" on cifrario_chords;
+  //   create policy "logados leem acordes" on cifrario_chords for select using (auth.role() = 'authenticated');
+  //   drop policy if exists "admin cadastra acordes" on cifrario_chords;
+  //   create policy "admin cadastra acordes" on cifrario_chords for insert with check (auth.jwt()->>'email' = '23caiocaio05@gmail.com');
+  //   drop policy if exists "admin edita acordes" on cifrario_chords;
+  //   create policy "admin edita acordes" on cifrario_chords for update using (auth.jwt()->>'email' = '23caiocaio05@gmail.com');
+  //   drop policy if exists "admin exclui acordes" on cifrario_chords;
+  //   create policy "admin exclui acordes" on cifrario_chords for delete using (auth.jwt()->>'email' = '23caiocaio05@gmail.com');
+  //
   // Além disso, em Authentication > URL Configuration, adicione o endereço
   // onde este app está hospedado (ex.: https://seu-usuario.github.io/acervo-dos-rezos/)
   // à lista de "Redirect URLs" — é necessário para o link de "esqueci minha senha" funcionar.
@@ -1142,7 +1255,9 @@
     editorRequestStatus: null, // null | 'pending' | 'approved' | 'rejected'
     adminTab: 'requests',      // 'requests' | 'contributions'
     pendingEditorRequests: [],
-    pendingContributions: []
+    pendingContributions: [],
+    chordSearch: '',
+    chordFilter: 'todos'
   };
   // 100% da barra equivale à antiga velocidade do botão 3; 1% é bem lento ("quase parando").
   // Curva quadrática: a faixa baixa/média fica bem devagar e só perto do topo acelera de verdade.
@@ -1494,6 +1609,7 @@
     await loadSongs();
     await loadLists();
     await loadFavorites();
+    await loadCustomChords();
   }
 
   async function init(){
@@ -2520,6 +2636,661 @@
     `;
   }
 
+
+  /* ================= ACERVO DE ACORDES: TEORIA E PARSER ================= */
+  // Notas em classes de altura (pitch class), C=0 ... B=11 — usado para
+  // validar matematicamente se um diagrama produz as notas certas.
+  const NOTE_TO_SEMITONE = {
+    'C':0,'C#':1,'Db':1,'D':2,'D#':3,'Eb':3,'E':4,'F':5,'F#':6,'Gb':6,
+    'G':7,'G#':8,'Ab':8,'A':9,'A#':10,'Bb':10,'B':11
+  };
+  const NOTE_NAMES_SHARP = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
+  const NOTE_NAMES_FLAT  = ['C','Db','D','Eb','E','F','Gb','G','Ab','A','Bb','B'];
+  // Cordas soltas do violão, afinação padrão, da 6ª (grave) para a 1ª (aguda).
+  const OPEN_STRING_PC = [4,9,2,7,11,4]; // E A D G B E
+
+  function enharmonicEquivalents(note){
+    const semitone = NOTE_TO_SEMITONE[note];
+    if(semitone === undefined) return [note];
+    return Array.from(new Set([note, NOTE_NAMES_SHARP[semitone], NOTE_NAMES_FLAT[semitone]]));
+  }
+
+  // Tokens de qualidade/extensão reconhecidos, na ordem em que devem ser
+  // testados (mais específicos primeiro, para "maj7" não virar "maj" + "7").
+  const QUALITY_TOKENS = [
+    'maj7','maj9','maj',
+    'm7b5','m7','min7','m6','m9','m11','m13','madd9','min','m',
+    'dim7','dim','°',
+    'aug','+',
+    'sus2','sus4',
+    'add9','add11',
+    '6/9','69',
+    '13','11','9','7','6'
+  ];
+  // Nome canônico da qualidade (algumas grafias diferentes apontam pro mesmo acorde)
+  const QUALITY_CANON = {
+    'maj7':'maj7','maj9':'maj9','maj':'maj',
+    'm7b5':'m7b5','m7':'m7','min7':'m7','m6':'m6','m9':'m9','m11':'m11','m13':'m13','madd9':'madd9','min':'m','m':'m',
+    'dim7':'dim7','dim':'dim','°':'dim',
+    'aug':'aug','+':'aug',
+    'sus2':'sus2','sus4':'sus4',
+    'add9':'add9','add11':'add11',
+    '6/9':'6/9','69':'6/9',
+    '13':'13','11':'11','9':'9','7':'7','6':'6'
+  };
+  // Intervalos (semitons a partir da fundamental) que definem cada qualidade —
+  // usado por validateChordDefinition() para checar se o diagrama está correto.
+  const QUALITY_INTERVALS = {
+    'maj':[0,4,7], 'm':[0,3,7], '7':[0,4,7,10], 'm7':[0,3,7,10], 'maj7':[0,4,7,11],
+    'dim':[0,3,6], 'dim7':[0,3,6,9], 'aug':[0,4,8],
+    'sus2':[0,2,7], 'sus4':[0,5,7], 'add9':[0,4,7,2], 'madd9':[0,3,7,2],
+    '6':[0,4,7,9], 'm6':[0,3,7,9], '9':[0,4,7,10,2], 'm9':[0,3,7,10,2],
+    'maj9':[0,4,7,11,2], '11':[0,4,7,10,2,5], '13':[0,4,7,10,2,9],
+    '6/9':[0,4,7,9,2], 'm7b5':[0,3,6,10], 'm11':[0,3,7,10,2,5], 'm13':[0,3,7,10,2,9]
+  };
+
+  // Analisa um texto de acorde (ex.: "F#m7", "C/E", "Bb") e devolve sua
+  // estrutura normalizada, ou null se o texto não for um acorde reconhecível
+  // (protege contra palavras da letra virarem "acorde" por engano).
+  function parseChordName(raw){
+    if(!raw) return null;
+    const s = String(raw).trim();
+    if(!s) return null;
+    let main = s, bass = null;
+    const slashIdx = s.indexOf('/');
+    if(slashIdx > 0){
+      main = s.slice(0, slashIdx);
+      const bassRaw = s.slice(slashIdx+1).trim();
+      const bassMatch = /^([A-Ga-g])(#|b)?$/.exec(bassRaw);
+      if(!bassMatch) return null;
+      bass = bassMatch[1].toUpperCase() + (bassMatch[2]||'');
+      if(NOTE_TO_SEMITONE[bass] === undefined) return null;
+    }
+    const rootMatch = /^([A-Ga-g])(#|b)?/.exec(main);
+    if(!rootMatch) return null;
+    const root = rootMatch[1].toUpperCase() + (rootMatch[2]||'');
+    if(NOTE_TO_SEMITONE[root] === undefined) return null;
+    const rest = main.slice(rootMatch[0].length).trim();
+    let qualityKey = 'maj';
+    if(rest){
+      const restLower = rest.toLowerCase();
+      const token = QUALITY_TOKENS.find(t => t.toLowerCase() === restLower);
+      if(!token) return null; // sufixo não reconhecido -> não tratamos como acorde válido
+      qualityKey = QUALITY_CANON[token];
+    }
+    const normalized = root + (qualityKey!=='maj' ? qualityKey : '') + (bass ? '/'+bass : '');
+    return { root, quality: qualityKey, bass, normalized, original: s };
+  }
+
+  function normalizeChordName(raw){
+    const parsed = parseChordName(raw);
+    return parsed ? parsed.normalized : null;
+  }
+
+  // Confere matematicamente se uma definição de acorde produz as notas certas
+  // nas cordas certas — só quem passa aqui pode ser marcado validated:true.
+  function validateChordDefinition(def){
+    if(!def || !Array.isArray(def.strings) || def.strings.length !== 6) return false;
+    const rootPc = NOTE_TO_SEMITONE[def.root];
+    if(rootPc === undefined) return false;
+    const expectedOffsets = QUALITY_INTERVALS[def.quality];
+    if(!expectedOffsets) return false;
+    const expectedPCs = new Set(expectedOffsets.map(o => (rootPc + o) % 12));
+    const bassPc = def.bass ? NOTE_TO_SEMITONE[def.bass] : null;
+    if(def.bass && bassPc === undefined) return false;
+    const produced = [];
+    def.strings.forEach((fret, i) => {
+      if(fret === null || fret === 'x' || fret === undefined) return;
+      produced.push({ i, pc: (OPEN_STRING_PC[i] + fret) % 12 });
+    });
+    if(produced.length === 0) return false;
+    for(const p of produced){
+      if(expectedPCs.has(p.pc)) continue;
+      if(bassPc !== null && p.pc === bassPc) continue;
+      return false; // nota fora do que se espera para este acorde
+    }
+    if(!produced.some(p => p.pc === rootPc)) return false; // fundamental precisa soar
+    if(def.bass){
+      const lowest = produced[0]; // strings[0] é a 6ª corda (mais grave) — primeira tocada é o baixo real
+      if(!lowest || lowest.pc !== bassPc) return false;
+    }
+    return true;
+  }
+
+  /* ================= ACERVO DE ACORDES: BIBLIOTECA CANÔNICA ================= */
+  // Formas abertas conferidas nota a nota (ver relatório da implementação).
+  // strings: índice 0 = 6ª corda (E grave) ... índice 5 = 1ª corda (E aguda).
+  const OPEN_CHORDS = [
+    { root:'C', quality:'maj', strings:['x',3,2,0,1,0], fingers:['x',3,2,0,1,0] },
+    { root:'C', quality:'maj7', strings:['x',3,2,0,0,0], fingers:['x',3,2,0,0,0] },
+    { root:'C', quality:'7', strings:['x',3,2,3,1,0], fingers:['x',3,2,4,1,0] },
+    { root:'D', quality:'maj', strings:['x','x',0,2,3,2], fingers:['x','x',0,1,3,2] },
+    { root:'D', quality:'m', strings:['x','x',0,2,3,1], fingers:['x','x',0,2,3,1] },
+    { root:'D', quality:'7', strings:['x','x',0,2,1,2], fingers:['x','x',0,2,1,3] },
+    { root:'D', quality:'maj7', strings:['x','x',0,2,2,2], fingers:['x','x',0,1,1,1], barre:{fret:2, from:3, to:5} },
+    { root:'E', quality:'maj', strings:[0,2,2,1,0,0], fingers:[0,2,3,1,0,0] },
+    { root:'E', quality:'m', strings:[0,2,2,0,0,0], fingers:[0,2,3,0,0,0] },
+    { root:'E', quality:'7', strings:[0,2,0,1,0,0], fingers:[0,2,0,1,0,0] },
+    { root:'E', quality:'m7', strings:[0,2,0,0,0,0], fingers:[0,2,0,0,0,0] },
+    { root:'E', quality:'maj7', strings:[0,2,1,1,0,0], fingers:[0,3,1,2,0,0] },
+    { root:'G', quality:'maj', strings:[3,2,0,0,0,3], fingers:[2,1,0,0,0,3] },
+    { root:'G', quality:'7', strings:[3,2,0,0,0,1], fingers:[3,2,0,0,0,1] },
+    { root:'G', quality:'maj7', strings:[3,2,0,0,0,2], fingers:[3,2,0,0,0,1] },
+    { root:'A', quality:'maj', strings:['x',0,2,2,2,0], fingers:['x',0,1,2,3,0] },
+    { root:'A', quality:'m', strings:['x',0,2,2,1,0], fingers:['x',0,2,3,1,0] },
+    { root:'A', quality:'7', strings:['x',0,2,0,2,0], fingers:['x',0,1,0,2,0] },
+    { root:'A', quality:'m7', strings:['x',0,2,0,1,0], fingers:['x',0,2,0,1,0] },
+    { root:'A', quality:'maj7', strings:['x',0,2,1,2,0], fingers:['x',0,2,1,3,0] }
+  ];
+
+  // Formas-molde (pestana) verificadas a partir das formas abertas de E/Em/E7/
+  // Em7/Emaj7 e A/Am/A7/Am7/Amaj7 acima — deslocar uma forma correta pelos
+  // trastes é aritmética, não invenção: a nota fundamental muda, o desenho
+  // (intervalos) continua o mesmo, e cada resultado ainda passa pela validação.
+  const BARRE_SHAPES = {
+    E: { // fundamental na 6ª corda solta
+      root: 4, template: { 'maj':[0,2,2,1,0,0], 'm':[0,2,2,0,0,0], '7':[0,2,0,1,0,0], 'm7':[0,2,0,0,0,0], 'maj7':[0,2,1,1,0,0] }
+    },
+    A: { // fundamental na 5ª corda solta
+      root: 9, template: { 'maj':[null,0,2,2,2,0], 'm':[null,0,2,2,1,0], '7':[null,0,2,0,2,0], 'm7':[null,0,2,0,1,0], 'maj7':[null,0,2,1,2,0] }
+    }
+  };
+
+  function buildBarreChord(root, quality, shapeName){
+    const shape = BARRE_SHAPES[shapeName];
+    const tmpl = shape.template[quality];
+    if(!tmpl) return null;
+    const rootPc = NOTE_TO_SEMITONE[root];
+    const fret = ((rootPc - shape.root) % 12 + 12) % 12;
+    if(fret === 0) return null; // seria a própria forma aberta — já coberta acima
+    const strings = tmpl.map(offset => offset === null ? 'x' : offset + fret);
+    const fingerTemplates = {
+      maj:[null,1,3,4,2,1], m:[null,1,3,4,1,1], '7':[null,1,3,1,2,1],
+      m7:[null,1,3,1,1,1], maj7:[null,1,3,2,4,1]
+    };
+    const eFingerTemplates = {
+      maj:[1,3,4,2,1,1], m:[1,3,4,1,1,1], '7':[1,3,1,2,1,1], m7:[1,3,1,1,1,1], maj7:[1,3,2,4,1,1]
+    };
+    const fingers = (shapeName==='E' ? eFingerTemplates[quality] : fingerTemplates[quality])
+      .map(f => f===null ? 'x' : f);
+    return {
+      root, quality, strings, fingers,
+      baseFret: fret,
+      barre: { fret, from: shapeName==='E' ? 0 : 1, to: 5 }
+    };
+  }
+
+  // Monta e valida a biblioteca inteira uma única vez, na carga da página.
+  function buildChordLibrary(){
+    const byKey = {};
+    const all = [];
+    function register(def){
+      def.bass = def.bass || null;
+      const key = def.root + (def.quality!=='maj' ? def.quality : '') + (def.bass ? '/'+def.bass : '');
+      def.key = key;
+      def.source = def.source || 'builtin';
+      def.validated = validateChordDefinition(def);
+      if(def.validated){
+        byKey[key] = def;
+        all.push(def);
+      } else {
+        console.warn('[Acervo de Acordes] diagrama reprovado na validação e descartado:', key, def);
+      }
+    }
+    OPEN_CHORDS.forEach(register);
+    const roots = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
+    const qualities = ['maj','m','7','m7','maj7'];
+    roots.forEach(root=>{
+      qualities.forEach(quality=>{
+        const key = root + (quality!=='maj' ? quality : '');
+        if(byKey[key]) return; // já existe forma aberta verificada — não substitui
+        const viaE = buildBarreChord(root, quality, 'E');
+        const viaA = buildBarreChord(root, quality, 'A');
+        // prefere o traste mais baixo (mais fácil/comum) entre as duas formas
+        const candidate = [viaE, viaA].filter(Boolean).sort((a,b)=>a.baseFret-b.baseFret)[0];
+        if(candidate) register(candidate);
+      });
+    });
+    return { byKey, all, register };
+  }
+  const CHORD_LIBRARY = buildChordLibrary();
+
+  // Mescla acordes cadastrados pelo administrador (tabela cifrario_chords) na
+  // biblioteca em memória. Um acorde do banco só entra se passar pela mesma
+  // validação matemática — e substitui a forma embutida da mesma chave (útil
+  // para corrigir algo), mas nunca é aceito sem validated:true real.
+  function mergeCustomChords(rows){
+    (rows||[]).forEach(row=>{
+      if(row.active === false) return;
+      const def = {
+        root: row.root, quality: row.quality || 'maj', bass: row.bass || null,
+        strings: row.strings, fingers: row.fingers, barre: row.barre || null,
+        source: 'custom', dbId: row.id
+      };
+      CHORD_LIBRARY.register(def);
+      if(!def.validated){
+        console.warn('[Acervo de Acordes] acorde cadastrado pelo admin não passou na validação e foi ignorado:', row.name);
+      }
+    });
+  }
+
+  async function loadCustomChords(){
+    try {
+      const res = await authFetch(`${SUPABASE_URL}/rest/v1/cifrario_chords?select=*&active=eq.true`);
+      if(!res.ok) throw new Error('http-' + res.status);
+      const rows = await res.json();
+      mergeCustomChords(rows);
+      _usedChordsCache = null; // força recálculo com a biblioteca atualizada
+    } catch (e) {
+      console.error('Erro ao carregar acordes cadastrados:', e);
+    }
+  }
+
+  function getChordDefinition(parsed){
+    if(!parsed) return null;
+    for(const r of enharmonicEquivalents(parsed.root)){
+      const key = r + (parsed.quality!=='maj' ? parsed.quality : '') + (parsed.bass ? '/'+parsed.bass : '');
+      if(CHORD_LIBRARY.byKey[key]) return CHORD_LIBRARY.byKey[key];
+    }
+    return null;
+  }
+
+  /* ================= ACERVO DE ACORDES: ACORDES USADOS NO ACERVO ================= */
+  // Fonte única de verdade: varre state.songs -> lines -> chords, normaliza,
+  // remove duplicidade e conta o uso. Cache simples invalidado por assinatura
+  // (recalcula só quando o conjunto de músicas realmente muda).
+  let _usedChordsCache = null;
+  let _usedChordsSignature = null;
+  function getUsedChords(){
+    const signature = state.songs.length + ':' + state.songs.map(s=>s.id).join(',');
+    if(_usedChordsCache && _usedChordsSignature === signature) return _usedChordsCache;
+    const seen = new Map();
+    state.songs.forEach(song=>{
+      (song.lines||[]).forEach(line=>{
+        (line.chords||[]).forEach(c=>{
+          const parsed = parseChordName(c.chord);
+          if(!parsed) return;
+          const key = parsed.normalized;
+          if(!seen.has(key)) seen.set(key, { label: (c.chord||'').trim(), parsed, count: 0, songIds: new Set() });
+          const entry = seen.get(key);
+          entry.count++;
+          entry.songIds.add(song.id);
+        });
+      });
+    });
+    const result = Array.from(seen.values())
+      .map(e => ({ key: e.parsed.normalized, label: e.label, parsed: e.parsed, count: e.songIds.size, def: getChordDefinition(e.parsed) }))
+      .sort((a,b)=> a.label.localeCompare(b.label, 'pt-BR', {numeric:true}));
+    _usedChordsCache = result;
+    _usedChordsSignature = signature;
+    return result;
+  }
+
+  /* ================= ACERVO DE ACORDES: TESTES INTERNOS ================= */
+  // Roda uma vez ao carregar a página; só registra no console (não trava o
+  // app se algo falhar — é uma rede de segurança para quem for mexer no código).
+  function runChordSystemTests(){
+    const checks = [];
+    function t(desc, cond){ checks.push({ desc, ok: !!cond }); }
+    t('C reconhecido como C', parseChordName('C') && parseChordName('C').normalized==='C');
+    t('Cm reconhecido como Cm', parseChordName('Cm') && parseChordName('Cm').normalized==='Cm');
+    t('C7 reconhecido como C7', parseChordName('C7') && parseChordName('C7').normalized==='C7');
+    t('Cmaj7 reconhecido', parseChordName('Cmaj7') && parseChordName('Cmaj7').normalized==='Cmaj7');
+    t('Cadd9 reconhecido', parseChordName('Cadd9') && parseChordName('Cadd9').normalized==='Cadd9');
+    t('C/E reconhecido', parseChordName('C/E') && parseChordName('C/E').normalized==='C/E');
+    t('Bb reconhecido', parseChordName('Bb') && parseChordName('Bb').normalized==='Bb');
+    t('A# tratado como enarmônico de Bb', getChordDefinition(parseChordName('A#')) === getChordDefinition(parseChordName('Bb')) || (!getChordDefinition(parseChordName('A#')) && !getChordDefinition(parseChordName('Bb'))));
+    t('"Casa" não vira acorde', parseChordName('Casa') === null);
+    t('"blablabla" não vira acorde', parseChordName('blablabla') === null);
+    t('acorde com espaços é normalizado', parseChordName(' Am ') && parseChordName(' Am ').normalized==='Am');
+    t('acorde minúsculo é normalizado', parseChordName('am') && parseChordName('am').normalized==='Am');
+    (function(){
+      const def = getChordDefinition(parseChordName('Am'));
+      t('Am tem diagrama validado', !!(def && def.validated));
+    })();
+    (function(){
+      const def = getChordDefinition(parseChordName('Xyz9999'));
+      t('acorde inexistente não recebe diagrama inventado', def === undefined || def === null);
+    })();
+    (function(){
+      const fake = { root:'C', quality:'maj', strings:[0,0,0,0,0,0] }; // notas erradas de propósito
+      t('validador rejeita diagrama musicalmente incorreto', validateChordDefinition(fake) === false);
+    })();
+    (function(){
+      const real = getChordDefinition(parseChordName('G7'));
+      t('validador aprova diagrama correto (G7)', !!(real && validateChordDefinition(real)));
+    })();
+    const failed = checks.filter(c=>!c.ok);
+    if(failed.length){
+      console.warn('[Acervo de Acordes] testes falharam:', failed.map(f=>f.desc));
+    } else {
+      console.info('[Acervo de Acordes] todos os ' + checks.length + ' testes internos passaram.');
+    }
+    return checks;
+  }
+
+  /* ================= ACERVO DE ACORDES: DIAGRAMA VISUAL ================= */
+  // Componente reutilizável — usado no Acervo, no popup e em qualquer lugar
+  // que precise mostrar a posição de um acorde no braço do violão.
+  function renderChordDiagram(def, opts){
+    opts = opts || {};
+    const size = opts.size === 'large' ? 220 : 150;
+    const W = 160, H = 190;
+    const nStrings = 6, nFrets = 4;
+    const left = 22, top = 34, right = 138, bottom = 174;
+    const stringGap = (right-left)/(nStrings-1);
+    const fretGap = (bottom-top)/nFrets;
+
+    if(!def){
+      return `
+        <div class="chord-diagram-missing" style="width:${size}px;">
+          <svg viewBox="0 0 ${W} ${H}" width="${size}" height="${size*(H/W)}"><text x="${W/2}" y="${H/2}" text-anchor="middle" font-size="34">🎸</text></svg>
+          <div class="chord-diagram-missing-text">Diagrama ainda não cadastrado</div>
+          <div class="chord-diagram-missing-sub">Este acorde foi encontrado no acervo, mas ainda não possui uma posição de violão validada.</div>
+        </div>`;
+    }
+
+    const frets = def.strings.map(f => f==='x' ? 'x' : f);
+    const numericFrets = frets.filter(f=>f!=='x' && f>0);
+    const maxFret = numericFrets.length ? Math.max(...numericFrets) : 0;
+    const minFret = numericFrets.length ? Math.min(...numericFrets) : 0;
+    // se a posição usa trastes altos, desloca a "janela" mostrada e indica a casa inicial
+    const baseFret = (def.barre && def.barre.fret > 0) ? def.barre.fret : (minFret > 1 ? minFret : 1);
+    const showBaseLabel = baseFret > 1;
+
+    let svg = `<svg viewBox="0 0 ${W} ${H}" width="${size}" height="${size*(H/W)}" class="chord-diagram-svg">`;
+    // trastes (linhas horizontais)
+    for(let i=0;i<=nFrets;i++){
+      const y = top + i*fretGap;
+      svg += `<line x1="${left}" y1="${y}" x2="${right}" y2="${y}" stroke="#233e2b" stroke-width="${i===0 && baseFret===1 ? 3 : 1.4}"/>`;
+    }
+    // cordas (linhas verticais)
+    for(let i=0;i<nStrings;i++){
+      const x = left + i*stringGap;
+      svg += `<line x1="${x}" y1="${top}" x2="${x}" y2="${bottom}" stroke="#233e2b" stroke-width="1.2"/>`;
+    }
+    // pestana
+    if(def.barre){
+      const fromX = left + def.barre.from*stringGap;
+      const toX = left + def.barre.to*stringGap;
+      const fretIdx = (def.barre.fret - baseFret) + 1;
+      const y = top + (fretIdx-0.5)*fretGap;
+      svg += `<line x1="${fromX}" y1="${y}" x2="${toX}" y2="${y}" stroke="#233e2b" stroke-width="10" stroke-linecap="round" opacity="0.85"/>`;
+    }
+    // indicação da casa inicial
+    if(showBaseLabel){
+      svg += `<text x="${left-14}" y="${top+fretGap*0.65}" font-size="13" fill="#233e2b" text-anchor="middle" font-weight="700">${baseFret}ª</text>`;
+    }
+    // marcadores por corda: X / O / dedo
+    frets.forEach((f, i) => {
+      const x = left + i*stringGap;
+      if(f === 'x'){
+        svg += `<text x="${x}" y="${top-14}" font-size="15" fill="#233e2b" text-anchor="middle" font-weight="700">×</text>`;
+      } else if(f === 0){
+        svg += `<circle cx="${x}" cy="${top-16}" r="6" fill="white" stroke="#233e2b" stroke-width="2"/>`;
+      } else if(typeof f === 'number'){
+        const relativeFret = f - baseFret + 1;
+        const y = top + (relativeFret-0.5)*fretGap;
+        const finger = def.fingers && def.fingers[i] && def.fingers[i]!=='x' ? def.fingers[i] : '';
+        const isBarreDot = def.barre && f===def.barre.fret;
+        if(!isBarreDot || i===def.barre.from || i===def.barre.to){
+          svg += `<circle cx="${x}" cy="${y}" r="9" fill="#233e2b"/>`;
+          if(finger !== '') svg += `<text x="${x}" y="${y+4}" font-size="11" fill="white" text-anchor="middle" font-weight="700">${finger}</text>`;
+        }
+      }
+    });
+    svg += `</svg>`;
+    return `<div class="chord-diagram-wrap">${svg}</div>`;
+  }
+
+  function chordNotesLabel(def){
+    if(!def) return '';
+    const rootPc = NOTE_TO_SEMITONE[def.root];
+    const intervals = QUALITY_INTERVALS[def.quality] || [0];
+    const names = Array.from(new Set(intervals.map(o => NOTE_NAMES_SHARP[(rootPc+o)%12])));
+    return names.join(' ');
+  }
+
+  function chordFingersLabel(def){
+    if(!def || !def.fingers) return '—';
+    const used = def.fingers.filter(f=>f && f!=='x').map(Number);
+    if(!used.length) return 'nenhum (cordas soltas)';
+    return Array.from(new Set(used)).sort().join(', ');
+  }
+
+  function chordCategoryOf(quality){
+    if(quality==='m'||quality==='m6'||quality==='m7'||quality==='m9'||quality==='m11'||quality==='m13'||quality==='madd9') return 'menores';
+    if(quality==='7'||quality==='9'||quality==='11'||quality==='13'||quality==='m7'||quality==='maj7'||quality==='maj9'||quality==='m7b5') return 'setima';
+    if(quality==='sus2'||quality==='sus4') return 'suspensos';
+    if(quality==='maj') return 'maiores';
+    return 'outros';
+  }
+
+  /* ================= ACERVO DE ACORDES: TELA ================= */
+  function chordCardHtml(entry){
+    const def = entry.def;
+    const admin = isAdmin();
+    return `
+      <div class="chord-card">
+        <h3>${escapeHtml(entry.label)}</h3>
+        ${renderChordDiagram(def)}
+        ${def ? `
+          <div class="chord-info">
+            <div><strong>Afinação:</strong> padrão (E A D G B E)</div>
+            <div><strong>Posição:</strong> ${def.barre && def.barre.fret>1 ? def.barre.fret+'ª casa' : 'primeira posição'}</div>
+            <div><strong>Notas:</strong> ${chordNotesLabel(def)}</div>
+            <div><strong>Dedos:</strong> ${chordFingersLabel(def)}</div>
+          </div>` : ''}
+        <div class="chord-usage">Usado em ${entry.count} cifra${entry.count===1?'':'s'}</div>
+        ${admin ? `
+          <div class="chord-admin-actions">
+            ${!def ? `<button class="btn-secondary" data-action="openChordForm" data-chord="${escapeHtml(entry.label)}">Cadastrar diagrama</button>` : ''}
+            ${def && def.source==='custom' ? `
+              <button class="btn-secondary" data-action="openChordForm" data-chord="${escapeHtml(entry.label)}" data-editkey="${def.key}">Editar</button>
+              <button class="btn-secondary danger-text" data-action="deactivateChord" data-dbid="${def.dbId}">Desativar</button>
+            ` : ''}
+          </div>` : ''}
+      </div>`;
+  }
+
+  function renderChordLibrary(){
+    const q = (state.chordSearch||'').trim().toLowerCase();
+    const filter = state.chordFilter || 'todos';
+    let entries = getUsedChords();
+    if(q) entries = entries.filter(e => e.label.toLowerCase().includes(q));
+    if(filter !== 'todos'){
+      entries = entries.filter(e => {
+        const cat = chordCategoryOf(e.parsed.quality);
+        if(filter==='maiores') return cat==='maiores';
+        if(filter==='menores') return cat==='menores';
+        if(filter==='setima') return cat==='setima';
+        if(filter==='suspensos') return cat==='suspensos';
+        if(filter==='outros') return cat==='outros';
+        return true;
+      });
+    }
+    const cards = entries.map(chordCardHtml).join('');
+    const empty = getUsedChords().length===0
+      ? `<div class="empty-state"><div class="big">Nenhum acorde encontrado ainda.</div><div>Assim que as cifras do acervo tiverem acordes, eles aparecem aqui automaticamente.</div></div>`
+      : `<div class="empty-state"><div class="big">Nenhum acorde encontrado com esse filtro.</div></div>`;
+    const filters = [
+      ['todos','Todos'], ['maiores','Maiores'], ['menores','Menores'],
+      ['setima','Com 7ª'], ['suspensos','Suspensos'], ['outros','Outros']
+    ];
+    return `
+      <header class="topbar">
+        <button class="topbar-back" data-action="back">&#8592; Acervo</button>
+        <div class="song-title-block"><h1>🎸 Acervo de Acordes</h1><span>Explore os acordes utilizados nas cifras do acervo</span></div>
+      </header>
+      <main class="container">
+        <input id="chordSearchInput" class="search" style="margin-bottom:14px;" placeholder="Buscar acorde..." value="${escapeHtml(state.chordSearch||'')}">
+        <div class="chord-filters">
+          ${filters.map(([key,label])=>`<button class="chord-filter-btn ${filter===key?'active':''}" data-action="setChordFilter" data-filter="${key}">${label}</button>`).join('')}
+        </div>
+        <div class="chord-grid">${cards || empty}</div>
+      </main>
+      ${brandWatermark()}
+    `;
+  }
+
+  function goChordLibrary(){
+    state.view = 'chordLibrary';
+    render();
+  }
+
+  /* ================= ACERVO DE ACORDES: POPUP AO TOCAR NO ACORDE ================= */
+  function showChordPopup(chordText){
+    const parsed = parseChordName(chordText);
+    const def = parsed ? getChordDefinition(parsed) : null;
+    const overlay = document.createElement('div');
+    overlay.className = 'confirm-overlay';
+    overlay.innerHTML = `
+      <div class="confirm-box chord-popup-box">
+        <h3>${escapeHtml((parsed && parsed.original) || chordText)}</h3>
+        ${renderChordDiagram(def, {size:'large'})}
+        ${def ? `
+          <div class="chord-info" style="text-align:center;">
+            <div>Afinação padrão</div>
+            <div><strong>Notas:</strong> ${chordNotesLabel(def)}</div>
+          </div>` : ''}
+        <div class="confirm-actions"><button class="btn-primary" data-choice="close">Fechar</button></div>
+      </div>`;
+    document.body.appendChild(overlay);
+    overlay.addEventListener('click', e=>{
+      if(e.target===overlay || e.target.closest('[data-choice]')) overlay.remove();
+    });
+  }
+
+  /* ================= ACERVO DE ACORDES: ADMINISTRAÇÃO DE DIAGRAMAS ================= */
+  // A segurança de verdade é do Supabase/RLS (só o e-mail admin pode escrever
+  // em cifrario_chords) — esta checagem aqui é só para não mostrar o botão
+  // à toa para quem não é admin.
+  function openChordForm(chordText, editKey){
+    if(!isAdmin()){ showToast('Apenas o administrador pode cadastrar diagramas.'); return; }
+    const existingDef = editKey ? CHORD_LIBRARY.byKey[editKey] : null;
+    const stringLabels = ['6ª (E)','5ª (A)','4ª (D)','3ª (G)','2ª (B)','1ª (E)'];
+    const stringsVal = existingDef ? existingDef.strings : ['x','x','x','x','x','x'];
+    const fingersVal = existingDef ? (existingDef.fingers||['','','','','','']) : ['','','','','',''];
+    const overlay = document.createElement('div');
+    overlay.className = 'confirm-overlay';
+    overlay.innerHTML = `
+      <div class="confirm-box chord-form-box">
+        <h3>${existingDef ? 'Editar diagrama' : 'Cadastrar diagrama'} — ${escapeHtml(chordText)}</h3>
+        <p class="modal-sub">Preencha os trastes de cada corda ("x" = não tocada, "0" = solta). O diagrama só é salvo se as notas produzidas baterem com o acorde.</p>
+        <div class="chord-form-strings">
+          ${stringLabels.map((lbl,i)=>`
+            <div class="chord-form-string-col">
+              <span>${lbl}</span>
+              <input class="chord-form-fret" data-idx="${i}" value="${stringsVal[i]}" placeholder="x">
+              <input class="chord-form-finger" data-idx="${i}" value="${fingersVal[i]!=='x'&&fingersVal[i]!==undefined?fingersVal[i]:''}" placeholder="dedo">
+            </div>`).join('')}
+        </div>
+        <label class="chord-form-barre-check">
+          <input type="checkbox" id="chordFormBarreOn" ${existingDef && existingDef.barre ? 'checked':''}> Tem pestana?
+        </label>
+        <div id="chordFormBarreFields" class="chord-form-barre-fields" style="display:${existingDef && existingDef.barre ? 'flex':'none'};">
+          <input id="chordFormBarreFret" placeholder="Casa" value="${existingDef && existingDef.barre ? existingDef.barre.fret : ''}">
+          <input id="chordFormBarreFrom" placeholder="Da corda (0-5)" value="${existingDef && existingDef.barre ? existingDef.barre.from : ''}">
+          <input id="chordFormBarreTo" placeholder="Até a corda (0-5)" value="${existingDef && existingDef.barre ? existingDef.barre.to : ''}">
+        </div>
+        <div class="chord-form-error" id="chordFormError" style="display:none;"></div>
+        <div class="confirm-actions">
+          <button class="btn-secondary" data-choice="cancel" style="color:var(--ink);border-color:var(--border);">Cancelar</button>
+          <button class="btn-primary" data-choice="save">Validar e salvar</button>
+        </div>
+      </div>`;
+    document.body.appendChild(overlay);
+    const barreCheck = overlay.querySelector('#chordFormBarreOn');
+    const barreFields = overlay.querySelector('#chordFormBarreFields');
+    barreCheck.addEventListener('change', ()=>{ barreFields.style.display = barreCheck.checked ? 'flex' : 'none'; });
+
+    overlay.addEventListener('click', async e=>{
+      const btn = e.target.closest('[data-choice]');
+      if(!btn){ if(e.target===overlay) overlay.remove(); return; }
+      if(btn.dataset.choice==='cancel'){ overlay.remove(); return; }
+      if(btn.dataset.choice==='save'){
+        const errorEl = overlay.querySelector('#chordFormError');
+        errorEl.style.display = 'none';
+        const parsed = parseChordName(chordText);
+        if(!parsed){
+          errorEl.textContent = 'Nome de acorde não reconhecido.';
+          errorEl.style.display = 'block';
+          return;
+        }
+        const strings = Array.from(overlay.querySelectorAll('.chord-form-fret')).map(inp=>{
+          const v = inp.value.trim().toLowerCase();
+          if(v==='' || v==='x') return 'x';
+          const n = parseInt(v,10);
+          return isNaN(n) ? 'x' : n;
+        });
+        const fingers = Array.from(overlay.querySelectorAll('.chord-form-finger')).map(inp=>{
+          const v = inp.value.trim();
+          return v === '' ? 'x' : v;
+        });
+        let barre = null;
+        if(barreCheck.checked){
+          const fret = parseInt(overlay.querySelector('#chordFormBarreFret').value, 10);
+          const from = parseInt(overlay.querySelector('#chordFormBarreFrom').value, 10);
+          const to = parseInt(overlay.querySelector('#chordFormBarreTo').value, 10);
+          if(isNaN(fret) || isNaN(from) || isNaN(to)){
+            errorEl.textContent = 'Preencha corretamente os campos da pestana, ou desmarque a opção.';
+            errorEl.style.display = 'block';
+            return;
+          }
+          barre = { fret, from, to };
+        }
+        const candidate = { root: parsed.root, quality: parsed.quality, bass: parsed.bass, strings, fingers, barre };
+        if(!validateChordDefinition(candidate)){
+          errorEl.textContent = 'Essa posição não produz as notas corretas para ' + chordText + '. Confira os trastes e tente novamente.';
+          errorEl.style.display = 'block';
+          return;
+        }
+        const dbId = (existingDef && existingDef.dbId) ? existingDef.dbId : uid();
+        try {
+          const res = await authFetch(`${SUPABASE_URL}/rest/v1/cifrario_chords?on_conflict=id`, {
+            method: 'POST',
+            headers: { 'Prefer': 'resolution=merge-duplicates,return=minimal' },
+            body: JSON.stringify([{
+              id: dbId, name: chordText, normalized_name: parsed.normalized,
+              root: parsed.root, quality: parsed.quality, bass: parsed.bass,
+              strings, fingers, barre, validated: true, active: true,
+              updated_at: new Date().toISOString()
+            }])
+          });
+          if(!res.ok) throw new Error('http-' + res.status);
+          CHORD_LIBRARY.register({ root: parsed.root, quality: parsed.quality, bass: parsed.bass, strings, fingers, barre, source: 'custom', dbId });
+          _usedChordsCache = null;
+          showToast('Diagrama salvo e validado!');
+          overlay.remove();
+          render();
+        } catch (err) {
+          console.error('Erro ao salvar diagrama:', err);
+          errorEl.textContent = 'Não foi possível salvar no banco. Tente novamente.';
+          errorEl.style.display = 'block';
+        }
+      }
+    });
+  }
+
+  async function deactivateChord(dbId){
+    if(!isAdmin()) return;
+    const ok = await showConfirm('Desativar este diagrama? Ele deixará de aparecer no Acervo de Acordes.');
+    if(!ok) return;
+    try {
+      await authFetch(`${SUPABASE_URL}/rest/v1/cifrario_chords?id=eq.${encodeURIComponent(dbId)}`, { method: 'PATCH', body: JSON.stringify({ active: false }) });
+      for(const key in CHORD_LIBRARY.byKey){
+        if(CHORD_LIBRARY.byKey[key].dbId === dbId) delete CHORD_LIBRARY.byKey[key];
+      }
+      CHORD_LIBRARY.all = CHORD_LIBRARY.all.filter(d => d.dbId !== dbId);
+      _usedChordsCache = null;
+      showToast('Diagrama desativado.');
+      render();
+    } catch (e) {
+      console.error('Erro ao desativar diagrama:', e);
+      showToast('Não foi possível desativar o diagrama.');
+    }
+  }
+
   /* ================= RENDER ROOT ================= */
   function render(){
     const app = document.getElementById('app');
@@ -2536,6 +3307,7 @@
     else if(state.view==='editChords') app.innerHTML = renderEditChords();
     else if(state.view==='admin') app.innerHTML = renderAdmin();
     else if(state.view==='profileInfo') app.innerHTML = renderProfileInfo();
+    else if(state.view==='chordLibrary') app.innerHTML = renderChordLibrary();
     afterRender();
   }
 
@@ -2607,6 +3379,7 @@
           <span class="level-chip" title="Exp de Rezo">Nv. ${level} · ${progress}/100</span>
           <button class="user-email" data-action="openProfileInfo" title="Ver minhas informações">${escapeHtml((state.profile && state.profile.display_name) || state.session.user.email)}</button>
           ${isAdmin() ? `<button class="icon-btn" data-action="goAdmin">Administração</button>` : ''}
+          <button class="icon-btn" data-action="goChordLibrary">🎸 Acervo de Acordes</button>
           <button class="icon-btn" data-action="goLists">Minhas listas</button>
           <button class="icon-btn" data-action="signOut">Sair</button>
         </div>
@@ -2788,7 +3561,7 @@
       return `<div class="line"><div class="chords-row"></div><div class="lyrics-row">&nbsp;</div></div>`;
     }
     const chordsHtml = line.chords.map(c =>
-      `<span class="chord" style="left:${c.pos}ch">${escapeHtml(c.chord)}</span>`
+      `<span class="chord chord-tappable" data-action="showChordPopup" data-chord="${escapeHtml(c.chord)}" style="left:${c.pos}ch">${escapeHtml(c.chord)}</span>`
     ).join('');
     return `<div class="line">
       <div class="chords-row">${chordsHtml}</div>
@@ -3609,6 +4382,10 @@
       const themeEl = document.getElementById('themeInput');
       if(themeEl) themeEl.addEventListener('input', e=>{ e.target.value = e.target.value.replace(/\s/g,''); });
     }
+    if(state.view==='chordLibrary'){
+      const cs = document.getElementById('chordSearchInput');
+      if(cs) cs.addEventListener('input', e=>{ state.chordSearch = e.target.value; render(); const el=document.getElementById('chordSearchInput'); if(el){ el.focus(); el.selectionStart = el.value.length; } });
+    }
     if(state.view==='editChords'){
       focusSheet();
     }
@@ -3738,6 +4515,11 @@
     else if(action==='requestEditor') await requestEditorAccess();
     else if(action==='goAdmin') goAdmin();
     else if(action==='openProfileInfo') goProfileInfo();
+    else if(action==='goChordLibrary') goChordLibrary();
+    else if(action==='setChordFilter'){ state.chordFilter = el.dataset.filter; render(); }
+    else if(action==='showChordPopup') showChordPopup(el.dataset.chord);
+    else if(action==='openChordForm') openChordForm(el.dataset.chord, el.dataset.editkey || null);
+    else if(action==='deactivateChord') await deactivateChord(el.dataset.dbid);
     else if(action==='saveProfileInfo') await saveProfileInfo();
     else if(action==='adminTabRequests'){ state.adminTab='requests'; render(); }
     else if(action==='adminTabContributions'){ state.adminTab='contributions'; render(); }
@@ -3840,6 +4622,7 @@
   });
 
   /* ================= INIT ================= */
+  runChordSystemTests();
   init();
 })();
 </script>
