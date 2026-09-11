@@ -1588,13 +1588,10 @@
     }
   }
 
-  // Usado por qualquer ação que exija e-mail confirmado (editar/inserir
-  // cifra, salvar em listas, cadastrar acordes). Bloqueia com um aviso claro.
+  // Confirmação de e-mail removida: qualquer conta logada pode contribuir
+  // imediatamente. Mantida como função (sempre libera) para não precisar
+  // tocar em todos os pontos do app que já chamavam essa checagem.
   function requireConfirmedEmail(){
-    if(state.profile && !state.profile.email_confirmed){
-      showToast('Confirme seu e-mail para fazer isso — clique em "Confirmar cadastro" no topo da tela.');
-      return false;
-    }
     return true;
   }
 
@@ -1780,10 +1777,7 @@
     await loadFavorites();
     await loadCustomChords();
     if(state._pendingConfirmType === 'signup'){
-      await markEmailConfirmed();
       state._pendingConfirmType = null;
-    } else if(state.profile && !state.profile.email_confirmed){
-      showWelcomeConfirmPopup();
     }
   }
 
@@ -1823,7 +1817,7 @@
            !!(state.session && state.session.user && state.session.user.email === ADMIN_EMAIL);
   }
   function isEditor(){
-    return !!(state.profile && (state.profile.role === 'editor' || state.profile.role === 'admin'));
+    return isAdmin() || !!(state.profile && (state.profile.role === 'editor' || state.profile.role === 'admin'));
   }
   function levelInfo(exp){
     const safeExp = exp || 0;
@@ -2628,7 +2622,9 @@
           <div class="admin-row-sub">${escapeHtml(c.email)} · ${CONTRIB_KIND_LABEL[c.kind] || c.kind} · +${c.points} Exp</div>
         </div>
         <div class="admin-row-actions">
-          <button class="btn-primary" data-action="viewContribution" data-id="${c.id}">Ver e revisar</button>
+          <button class="btn-secondary" data-action="viewContribution" data-id="${c.id}">Ver e revisar</button>
+          <button class="btn-secondary" data-action="rejectContribution" data-id="${c.id}">Rejeitar</button>
+          <button class="btn-primary" data-action="approveContribution" data-id="${c.id}">Aprovar</button>
         </div>
       </div>`).join('') + `</div>`;
   }
@@ -3585,7 +3581,7 @@
         <div class="list-head">
           <input id="searchInput" class="search" placeholder="Buscar por título ou artista" value="${escapeHtml(state.search)}">
           <div class="list-head-actions">
-            ${(state.profile && !state.profile.email_confirmed) ? `<button class="btn-secondary confirm-email-btn" data-action="resendConfirmation">Confirmar cadastro</button>` : ''}
+            
             ${canEdit ? `
             <button class="btn-secondary" data-action="importPdf" title="Você pode selecionar vários arquivos de uma vez">Importar PDF</button>
             <button class="btn-primary" data-action="newSong">Nova música</button>
