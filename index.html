@@ -992,6 +992,46 @@
     margin-bottom:12px;
   }
 
+  /* ---------- POP-UP DE BOAS-VINDAS / CONFIRMAÇÃO DE E-MAIL ---------- */
+  .welcome-popup-box{
+    max-width:440px;
+    text-align:center;
+    background:linear-gradient(180deg, var(--surface) 0%, var(--surface-soft) 100%);
+    border:1px solid var(--gold);
+    box-shadow:0 24px 60px rgba(0,0,0,0.4), 0 0 0 4px var(--gold-soft);
+  }
+  .welcome-popup-logo{width:64px;height:auto;margin:0 auto 14px;display:block;}
+  .welcome-popup-box h3{
+    font-family:var(--font-serif);
+    font-size:22px;
+    color:var(--ink);
+    margin:0 0 14px;
+  }
+  .welcome-popup-box p{
+    font-size:14px;
+    line-height:1.65;
+    color:var(--ink-soft);
+    text-align:left;
+    margin:0 0 16px;
+  }
+  .welcome-popup-highlight{
+    background:var(--gold-soft);
+    border:1px solid var(--gold);
+    border-radius:14px;
+    padding:14px 16px;
+    font-size:13.5px;
+    line-height:1.6;
+    color:var(--gold-strong);
+    font-weight:600;
+    text-align:left;
+    margin-bottom:18px;
+  }
+  .confirm-email-btn{
+    background:var(--gold-soft);
+    border-color:var(--gold);
+    color:var(--gold-light);
+  }
+
   @media (max-width:600px){
     .container{padding:20px 16px 100px;}
     .topbar{padding:14px 16px;}
@@ -1213,6 +1253,16 @@
   //   create policy "admin edita acordes" on cifrario_chords for update using (auth.jwt()->>'email' = '23caiocaio05@gmail.com');
   //   drop policy if exists "admin exclui acordes" on cifrario_chords;
   //   create policy "admin exclui acordes" on cifrario_chords for delete using (auth.jwt()->>'email' = '23caiocaio05@gmail.com');
+  //
+  //   -- ADICIONAL: confirmação de e-mail sem bloquear o login (controle próprio,
+  //   -- não depende do "email_confirmed_at" nativo do Supabase)
+  //   alter table cifrario_profiles add column if not exists email_confirmed boolean not null default false;
+  //
+  // IMPORTANTE — no painel do Supabase, vá em Authentication > Providers >
+  // Email e DESATIVE "Confirm email". Isso permite login imediato após o
+  // cadastro; o app cuida de enviar o e-mail de confirmação e de liberar as
+  // ações que exigem confirmação (editar/inserir cifra, salvar em listas,
+  // cadastrar acordes) só depois que a pessoa clicar no link.
   //
   // Além disso, em Authentication > URL Configuration, adicione o endereço
   // onde este app está hospedado (ex.: https://seu-usuario.github.io/acervo-dos-rezos/)
@@ -1456,6 +1506,80 @@
     return data;
   }
 
+  // Reenvia o e-mail de confirmação de cadastro (necessário porque, com login
+  // liberado sem confirmação, o Supabase não dispara esse e-mail sozinho).
+  async function apiRequestEmailConfirmation(email){
+    const redirectTo = window.location.origin + window.location.pathname;
+    const res = await fetch(`${SUPABASE_URL}/auth/v1/resend`, {
+      method: 'POST',
+      headers: { 'apikey': SUPABASE_ANON_KEY, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ type: 'signup', email, options: { redirect_to: redirectTo } })
+    });
+    const data = await res.json().catch(()=>({}));
+    if(!res.ok) throw new Error(authErrorMessage(data, 'Não foi possível enviar o e-mail de confirmação.'));
+    return data;
+  }
+
+  async function markEmailConfirmed(){
+    if(!state.session || !state.profile || state.profile.email_confirmed) return;
+    try {
+      await authFetch(`${SUPABASE_URL}/rest/v1/cifrario_profiles?id=eq.${state.session.user.id}`, {
+        method: 'PATCH', body: JSON.stringify({ email_confirmed: true })
+      });
+      state.profile.email_confirmed = true;
+      showToast('E-mail confirmado! Agora você já pode contribuir com o acervo. 🎉');
+      render();
+    } catch (e) {
+      console.error('Erro ao confirmar e-mail:', e);
+    }
+  }
+
+  async function resendConfirmationEmail(){
+    if(!state.session) return;
+    try {
+      await apiRequestEmailConfirmation(state.session.user.email);
+      showToast('Enviamos um novo link de confirmação para o seu e-mail.');
+    } catch (e) {
+      console.error('Erro ao reenviar confirmação:', e);
+      showToast('Não foi possível reenviar agora. Tente de novo em instantes.');
+    }
+  }
+
+  // Usado por qualquer ação que exija e-mail confirmado (editar/inserir
+  // cifra, salvar em listas, cadastrar acordes). Bloqueia com um aviso claro.
+  function requireConfirmedEmail(){
+    if(state.profile && !state.profile.email_confirmed){
+      showToast('Confirme seu e-mail para fazer isso — clique em "Confirmar cadastro" no topo da tela.');
+      return false;
+    }
+    return true;
+  }
+
+  function showWelcomeConfirmPopup(){
+    const overlay = document.createElement('div');
+    overlay.className = 'confirm-overlay';
+    overlay.innerHTML = `
+      <div class="confirm-box welcome-popup-box">
+        <img src="${LOGO_ICON}" class="welcome-popup-logo" alt="">
+        <h3>Seja muito bem-vindo(a) ao nosso Acervo!</h3>
+        <p>Nossa comunidade de rezadores e irmãos tem a missão de criar o maior acervo de cifras e rezos possível, para incentivar mais e mais rezadores e para compartilhar nossos cantos com todos os que estiverem nesse caminho, se alimentando de música medicina.</p>
+        <div class="welcome-popup-highlight">
+          Confirme o seu e-mail cadastrado para poder contribuir com novas cifras, salvar suas cifras favoritas em listas personalizadas e muito mais! É só clicar no link que já te enviamos.
+        </div>
+        <div class="confirm-actions" style="justify-content:center;">
+          <button class="btn-secondary" data-action="resendConfirmation" style="color:var(--ink);border-color:var(--border);">Reenviar e-mail</button>
+          <button class="btn-primary" data-choice="close">Entendi</button>
+        </div>
+      </div>`;
+    document.body.appendChild(overlay);
+    overlay.addEventListener('click', async e=>{
+      const btn = e.target.closest('[data-choice],[data-action]');
+      if(!btn){ if(e.target===overlay) overlay.remove(); return; }
+      if(btn.dataset.action==='resendConfirmation'){ await resendConfirmationEmail(); return; }
+      if(btn.dataset.choice==='close'){ overlay.remove(); return; }
+    });
+  }
+
   async function apiUpdatePassword(accessToken, newPassword){
     const res = await fetch(`${SUPABASE_URL}/auth/v1/user`, {
       method: 'PUT',
@@ -1500,6 +1624,7 @@
       state.authLoading = false;
       if(data.access_token){
         setSessionFromAuthResponse(data);
+        try { await apiRequestEmailConfirmation(email); } catch(e){ console.error('Erro ao enviar e-mail de confirmação:', e); }
         await enterApp();
       } else {
         state.authView = 'login';
@@ -1597,6 +1722,7 @@
     }
     state.session = { access_token: accessToken, refresh_token: refreshToken, user: null };
     saveSessionToStorage();
+    state._pendingConfirmType = type; // 'signup' quando o link é de confirmação de e-mail
     return 'login-direct';
   }
 
@@ -1610,6 +1736,12 @@
     await loadLists();
     await loadFavorites();
     await loadCustomChords();
+    if(state._pendingConfirmType === 'signup'){
+      await markEmailConfirmed();
+      state._pendingConfirmType = null;
+    } else if(state.profile && !state.profile.email_confirmed){
+      showWelcomeConfirmPopup();
+    }
   }
 
   async function init(){
@@ -1690,7 +1822,8 @@
       if(rows.length){
         state.profile = {
           role: rows[0].role, exp: rows[0].exp, display_name: rows[0].display_name || '',
-          birth_date: rows[0].birth_date || '', phone: rows[0].phone || ''
+          birth_date: rows[0].birth_date || '', phone: rows[0].phone || '',
+          email_confirmed: !!rows[0].email_confirmed
         };
       } else {
         const insertRes = await authFetch(`${SUPABASE_URL}/rest/v1/cifrario_profiles`, {
@@ -1700,9 +1833,9 @@
         });
         if(insertRes.ok){
           const inserted = await insertRes.json();
-          state.profile = { role: inserted[0].role, exp: inserted[0].exp, display_name: '', birth_date: '', phone: '' };
+          state.profile = { role: inserted[0].role, exp: inserted[0].exp, display_name: '', birth_date: '', phone: '', email_confirmed: !!inserted[0].email_confirmed };
         } else {
-          state.profile = { role: 'viewer', exp: 0, display_name: '', birth_date: '', phone: '' };
+          state.profile = { role: 'viewer', exp: 0, display_name: '', birth_date: '', phone: '', email_confirmed: false };
         }
         render();
         const name = await askDisplayName();
@@ -1718,7 +1851,7 @@
       checkExpCelebration();
     } catch (e) {
       console.error('Erro ao carregar perfil:', e);
-      state.profile = { role: 'viewer', exp: 0, display_name: '', birth_date: '', phone: '' };
+      state.profile = { role: 'viewer', exp: 0, display_name: '', birth_date: '', phone: '', email_confirmed: false };
     }
     render();
   }
@@ -2239,6 +2372,7 @@
 
   function goNewSong(){
     if(!isEditor()){ showToast('Você precisa ser um editor aprovado para adicionar músicas.'); return; }
+    if(!requireConfirmedEmail()) return;
     state.editor = {
       id:null, title:'', artist:'', tone:'', theme:'', source:'manual',
       links:{youtube:'',spotify:'',deezer:'',other:''}, lines:[]
@@ -2248,6 +2382,7 @@
   }
   function goEditSong(id){
     if(!isEditor()){ showToast('Você precisa ser um editor aprovado para editar músicas.'); return; }
+    if(!requireConfirmedEmail()) return;
     const song = state.songs.find(s=>s.id===id);
     if(!song) return;
     state.editor = {
@@ -2297,6 +2432,7 @@
         cb.addEventListener('change', async ()=>{
           const list = state.lists.find(l=>l.id===cb.dataset.listId);
           if(!list) return;
+          if(cb.checked && !requireConfirmedEmail()){ cb.checked = false; return; }
           await toggleSongInList(list, songId);
           showToast(isSongInList(list, songId) ? `Adicionada a "${list.name}".` : `Removida de "${list.name}".`);
           renderModal();
@@ -2304,6 +2440,7 @@
       });
       const nameInput = overlay.querySelector('#newListNameInput');
       overlay.querySelector('#createListBtn').addEventListener('click', async ()=>{
+        if(!requireConfirmedEmail()) return;
         const name = nameInput.value.trim();
         if(!name){ nameInput.focus(); return; }
         const list = { id: uid(), name, songIds: [songId] };
@@ -2345,6 +2482,7 @@
         </div>`;
       overlay.querySelectorAll('input[type=checkbox]').forEach(cb=>{
         cb.addEventListener('change', async ()=>{
+          if(cb.checked && !requireConfirmedEmail()){ cb.checked = false; return; }
           await toggleSongInList(list, cb.dataset.songId);
           renderModal();
         });
@@ -2358,6 +2496,7 @@
   /* ================= MODAL: LINKS DE STREAMING ================= */
   function openLinksModal(songId){
     if(!isEditor()){ showToast('Você precisa ser um editor aprovado para adicionar links.'); return; }
+    if(!requireConfirmedEmail()) return;
     const song = state.songs.find(s=>s.id===songId);
     if(!song) return;
     if(!song.links) song.links = {youtube:'',spotify:'',deezer:'',other:''};
@@ -2416,7 +2555,8 @@
     new_manual: 'Nova cifra (manual)',
     new_pdf: 'Nova cifra (PDF)',
     edit: 'Edição de cifra',
-    link: 'Links adicionados'
+    link: 'Links adicionados',
+    chord: 'Diagrama de acorde'
   };
 
   function renderAdminRequests(){
@@ -3167,6 +3307,7 @@
   // à toa para quem não é admin.
   function openChordForm(chordText, editKey){
     if(!isAdmin()){ showToast('Apenas o administrador pode cadastrar diagramas.'); return; }
+    if(!requireConfirmedEmail()) return;
     const existingDef = editKey ? CHORD_LIBRARY.byKey[editKey] : null;
     const stringLabels = ['6ª (E)','5ª (A)','4ª (D)','3ª (G)','2ª (B)','1ª (E)'];
     const stringsVal = existingDef ? existingDef.strings : ['x','x','x','x','x','x'];
@@ -3260,8 +3401,20 @@
           if(!res.ok) throw new Error('http-' + res.status);
           CHORD_LIBRARY.register({ root: parsed.root, quality: parsed.quality, bass: parsed.bass, strings, fingers, barre, source: 'custom', dbId });
           _usedChordsCache = null;
-          showToast('Diagrama salvo e validado!');
           overlay.remove();
+          try {
+            await authFetch(`${SUPABASE_URL}/rest/v1/cifrario_contributions`, {
+              method: 'POST', headers: { 'Prefer': 'return=minimal' },
+              body: JSON.stringify([{ id: uid(), user_id: state.session.user.id, email: state.session.user.email, song_id: null, song_title: chordText, kind: 'chord', points: 10, status: 'approved' }])
+            });
+            const newExp = await creditExp(state.session.user.id, 10);
+            state.profile.exp = newExp;
+            try { localStorage.setItem('cifrario_seen_exp_' + state.session.user.id, String(newExp)); } catch(e2){}
+            showExpCelebration(10, newExp);
+          } catch (expErr) {
+            console.error('Erro ao creditar Exp do acorde:', expErr);
+            showToast('Diagrama salvo e validado!');
+          }
           render();
         } catch (err) {
           console.error('Erro ao salvar diagrama:', err);
@@ -3388,6 +3541,7 @@
         <div class="list-head">
           <input id="searchInput" class="search" placeholder="Buscar por título ou artista" value="${escapeHtml(state.search)}">
           <div class="list-head-actions">
+            ${(state.profile && !state.profile.email_confirmed) ? `<button class="btn-secondary confirm-email-btn" data-action="resendConfirmation">Confirmar cadastro</button>` : ''}
             ${canEdit ? `
             <button class="btn-secondary" data-action="importPdf" title="Você pode selecionar vários arquivos de uma vez">Importar PDF</button>
             <button class="btn-primary" data-action="newSong">Nova música</button>
@@ -3941,6 +4095,7 @@
 
   async function deleteSong(id){
     if(!isEditor()){ showToast('Você precisa ser um editor aprovado para excluir músicas.'); return; }
+    if(!requireConfirmedEmail()) return;
     const song = state.songs.find(s=>s.id===id);
     if(!song) return;
     const ok = await showConfirm(`Excluir "${song.title}"? Essa ação não pode ser desfeita.`);
@@ -4224,6 +4379,7 @@
 
   async function handlePdfFile(file){
     if(!isEditor()){ showToast('Você precisa ser um editor aprovado para importar PDFs.'); return; }
+    if(!requireConfirmedEmail()) return;
     showToast('Lendo o PDF...');
     try {
       await ensurePdfJs();
@@ -4261,6 +4417,7 @@
   // do administrador, exceto quando quem importa é o próprio administrador.
   async function handlePdfFilesBatch(files){
     if(!isEditor()){ showToast('Você precisa ser um editor aprovado para importar PDFs.'); return; }
+    if(!requireConfirmedEmail()) return;
     showToast(`Lendo ${files.length} arquivos...`);
     try { await ensurePdfJs(); } catch(e){
       showToast('Não foi possível carregar o leitor de PDF.');
@@ -4422,6 +4579,7 @@
 
     else if(action==='goLists') goLists();
     else if(action==='newList'){
+      if(!requireConfirmedEmail()) return;
       const name = await showPrompt('Nome da nova lista:', '');
       if(name){
         const list = { id: uid(), name, songIds: [] };
@@ -4511,6 +4669,7 @@
     else if(action==='goSignup') goSignup();
     else if(action==='goForgot') goForgot();
     else if(action==='signOut') await signOut();
+    else if(action==='resendConfirmation') await resendConfirmationEmail();
 
     else if(action==='requestEditor') await requestEditorAccess();
     else if(action==='goAdmin') goAdmin();
