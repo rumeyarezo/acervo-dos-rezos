@@ -484,6 +484,49 @@
   .autoscroll-fab:hover{background:var(--gold-light);}
   .autoscroll-fab.active{background:var(--leaf);color:#fff;border-color:#0e1a12;}
 
+  /* ---------- BARRA VERTICAL DE VELOCIDADE (visível durante a rolagem automática) ---------- */
+  .speed-vbar{
+    position:fixed;
+    right:max(6px, env(safe-area-inset-right));
+    top:96px;
+    bottom:110px;
+    width:26px;
+    border-radius:13px;
+    background:rgba(20,20,20,0.28);
+    backdrop-filter:blur(2px);
+    z-index:55;
+    touch-action:none;
+    -webkit-tap-highlight-color:transparent;
+  }
+  .speed-vbar-track{position:relative;width:100%;height:100%;padding:3px;box-sizing:border-box;}
+  .speed-vbar-fill{
+    position:absolute;
+    left:3px;right:3px;bottom:3px;
+    background:var(--leaf, #2e7d4f);
+    border-radius:10px;
+    opacity:0.85;
+  }
+  .speed-vbar-thumb{
+    position:absolute;
+    left:50%;
+    width:18px;height:18px;
+    border-radius:50%;
+    background:#fff;
+    box-shadow:0 1px 4px rgba(0,0,0,0.45);
+    transform:translate(-50%, 50%);
+  }
+  .speed-vbar-icon{
+    position:fixed;
+    right:max(4px, env(safe-area-inset-right));
+    font-size:13px;
+    color:rgba(255,255,255,0.55);
+    z-index:55;
+    width:26px;
+    text-align:center;
+  }
+  .speed-vbar-icon.top{top:74px;}
+  .speed-vbar-icon.bottom{bottom:88px;}
+
   /* ---------- POPUP DE LEITURA (ancorado no canto, acima do botão) ---------- */
   .reading-popup{
     position:fixed;
@@ -1538,10 +1581,10 @@
     if(!state.session) return;
     try {
       await apiRequestEmailConfirmation(state.session.user.email);
-      showToast('Enviamos um novo link de confirmação para o seu e-mail.');
+      showToast('Pedido enviado ao Supabase. Se não chegar em alguns minutos, veja a caixa de spam ou confira o provedor de e-mail configurado no projeto.');
     } catch (e) {
       console.error('Erro ao reenviar confirmação:', e);
-      showToast('Não foi possível reenviar agora. Tente de novo em instantes.');
+      showToast('Não foi possível reenviar: ' + (e.message || 'erro desconhecido') + '.');
     }
   }
 
@@ -3104,7 +3147,7 @@
     if(failed.length){
       console.warn('[Acervo de Acordes] testes falharam:', failed.map(f=>f.desc));
     } else {
-      console.info('[Acervo de Acordes] todos os ' + checks.length + ' testes internos passaram.');
+      console.log('[Acervo de Acordes] todos os ' + checks.length + ' testes internos passaram.');
     }
     return checks;
   }
@@ -3447,6 +3490,7 @@
   /* ================= RENDER ROOT ================= */
   function render(){
     const app = document.getElementById('app');
+    if(state.view!=='view') removeSpeedVBar();
     if(state.view==='login'){ app.innerHTML = renderLogin(); afterRender(); return; }
     if(state.view==='signup'){ app.innerHTML = renderSignup(); afterRender(); return; }
     if(state.view==='forgot'){ app.innerHTML = renderForgotPassword(); afterRender(); return; }
@@ -3827,6 +3871,7 @@
     slider.addEventListener('input', e=>{
       state.autoScroll.speed = parseInt(e.target.value, 10);
       popup.querySelector('#speedValueModal').textContent = state.autoScroll.speed + '%';
+      updateSpeedVBarUI();
     });
     popup.addEventListener('click', e=>{
       const btn = e.target.closest('[data-action]');
@@ -3870,6 +3915,26 @@
   // ou posição de acorde) caber na largura da tela, sem cortar palavras nem
   // precisar de rolagem horizontal — mantém o alinhamento porque cifra e
   // letra usam a mesma fonte monoespaçada e escalam juntas.
+  // A largura real de um caractere é medida (em vez de estimada), e não há
+  // piso mínimo de tamanho: se a linha for muito longa, a fonte encolhe o
+  // quanto for preciso para caber 100% da largura sem arrastar a tela.
+  let _monoCharWidthPerPx = null;
+  function getMonoCharWidthPerPx(){
+    if(_monoCharWidthPerPx) return _monoCharWidthPerPx;
+    const probe = document.createElement('span');
+    probe.style.position = 'absolute';
+    probe.style.visibility = 'hidden';
+    probe.style.whiteSpace = 'pre';
+    probe.style.fontFamily = getComputedStyle(document.querySelector('.sheet .lyrics-row') || document.body).fontFamily || 'monospace';
+    probe.style.fontSize = '100px';
+    probe.textContent = '0'.repeat(50);
+    document.body.appendChild(probe);
+    const width = probe.getBoundingClientRect().width;
+    document.body.removeChild(probe);
+    _monoCharWidthPerPx = width > 0 ? (width / 50) / 100 : 0.6; // largura por caractere, por px de font-size
+    return _monoCharWidthPerPx;
+  }
+
   function fitSheetFontSize(){
     const sheet = document.querySelector('.sheet');
     if(!sheet) return;
@@ -3882,9 +3947,9 @@
     });
     const availableWidth = sheet.clientWidth - 8;
     if(availableWidth <= 0) return;
-    // largura aproximada de um caractere na fonte monoespaçada ≈ 0.62 * font-size
-    let fontSize = Math.floor(availableWidth / (maxChars * 0.62));
-    fontSize = Math.max(10, Math.min(16, fontSize));
+    const charWidthPerPx = getMonoCharWidthPerPx();
+    let fontSize = Math.floor(availableWidth / (maxChars * charWidthPerPx));
+    fontSize = Math.max(1, Math.min(16, fontSize));
     sheet.style.setProperty('--sheet-font-size', fontSize + 'px');
   }
 
@@ -4459,6 +4524,86 @@
   }
 
   /* ================= AUTOSCROLL ================= */
+  let speedVBarDragging = false;
+
+  function setSpeedFromTrackClientY(clientY){
+    const track = document.getElementById('speedVBarTrack');
+    if(!track) return;
+    const rect = track.getBoundingClientRect();
+    let ratio = (rect.bottom - clientY) / rect.height; // 0 embaixo, 1 em cima
+    ratio = Math.max(0, Math.min(1, ratio));
+    state.autoScroll.speed = Math.round(1 + ratio * 99); // 1..100
+    updateSpeedVBarUI();
+    syncSpeedControlsExternal();
+  }
+
+  function onSpeedVBarPointerDown(e){
+    speedVBarDragging = true;
+    setSpeedFromTrackClientY(e.clientY);
+    e.preventDefault();
+  }
+  function onSpeedVBarPointerMove(e){
+    if(!speedVBarDragging) return;
+    setSpeedFromTrackClientY(e.clientY);
+  }
+  function onSpeedVBarPointerUp(){ speedVBarDragging = false; }
+
+  function createSpeedVBar(){
+    if(document.getElementById('speedVBar')) return;
+    const bar = document.createElement('div');
+    bar.id = 'speedVBar';
+    bar.className = 'speed-vbar';
+    bar.innerHTML = `<div class="speed-vbar-track" id="speedVBarTrack">
+        <div class="speed-vbar-fill" id="speedVBarFill"></div>
+        <div class="speed-vbar-thumb" id="speedVBarThumb"></div>
+      </div>`;
+    const iconTop = document.createElement('div');
+    iconTop.className = 'speed-vbar-icon top';
+    iconTop.id = 'speedVBarIconTop';
+    iconTop.textContent = '⚡';
+    const iconBottom = document.createElement('div');
+    iconBottom.className = 'speed-vbar-icon bottom';
+    iconBottom.id = 'speedVBarIconBottom';
+    iconBottom.textContent = '🐢';
+    document.body.appendChild(bar);
+    document.body.appendChild(iconTop);
+    document.body.appendChild(iconBottom);
+    bar.addEventListener('pointerdown', onSpeedVBarPointerDown);
+    window.addEventListener('pointermove', onSpeedVBarPointerMove);
+    window.addEventListener('pointerup', onSpeedVBarPointerUp);
+    updateSpeedVBarUI();
+  }
+
+  function removeSpeedVBar(){
+    const bar = document.getElementById('speedVBar');
+    if(bar) bar.remove();
+    const iconTop = document.getElementById('speedVBarIconTop');
+    if(iconTop) iconTop.remove();
+    const iconBottom = document.getElementById('speedVBarIconBottom');
+    if(iconBottom) iconBottom.remove();
+    window.removeEventListener('pointermove', onSpeedVBarPointerMove);
+    window.removeEventListener('pointerup', onSpeedVBarPointerUp);
+    speedVBarDragging = false;
+  }
+
+  function updateSpeedVBarUI(){
+    const fill = document.getElementById('speedVBarFill');
+    const thumb = document.getElementById('speedVBarThumb');
+    if(!fill || !thumb) return;
+    const pct = Math.max(1, Math.min(100, state.autoScroll.speed));
+    fill.style.height = pct + '%';
+    thumb.style.bottom = pct + '%';
+  }
+
+  // Mantém a barra vertical e o slider do popup de leitura sincronizados,
+  // não importa qual dos dois controles o usuário está mexendo.
+  function syncSpeedControlsExternal(){
+    const slider = document.getElementById('speedSliderModal');
+    const label = document.getElementById('speedValueModal');
+    if(slider) slider.value = state.autoScroll.speed;
+    if(label) label.textContent = state.autoScroll.speed + '%';
+  }
+
   function startAutoScroll(){
     // Quem rola de fato é a página (o #scrollContainer não tem overflow/altura
     // própria), então a rolagem automática precisa mexer no scroll da janela.
@@ -4479,18 +4624,21 @@
       if(window.scrollY >= maxScroll - 2){
         state.autoScroll.active = false;
         updatePlayToggleUI();
+        removeSpeedVBar();
         return;
       }
       scrollRAF = requestAnimationFrame(step);
     }
     scrollRAF = requestAnimationFrame(step);
     updatePlayToggleUI();
+    createSpeedVBar();
   }
   function stopAutoScroll(){
     state.autoScroll.active = false;
     if(scrollRAF) cancelAnimationFrame(scrollRAF);
     scrollRAF = null;
     updatePlayToggleUI();
+    removeSpeedVBar();
   }
   function updatePlayToggleUI(){
     const fab = document.querySelector('.autoscroll-fab');
