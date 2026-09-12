@@ -1035,6 +1035,149 @@
     margin-bottom:12px;
   }
 
+  /* ---------- CONSTRUTOR INTERATIVO DE ACORDES ---------- */
+  .cb-panel{max-width:560px;margin:0 auto;}
+  .cb-search{width:100%;text-align:center;font-size:16px;margin-bottom:20px;}
+  .cb-builder-row{display:flex;gap:14px;align-items:flex-start;justify-content:center;}
+  .cb-window-scroller{
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    gap:6px;
+    width:34px;
+    flex:none;
+    padding-top:26px;
+  }
+  .cb-window-btn{
+    width:30px;height:26px;
+    border-radius:8px;
+    background:var(--surface-soft);
+    border:1px solid var(--border);
+    color:var(--ink-soft);
+    font-size:11px;
+  }
+  .cb-window-btn:hover{border-color:var(--gold);color:var(--gold-strong);}
+  .cb-window-track{
+    position:relative;
+    width:10px;
+    flex:1;
+    min-height:140px;
+    background:var(--surface-soft);
+    border:1px solid var(--border);
+    border-radius:999px;
+  }
+  .cb-window-thumb{
+    position:absolute;
+    left:-3px;
+    width:16px;
+    height:36px;
+    border-radius:999px;
+    background:var(--gold);
+    border:2px solid var(--gold-strong);
+    transform:translateY(0);
+  }
+  .cb-fretboard{flex:1;min-width:0;max-width:340px;}
+  .cb-string-labels{
+    display:grid;
+    grid-template-columns:repeat(6,1fr);
+    text-align:center;
+    font-weight:700;
+    color:var(--ink-soft);
+    font-size:15px;
+    margin-bottom:6px;
+    padding-left:26px;
+  }
+  .cb-grid-wrap{
+    position:relative;
+    border:1px solid var(--border);
+    border-radius:10px;
+    overflow:hidden;
+    background:var(--surface-soft);
+  }
+  .cb-fret-row{
+    display:flex;
+    align-items:stretch;
+    border-bottom:1px solid var(--border);
+    height:46px;
+  }
+  .cb-fret-row:last-child{border-bottom:none;}
+  .cb-fret-num{
+    width:26px;
+    flex:none;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:11px;
+    color:var(--muted);
+    background:var(--surface);
+    border-right:1px solid var(--border);
+  }
+  .cb-fret-cells{
+    flex:1;
+    display:grid;
+    grid-template-columns:repeat(6,1fr);
+  }
+  .cb-cell{
+    position:relative;
+    border-right:1px solid var(--border);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    cursor:pointer;
+    touch-action:none;
+    -webkit-tap-highlight-color:transparent;
+  }
+  .cb-cell:last-child{border-right:none;}
+  .cb-cell:hover{background:var(--gold-soft);}
+  .cb-cell-dragpreview{background:var(--gold-soft);}
+  .cb-dot{
+    width:24px;height:24px;
+    border-radius:50%;
+    background:#233e2b;
+    display:block;
+  }
+  .cb-barre{
+    position:absolute;
+    height:22px;
+    background:#233e2b;
+    border-radius:11px;
+    z-index:2;
+    pointer-events:none;
+    opacity:0.9;
+  }
+  .cb-mute-row{
+    display:grid;
+    grid-template-columns:repeat(6,1fr);
+    padding-left:26px;
+    margin-top:8px;
+  }
+  .cb-mute-btn{
+    height:28px;
+    font-size:14px;
+    font-weight:700;
+    color:var(--danger);
+    background:none;
+    border:none;
+  }
+  .cb-mute-btn.cb-open{color:var(--leaf);}
+  .cb-mute-btn.cb-blank{color:transparent;}
+  .cb-error{
+    background:var(--danger-soft);
+    border:1px solid var(--danger);
+    color:var(--danger);
+    font-size:13px;
+    padding:10px 12px;
+    border-radius:var(--radius-control);
+    margin:16px 0;
+    text-align:center;
+  }
+  .cb-actions{display:flex;gap:10px;justify-content:center;margin-top:18px;}
+  .cb-actions .btn-secondary{color:var(--ink);border-color:var(--border);}
+  @media (max-width:600px){
+    .cb-fretboard{max-width:none;}
+    .cb-cell .cb-dot{width:20px;height:20px;}
+  }
+
   /* ---------- POP-UP DE BOAS-VINDAS / CONFIRMAÇÃO DE E-MAIL ---------- */
   .welcome-popup-box{
     max-width:440px;
@@ -1960,6 +2103,20 @@
         method: 'PATCH',
         body: JSON.stringify({ links, updated_at: new Date().toISOString() })
       });
+    } else if(kind === 'chord'){
+      const c = payload.after || {};
+      await authFetch(`${SUPABASE_URL}/rest/v1/cifrario_chords?on_conflict=id`, {
+        method: 'POST',
+        headers: { 'Prefer': 'resolution=merge-duplicates,return=minimal' },
+        body: JSON.stringify([{
+          id: c.dbId, name: c.name, normalized_name: c.normalized,
+          root: c.root, quality: c.quality, bass: c.bass,
+          strings: c.strings, fingers: c.fingers, barre: c.barre,
+          validated: true, active: true, updated_at: new Date().toISOString()
+        }])
+      });
+      CHORD_LIBRARY.register({ root: c.root, quality: c.quality, bass: c.bass, strings: c.strings, fingers: c.fingers, barre: c.barre, source: 'custom', dbId: c.dbId });
+      _usedChordsCache = null;
     }
   }
 
@@ -2678,6 +2835,14 @@
           </div>`).join('');
       return `<div class="contrib-links-list">${rows || '<p class="muted-note">Nenhuma alteração registrada.</p>'}</div>`;
     }
+    if(contrib.kind === 'chord'){
+      const c = payload.after || {};
+      const def = { root: c.root, quality: c.quality, bass: c.bass, strings: c.strings, fingers: c.fingers, barre: c.barre, validated: true };
+      return `
+        <div class="contrib-preview-meta">Acorde: ${escapeHtml(c.name || '')}</div>
+        ${renderChordDiagram(def, {size:'large'})}
+      `;
+    }
     return '<p class="muted-note">Sem detalhes disponíveis para esta contribuição.</p>';
   }
 
@@ -3249,6 +3414,7 @@
   function chordCardHtml(entry){
     const def = entry.def;
     const admin = isAdmin();
+    const editor = isEditor();
     return `
       <div class="chord-card">
         <h3>${escapeHtml(entry.label)}</h3>
@@ -3261,11 +3427,11 @@
             <div><strong>Dedos:</strong> ${chordFingersLabel(def)}</div>
           </div>` : ''}
         <div class="chord-usage">Usado em ${entry.count} cifra${entry.count===1?'':'s'}</div>
-        ${admin ? `
+        ${(editor || admin) ? `
           <div class="chord-admin-actions">
-            ${!def ? `<button class="btn-secondary" data-action="openChordForm" data-chord="${escapeHtml(entry.label)}">Cadastrar diagrama</button>` : ''}
-            ${def && def.source==='custom' ? `
-              <button class="btn-secondary" data-action="openChordForm" data-chord="${escapeHtml(entry.label)}" data-editkey="${def.key}">Editar</button>
+            ${!def && editor ? `<button class="btn-secondary" data-action="goChordBuilder" data-chord="${escapeHtml(entry.label)}">Cadastrar diagrama</button>` : ''}
+            ${def && def.source==='custom' && admin ? `
+              <button class="btn-secondary" data-action="goChordBuilder" data-chord="${escapeHtml(entry.label)}" data-editkey="${def.key}">Editar</button>
               <button class="btn-secondary danger-text" data-action="deactivateChord" data-dbid="${def.dbId}">Desativar</button>
             ` : ''}
           </div>` : ''}
@@ -3300,6 +3466,7 @@
       <header class="topbar">
         <button class="topbar-back" data-action="back">&#8592; Acervo</button>
         <div class="song-title-block"><h1>🎸 Acervo de Acordes</h1><span>Explore os acordes utilizados nas cifras do acervo</span></div>
+        ${isEditor() ? `<div class="topbar-actions"><button class="icon-btn" data-action="goChordBuilder" data-chord="">+ Criar novo acorde</button></div>` : ''}
       </header>
       <main class="container">
         <input id="chordSearchInput" class="search" style="margin-bottom:14px;" placeholder="Buscar acorde..." value="${escapeHtml(state.chordSearch||'')}">
@@ -3341,129 +3508,6 @@
   }
 
   /* ================= ACERVO DE ACORDES: ADMINISTRAÇÃO DE DIAGRAMAS ================= */
-  // A segurança de verdade é do Supabase/RLS (só o e-mail admin pode escrever
-  // em cifrario_chords) — esta checagem aqui é só para não mostrar o botão
-  // à toa para quem não é admin.
-  function openChordForm(chordText, editKey){
-    if(!isAdmin()){ showToast('Apenas o administrador pode cadastrar diagramas.'); return; }
-    if(!requireConfirmedEmail()) return;
-    const existingDef = editKey ? CHORD_LIBRARY.byKey[editKey] : null;
-    const stringLabels = ['6ª (E)','5ª (A)','4ª (D)','3ª (G)','2ª (B)','1ª (E)'];
-    const stringsVal = existingDef ? existingDef.strings : ['x','x','x','x','x','x'];
-    const fingersVal = existingDef ? (existingDef.fingers||['','','','','','']) : ['','','','','',''];
-    const overlay = document.createElement('div');
-    overlay.className = 'confirm-overlay';
-    overlay.innerHTML = `
-      <div class="confirm-box chord-form-box">
-        <h3>${existingDef ? 'Editar diagrama' : 'Cadastrar diagrama'} — ${escapeHtml(chordText)}</h3>
-        <p class="modal-sub">Preencha os trastes de cada corda ("x" = não tocada, "0" = solta). O diagrama só é salvo se as notas produzidas baterem com o acorde.</p>
-        <div class="chord-form-strings">
-          ${stringLabels.map((lbl,i)=>`
-            <div class="chord-form-string-col">
-              <span>${lbl}</span>
-              <input class="chord-form-fret" data-idx="${i}" value="${stringsVal[i]}" placeholder="x">
-              <input class="chord-form-finger" data-idx="${i}" value="${fingersVal[i]!=='x'&&fingersVal[i]!==undefined?fingersVal[i]:''}" placeholder="dedo">
-            </div>`).join('')}
-        </div>
-        <label class="chord-form-barre-check">
-          <input type="checkbox" id="chordFormBarreOn" ${existingDef && existingDef.barre ? 'checked':''}> Tem pestana?
-        </label>
-        <div id="chordFormBarreFields" class="chord-form-barre-fields" style="display:${existingDef && existingDef.barre ? 'flex':'none'};">
-          <input id="chordFormBarreFret" placeholder="Casa" value="${existingDef && existingDef.barre ? existingDef.barre.fret : ''}">
-          <input id="chordFormBarreFrom" placeholder="Da corda (0-5)" value="${existingDef && existingDef.barre ? existingDef.barre.from : ''}">
-          <input id="chordFormBarreTo" placeholder="Até a corda (0-5)" value="${existingDef && existingDef.barre ? existingDef.barre.to : ''}">
-        </div>
-        <div class="chord-form-error" id="chordFormError" style="display:none;"></div>
-        <div class="confirm-actions">
-          <button class="btn-secondary" data-choice="cancel" style="color:var(--ink);border-color:var(--border);">Cancelar</button>
-          <button class="btn-primary" data-choice="save">Validar e salvar</button>
-        </div>
-      </div>`;
-    document.body.appendChild(overlay);
-    const barreCheck = overlay.querySelector('#chordFormBarreOn');
-    const barreFields = overlay.querySelector('#chordFormBarreFields');
-    barreCheck.addEventListener('change', ()=>{ barreFields.style.display = barreCheck.checked ? 'flex' : 'none'; });
-
-    overlay.addEventListener('click', async e=>{
-      const btn = e.target.closest('[data-choice]');
-      if(!btn){ if(e.target===overlay) overlay.remove(); return; }
-      if(btn.dataset.choice==='cancel'){ overlay.remove(); return; }
-      if(btn.dataset.choice==='save'){
-        const errorEl = overlay.querySelector('#chordFormError');
-        errorEl.style.display = 'none';
-        const parsed = parseChordName(chordText);
-        if(!parsed){
-          errorEl.textContent = 'Nome de acorde não reconhecido.';
-          errorEl.style.display = 'block';
-          return;
-        }
-        const strings = Array.from(overlay.querySelectorAll('.chord-form-fret')).map(inp=>{
-          const v = inp.value.trim().toLowerCase();
-          if(v==='' || v==='x') return 'x';
-          const n = parseInt(v,10);
-          return isNaN(n) ? 'x' : n;
-        });
-        const fingers = Array.from(overlay.querySelectorAll('.chord-form-finger')).map(inp=>{
-          const v = inp.value.trim();
-          return v === '' ? 'x' : v;
-        });
-        let barre = null;
-        if(barreCheck.checked){
-          const fret = parseInt(overlay.querySelector('#chordFormBarreFret').value, 10);
-          const from = parseInt(overlay.querySelector('#chordFormBarreFrom').value, 10);
-          const to = parseInt(overlay.querySelector('#chordFormBarreTo').value, 10);
-          if(isNaN(fret) || isNaN(from) || isNaN(to)){
-            errorEl.textContent = 'Preencha corretamente os campos da pestana, ou desmarque a opção.';
-            errorEl.style.display = 'block';
-            return;
-          }
-          barre = { fret, from, to };
-        }
-        const candidate = { root: parsed.root, quality: parsed.quality, bass: parsed.bass, strings, fingers, barre };
-        if(!validateChordDefinition(candidate)){
-          errorEl.textContent = 'Essa posição não produz as notas corretas para ' + chordText + '. Confira os trastes e tente novamente.';
-          errorEl.style.display = 'block';
-          return;
-        }
-        const dbId = (existingDef && existingDef.dbId) ? existingDef.dbId : uid();
-        try {
-          const res = await authFetch(`${SUPABASE_URL}/rest/v1/cifrario_chords?on_conflict=id`, {
-            method: 'POST',
-            headers: { 'Prefer': 'resolution=merge-duplicates,return=minimal' },
-            body: JSON.stringify([{
-              id: dbId, name: chordText, normalized_name: parsed.normalized,
-              root: parsed.root, quality: parsed.quality, bass: parsed.bass,
-              strings, fingers, barre, validated: true, active: true,
-              updated_at: new Date().toISOString()
-            }])
-          });
-          if(!res.ok) throw new Error('http-' + res.status);
-          CHORD_LIBRARY.register({ root: parsed.root, quality: parsed.quality, bass: parsed.bass, strings, fingers, barre, source: 'custom', dbId });
-          _usedChordsCache = null;
-          overlay.remove();
-          try {
-            await authFetch(`${SUPABASE_URL}/rest/v1/cifrario_contributions`, {
-              method: 'POST', headers: { 'Prefer': 'return=minimal' },
-              body: JSON.stringify([{ id: uid(), user_id: state.session.user.id, email: state.session.user.email, song_id: null, song_title: chordText, kind: 'chord', points: 10, status: 'approved' }])
-            });
-            const newExp = await creditExp(state.session.user.id, 10);
-            state.profile.exp = newExp;
-            try { localStorage.setItem('cifrario_seen_exp_' + state.session.user.id, String(newExp)); } catch(e2){}
-            showExpCelebration(10, newExp);
-          } catch (expErr) {
-            console.error('Erro ao creditar Exp do acorde:', expErr);
-            showToast('Diagrama salvo e validado!');
-          }
-          render();
-        } catch (err) {
-          console.error('Erro ao salvar diagrama:', err);
-          errorEl.textContent = 'Não foi possível salvar no banco. Tente novamente.';
-          errorEl.style.display = 'block';
-        }
-      }
-    });
-  }
-
   async function deactivateChord(dbId){
     if(!isAdmin()) return;
     const ok = await showConfirm('Desativar este diagrama? Ele deixará de aparecer no Acervo de Acordes.');
@@ -3481,6 +3525,238 @@
       console.error('Erro ao desativar diagrama:', e);
       showToast('Não foi possível desativar o diagrama.');
     }
+  }
+
+
+  /* ================= ACERVO DE ACORDES: CONSTRUTOR INTERATIVO ================= */
+  const CB_WINDOW_SIZE = 5;
+  const CB_MAX_FRET = 15;
+  const CB_STRING_LABELS = ['E','A','D','G','B','E'];
+  let chordBuilderState = null;
+  let chordBuilderDrag = null;
+  let cbSearchDebounce = null;
+
+  function cbBlankState(prefillText){
+    return {
+      chordText: prefillText || '',
+      windowStart: 1,
+      strings: ['x','x','x','x','x','x'],
+      fingers: ['','','','','',''],
+      barre: null,
+      editDbId: null
+    };
+  }
+
+  function goChordBuilder(prefillText, editKey){
+    if(!isEditor()){ showToast('Você precisa ser um editor aprovado para cadastrar acordes.'); return; }
+    if(!requireConfirmedEmail()) return;
+    const existing = editKey ? CHORD_LIBRARY.byKey[editKey] : null;
+    if(existing){
+      chordBuilderState = {
+        chordText: prefillText || '',
+        windowStart: (existing.barre && existing.barre.fret > CB_WINDOW_SIZE) ? Math.max(1, existing.barre.fret - 2) : 1,
+        strings: existing.strings.slice(),
+        fingers: (existing.fingers || ['','','','','','']).slice(),
+        barre: existing.barre ? { ...existing.barre } : null,
+        editDbId: existing.dbId || null
+      };
+    } else {
+      chordBuilderState = cbBlankState(prefillText);
+    }
+    state.view = 'chordBuilder';
+    render();
+  }
+
+  function cbShiftWindow(delta){
+    chordBuilderState.windowStart = Math.max(1, Math.min(CB_MAX_FRET - CB_WINDOW_SIZE + 1, chordBuilderState.windowStart + delta));
+    renderChordBuilderPartial();
+  }
+
+  function cbToggleOpenMute(stringIdx){
+    const cur = chordBuilderState.strings[stringIdx];
+    chordBuilderState.strings[stringIdx] = (cur === 'x') ? 0 : 'x';
+    renderChordBuilderPartial();
+  }
+
+  function cbToggleDot(stringIdx, fret){
+    if(chordBuilderState.strings[stringIdx] === fret){
+      chordBuilderState.strings[stringIdx] = 'x';
+    } else {
+      chordBuilderState.strings[stringIdx] = fret;
+    }
+    renderChordBuilderPartial();
+  }
+
+  function cbClear(){
+    const text = chordBuilderState.chordText;
+    const editDbId = chordBuilderState.editDbId;
+    chordBuilderState = cbBlankState(text);
+    chordBuilderState.editDbId = editDbId;
+    renderChordBuilderPartial();
+  }
+
+  function cbGridPointerDown(e){
+    const cell = e.target.closest('.cb-cell');
+    if(!cell) return;
+    e.preventDefault();
+    const stringIdx = parseInt(cell.dataset.string, 10);
+    const fret = parseInt(cell.dataset.fret, 10);
+    chordBuilderDrag = { startString: stringIdx, fret, currentString: stringIdx };
+  }
+  function cbGridPointerMove(e){
+    if(!chordBuilderDrag) return;
+    const el = document.elementFromPoint(e.clientX, e.clientY);
+    const cell = el && el.closest && el.closest('.cb-cell');
+    if(!cell) return;
+    const fret = parseInt(cell.dataset.fret, 10);
+    if(fret !== chordBuilderDrag.fret) return; // pestana só é criada dentro da mesma casa
+    const stringIdx = parseInt(cell.dataset.string, 10);
+    if(stringIdx !== chordBuilderDrag.currentString){
+      chordBuilderDrag.currentString = stringIdx;
+      cbPreviewBarreDrag();
+    }
+  }
+  function cbGridPointerUp(){
+    if(!chordBuilderDrag) return;
+    const { startString, fret, currentString } = chordBuilderDrag;
+    chordBuilderDrag = null;
+    if(startString === currentString){
+      cbToggleDot(startString, fret);
+    } else {
+      const from = Math.min(startString, currentString);
+      const to = Math.max(startString, currentString);
+      chordBuilderState.barre = { fret, from, to };
+      for(let i=from;i<=to;i++) chordBuilderState.strings[i] = fret;
+      renderChordBuilderPartial();
+    }
+  }
+  function cbPreviewBarreDrag(){
+    // feedback visual leve durante o arraste, sem alterar o estado ainda
+    const grid = document.getElementById('cbFretboard');
+    if(!grid) return;
+    grid.querySelectorAll('.cb-cell').forEach(c=>c.classList.remove('cb-cell-dragpreview'));
+    const { startString, currentString, fret } = chordBuilderDrag;
+    const from = Math.min(startString, currentString), to = Math.max(startString, currentString);
+    for(let i=from;i<=to;i++){
+      const cell = grid.querySelector(`.cb-cell[data-string="${i}"][data-fret="${fret}"]`);
+      if(cell) cell.classList.add('cb-cell-dragpreview');
+    }
+  }
+
+  function cbWindowScrollerHtml(){
+    const st = chordBuilderState;
+    const range = CB_MAX_FRET - CB_WINDOW_SIZE;
+    const pct = range > 0 ? ((st.windowStart-1)/range)*100 : 0;
+    return `
+      <div class="cb-window-scroller">
+        <button class="cb-window-btn" data-action="cbShiftUp" title="Casas mais baixas">&#9650;</button>
+        <div class="cb-window-track">
+          <div class="cb-window-thumb" style="top:${pct}%;"></div>
+        </div>
+        <button class="cb-window-btn" data-action="cbShiftDown" title="Casas mais altas">&#9660;</button>
+      </div>`;
+  }
+
+  function renderChordBuilderGrid(){
+    const st = chordBuilderState;
+    const rows = [];
+    for(let f=0; f<CB_WINDOW_SIZE; f++){
+      const absFret = st.windowStart + f;
+      let cells = '';
+      for(let s=0; s<6; s++){
+        const active = st.strings[s] === absFret;
+        cells += `<div class="cb-cell ${active?'cb-cell-on':''}" data-string="${s}" data-fret="${absFret}">${active ? `<span class="cb-dot"></span>` : ''}</div>`;
+      }
+      rows.push(`<div class="cb-fret-row"><span class="cb-fret-num">${absFret}</span><div class="cb-fret-cells">${cells}</div></div>`);
+    }
+    let barreHtml = '';
+    if(st.barre && st.barre.fret >= st.windowStart && st.barre.fret < st.windowStart+CB_WINDOW_SIZE){
+      const rowIndex = st.barre.fret - st.windowStart;
+      const pctFrom = (st.barre.from/6)*100;
+      const pctWidth = ((st.barre.to-st.barre.from+1)/6)*100;
+      barreHtml = `<div class="cb-barre" style="top:calc(${rowIndex} * (100% / ${CB_WINDOW_SIZE}) + 4px); left:${pctFrom}%; width:${pctWidth}%;"></div>`;
+    }
+    const muteOpenRow = st.strings.map((v,i)=>{
+      if(v==='x') return `<button class="cb-mute-btn" data-action="cbToggleMute" data-string="${i}">×</button>`;
+      if(v===0) return `<button class="cb-mute-btn cb-open" data-action="cbToggleMute" data-string="${i}">O</button>`;
+      return `<button class="cb-mute-btn cb-blank" data-action="cbToggleMute" data-string="${i}"></button>`;
+    }).join('');
+    return `
+      <div class="cb-string-labels">${CB_STRING_LABELS.map(l=>`<span>${l}</span>`).join('')}</div>
+      <div class="cb-grid-wrap" id="cbGridWrap">
+        ${barreHtml}
+        ${rows.join('')}
+      </div>
+      <div class="cb-mute-row">${muteOpenRow}</div>
+    `;
+  }
+
+  function renderChordBuilderPartial(){
+    const grid = document.getElementById('cbFretboard');
+    if(grid) grid.innerHTML = renderChordBuilderGrid();
+    const scrollerHost = document.getElementById('cbScrollerHost');
+    if(scrollerHost) scrollerHost.innerHTML = cbWindowScrollerHtml();
+  }
+
+  function renderChordBuilder(){
+    const st = chordBuilderState;
+    return `
+      <header class="topbar">
+        <button class="topbar-back" data-action="back">&#8592; Acervo de Acordes</button>
+        <div class="song-title-block"><h1>Criar / editar acorde</h1></div>
+      </header>
+      <main class="container">
+        <div class="paper cb-panel">
+          <input id="cbSearchInput" class="search cb-search" placeholder="Digite o acorde (ex.: Em7, D/F#, Cadd9)" value="${escapeHtml(st.chordText)}">
+          <div class="cb-builder-row">
+            <div id="cbScrollerHost">${cbWindowScrollerHtml()}</div>
+            <div class="cb-fretboard" id="cbFretboard">${renderChordBuilderGrid()}</div>
+          </div>
+          <div class="cb-error" id="cbError" style="display:none;"></div>
+          <div class="cb-actions">
+            <button class="btn-secondary" data-action="cbClear">Limpar</button>
+            <button class="btn-primary" data-action="cbSave">Salvar acorde</button>
+          </div>
+          <p class="modal-sub" style="text-align:center;margin-top:14px;">
+            Clique numa corda/casa para marcar um dedo. Arraste de uma corda até outra na mesma casa para criar uma pestana.
+            Use o × abaixo de cada corda para alternar entre "não tocada" e "corda solta".
+          </p>
+        </div>
+      </main>
+      ${brandWatermark()}
+    `;
+  }
+
+  async function cbSave(){
+    if(!isEditor()){ showToast('Você precisa ser um editor aprovado para cadastrar acordes.'); return; }
+    if(!requireConfirmedEmail()) return;
+    const errorEl = document.getElementById('cbError');
+    errorEl.style.display = 'none';
+    const chordText = chordBuilderState.chordText.trim();
+    const parsed = parseChordName(chordText);
+    if(!parsed){
+      errorEl.textContent = 'Digite um nome de acorde válido (ex.: Em7, D/F#, Cadd9).';
+      errorEl.style.display = 'block';
+      return;
+    }
+    const candidate = {
+      root: parsed.root, quality: parsed.quality, bass: parsed.bass,
+      strings: chordBuilderState.strings, fingers: chordBuilderState.fingers, barre: chordBuilderState.barre
+    };
+    if(!validateChordDefinition(candidate)){
+      errorEl.textContent = 'Essa posição não produz as notas corretas para ' + chordText + '. Confira os dedos marcados.';
+      errorEl.style.display = 'block';
+      return;
+    }
+    const dbId = chordBuilderState.editDbId || uid();
+    const payload = { after: {
+      dbId, name: chordText, normalized: parsed.normalized,
+      root: parsed.root, quality: parsed.quality, bass: parsed.bass,
+      strings: candidate.strings, fingers: candidate.fingers, barre: candidate.barre
+    }};
+    await recordContribution('chord', 10, { id: null, title: chordText }, payload);
+    showToast(isAdmin() ? 'Acorde salvo e publicado!' : 'Acorde enviado! Ele entra no acervo assim que o administrador aprovar.');
+    goChordLibrary();
   }
 
   /* ================= RENDER ROOT ================= */
@@ -3501,6 +3777,7 @@
     else if(state.view==='admin') app.innerHTML = renderAdmin();
     else if(state.view==='profileInfo') app.innerHTML = renderProfileInfo();
     else if(state.view==='chordLibrary') app.innerHTML = renderChordLibrary();
+    else if(state.view==='chordBuilder') app.innerHTML = renderChordBuilder();
     afterRender();
   }
 
@@ -4687,6 +4964,27 @@
       const cs = document.getElementById('chordSearchInput');
       if(cs) cs.addEventListener('input', e=>{ state.chordSearch = e.target.value; render(); const el=document.getElementById('chordSearchInput'); if(el){ el.focus(); el.selectionStart = el.value.length; } });
     }
+    if(state.view==='chordBuilder'){
+      const cbInput = document.getElementById('cbSearchInput');
+      if(cbInput){
+        cbInput.addEventListener('input', e=>{
+          chordBuilderState.chordText = e.target.value;
+          clearTimeout(cbSearchDebounce);
+          cbSearchDebounce = setTimeout(()=>{
+            const parsed = parseChordName(chordBuilderState.chordText);
+            const def = parsed ? getChordDefinition(parsed) : null;
+            if(def){
+              chordBuilderState.strings = def.strings.slice();
+              chordBuilderState.fingers = (def.fingers||['','','','','','']).slice();
+              chordBuilderState.barre = def.barre ? {...def.barre} : null;
+              if(def.barre && def.barre.fret > CB_WINDOW_SIZE) chordBuilderState.windowStart = Math.max(1, def.barre.fret - 2);
+              renderChordBuilderPartial();
+            }
+          }, 400);
+        });
+        cbInput.focus();
+      }
+    }
     if(state.view==='editChords'){
       focusSheet();
     }
@@ -4821,8 +5119,13 @@
     else if(action==='goChordLibrary') goChordLibrary();
     else if(action==='setChordFilter'){ state.chordFilter = el.dataset.filter; render(); }
     else if(action==='showChordPopup') showChordPopup(el.dataset.chord);
-    else if(action==='openChordForm') openChordForm(el.dataset.chord, el.dataset.editkey || null);
+    else if(action==='goChordBuilder') goChordBuilder(el.dataset.chord, el.dataset.editkey || null);
     else if(action==='deactivateChord') await deactivateChord(el.dataset.dbid);
+    else if(action==='cbShiftUp') cbShiftWindow(-1);
+    else if(action==='cbShiftDown') cbShiftWindow(1);
+    else if(action==='cbToggleMute') cbToggleOpenMute(parseInt(el.dataset.string, 10));
+    else if(action==='cbClear') cbClear();
+    else if(action==='cbSave') await cbSave();
     else if(action==='saveProfileInfo') await saveProfileInfo();
     else if(action==='adminTabRequests'){ state.adminTab='requests'; render(); }
     else if(action==='adminTabContributions'){ state.adminTab='contributions'; render(); }
@@ -4902,18 +5205,22 @@
   document.getElementById('app').addEventListener('pointerdown', function(e){
     onChordPointerDown(e);
     beginListDrag(e);
+    cbGridPointerDown(e);
   });
   document.addEventListener('pointermove', function(e){
     onChordPointerMove(e);
     onListDragMove(e);
+    cbGridPointerMove(e);
   });
   document.addEventListener('pointerup', function(e){
     onChordPointerUp(e);
     onListDragEnd(e);
+    cbGridPointerUp(e);
   });
   document.addEventListener('pointercancel', function(e){
     onChordPointerUp(e);
     onListDragEnd(e);
+    cbGridPointerUp(e);
   });
 
   // reajusta o tamanho da letra da cifra ao girar a tela ou redimensionar
