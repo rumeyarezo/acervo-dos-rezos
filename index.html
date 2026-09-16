@@ -2506,11 +2506,24 @@
     const name = document.getElementById('profileNameInput').value.trim();
     const birth = document.getElementById('profileBirthInput').value;
     const phone = document.getElementById('profilePhoneInput').value.trim();
+    const btn = document.querySelector('[data-action="saveProfileInfo"]');
+    if(btn){ btn.disabled = true; btn.textContent = 'Salvando...'; }
     try {
-      await authFetch(`${SUPABASE_URL}/rest/v1/cifrario_profiles?id=eq.${state.session.user.id}`, {
+      const res = await authFetch(`${SUPABASE_URL}/rest/v1/cifrario_profiles?id=eq.${state.session.user.id}`, {
         method: 'PATCH',
+        headers: { 'Prefer': 'return=minimal' },
         body: JSON.stringify({ display_name: name, birth_date: birth || null, phone })
       });
+      // authFetch só rejeita em falha de rede — respostas 4xx/5xx do Supabase
+      // (ex.: coluna inexistente, política de RLS bloqueando o update) chegam
+      // aqui normalmente, então é essencial checar res.ok antes de comemorar.
+      if(!res.ok){
+        let detail = '';
+        try { const errBody = await res.json(); detail = errBody && (errBody.message || errBody.hint || ''); } catch(e){}
+        console.error('Erro ao salvar informações do perfil:', res.status, detail);
+        showToast(detail ? `Não foi possível salvar: ${detail}` : 'Não foi possível salvar suas informações. Tente novamente.');
+        return;
+      }
       state.profile.display_name = name;
       state.profile.birth_date = birth;
       state.profile.phone = phone;
@@ -2518,7 +2531,9 @@
       goList();
     } catch (e) {
       console.error('Erro ao salvar informações do perfil:', e);
-      showToast('Não foi possível salvar suas informações.');
+      showToast('Não foi possível salvar suas informações. Verifique sua conexão.');
+    } finally {
+      if(btn){ btn.disabled = false; btn.textContent = 'Salvar'; }
     }
   }
 
@@ -4713,6 +4728,59 @@
     sheet.style.setProperty('--sheet-font-size', fontSize + 'px');
   }
 
+  /* ================= EDITOR: LIMITES DE POSICIONAMENTO DE CIFRA =================
+     Antes, a posição de uma cifra (e do cursor) ficava sempre travada em
+     "line.text.length" — ou seja, era impossível colocar uma cifra depois do
+     fim da frase, e em linhas de letra vazia só dava pra colocar cifra na
+     coluna 0. Agora:
+       - o usuário pode posicionar cifras livremente além do fim da frase
+         (inclusive em linhas totalmente vazias, por exemplo pra marcar um
+         trecho instrumental);
+       - CHORD_OVERHANG_LIMIT é a "folga" (em colunas) permitida além do fim
+         da frase antes de considerarmos que a cifra foi parar longe demais;
+       - se a cifra for efetivamente confirmada além dessa folga, em vez de
+         deixá-la boiando numa posição incoerente na mesma linha, criamos uma
+         linha em branco logo abaixo (empurrando todo o restante da música
+         uma linha pra baixo) e colocamos a cifra lá. */
+  const CHORD_OVERHANG_LIMIT = 30;
+  const CURSOR_OVERHANG_BUFFER = 10;
+
+  function maxCursorPosForLine(line){
+    return (line.text ? line.text.length : 0) + CHORD_OVERHANG_LIMIT + CURSOR_OVERHANG_BUFFER;
+  }
+
+  // Insere (ou move) uma cifra na linha "lineIndex" na coluna "pos". Se "pos"
+  // estourar o limite de folga da linha, cria uma nova linha em branco logo
+  // depois e recoloca a cifra lá, preservando a posição relativa ao ponto de
+  // corte. Retorna { lineIndex, pos } com o destino final da cifra.
+  function placeChordAt(lineIndex, pos, chordText){
+    const ed = state.editor;
+    const line = ed.lines[lineIndex];
+    const safePos = Math.max(0, Math.round(pos));
+    const limit = (line.text ? line.text.length : 0) + CHORD_OVERHANG_LIMIT;
+
+    let targetLineIndex = lineIndex;
+    let targetPos = safePos;
+
+    if(safePos > limit){
+      // Muito além do fim da frase: empurra o restante da música uma linha
+      // pra baixo e realoca a cifra numa linha nova, em branco.
+      targetPos = Math.max(0, safePos - limit);
+      const newLine = { text: '', chords: [] };
+      ed.lines.splice(lineIndex + 1, 0, newLine);
+      targetLineIndex = lineIndex + 1;
+      showToast('Essa cifra ficou muito longe do fim da frase — criamos uma linha nova pra ela.');
+    }
+
+    const targetLine = ed.lines[targetLineIndex];
+    const existingIdx = targetLine.chords.findIndex(c => c.pos === targetPos);
+    if(existingIdx >= 0) targetLine.chords[existingIdx].chord = chordText;
+    else targetLine.chords.push({ pos: targetPos, chord: chordText });
+    targetLine.chords.sort((a,b) => a.pos - b.pos);
+
+    return { lineIndex: targetLineIndex, pos: targetPos };
+  }
+
   /* ================= EDITOR: META STEP ================= */
   function renderEditMeta(){
     const ed = state.editor;
@@ -5057,7 +5125,7 @@
   function moveCursor(delta){
     const ed = state.editor;
     const line = activeLine();
-    ed.cursorPos = Math.max(0, Math.min(line.text.length, ed.cursorPos + delta));
+    ed.cursorPos = Math.max(0, Math.min(maxCursorPosForLine(line), ed.cursorPos + delta));
     renderEditorSheetOnly();
   }
 
@@ -5065,7 +5133,7 @@
     const ed = state.editor;
     const newIndex = Math.max(0, Math.min(ed.lines.length-1, ed.activeLine + delta));
     ed.activeLine = newIndex;
-    ed.cursorPos = Math.min(ed.cursorPos, ed.lines[newIndex].text.length);
+    ed.cursorPos = Math.min(ed.cursorPos, maxCursorPosForLine(ed.lines[newIndex]));
     ed.popupOpen = false;
     renderEditorSheetOnly();
   }
@@ -5145,11 +5213,9 @@
     const inp = document.getElementById('chordPopupInput');
     const val = inp ? inp.value.trim() : '';
     if(val){
-      const line = activeLine();
-      const existingIdx = line.chords.findIndex(c=>c.pos===ed.cursorPos);
-      if(existingIdx>=0) line.chords[existingIdx].chord = val;
-      else line.chords.push({ pos: ed.cursorPos, chord: val });
-      line.chords.sort((a,b)=>a.pos-b.pos);
+      const dest = placeChordAt(ed.activeLine, ed.cursorPos, val);
+      ed.activeLine = dest.lineIndex;
+      ed.cursorPos = dest.pos;
     }
     ed.popupOpen = false;
     renderEditorSheetOnly();
@@ -5284,13 +5350,10 @@
       const rect = targetRowEl.getBoundingClientRect();
       newPos = Math.round((e.clientX - rect.left) / chordDrag.chWidth);
     }
-    newPos = Math.max(0, Math.min(targetLine.text.length, newPos));
+    newPos = Math.max(0, newPos);
 
     sourceLine.chords.splice(sourceChordIndex, 1);
-    const existingIdx = targetLine.chords.findIndex(c=>c.pos===newPos);
-    if(existingIdx>=0) targetLine.chords[existingIdx].chord = chordText;
-    else targetLine.chords.push({ pos: newPos, chord: chordText });
-    targetLine.chords.sort((a,b)=>a.pos-b.pos);
+    placeChordAt(targetLineIndex, newPos, chordText);
 
     chordDrag = null;
     renderEditorSheetOnly();
@@ -5309,9 +5372,7 @@
     const line = ed.lines[lineIndex];
     const chord = line && line.chords[chordIndex];
     if(!chord) return;
-    const newPos = Math.min(line.text.length, chord.pos + 2);
-    line.chords.push({ pos: newPos, chord: chord.chord });
-    line.chords.sort((a,b)=>a.pos-b.pos);
+    placeChordAt(lineIndex, chord.pos + 2, chord.chord);
     renderEditorSheetOnly();
   }
 
@@ -6066,7 +6127,7 @@
     const pos = Math.round((e.clientX - rect.left) / chWidth);
     const ed = state.editor;
     ed.activeLine = idx;
-    ed.cursorPos = Math.max(0, Math.min(ed.lines[idx].text.length, pos));
+    ed.cursorPos = Math.max(0, Math.min(maxCursorPosForLine(ed.lines[idx]), pos));
     ed.popupOpen = false;
     renderEditorSheetOnly();
     focusSheet();
