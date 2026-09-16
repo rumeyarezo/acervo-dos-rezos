@@ -521,6 +521,31 @@
   .autoscroll-fab:hover{background:var(--gold-light);}
   .autoscroll-fab.active{background:var(--leaf);color:#fff;border-color:#0e1a12;}
 
+  /* ---------- BOTÃO "ADICIONAR ACORDES" (canto esquerdo, some com 3+ acordes) ---------- */
+  .add-chords-fab{
+    position:fixed;
+    left:max(16px, env(safe-area-inset-left));
+    bottom:max(18px, env(safe-area-inset-bottom));
+    max-width:calc(100vw - 96px);
+    padding:14px 18px;
+    border-radius:999px;
+    background:var(--gold);
+    color:#1a1105;
+    font-size:14px;
+    font-weight:700;
+    white-space:nowrap;
+    overflow:hidden;
+    text-overflow:ellipsis;
+    box-shadow:0 4px 0 rgba(0,0,0,0.25), 0 12px 28px rgba(0,0,0,0.45);
+    border:3px solid #1a1105;
+    z-index:50;
+    -webkit-tap-highlight-color:transparent;
+  }
+  .add-chords-fab:hover{background:var(--gold-light);}
+  @media (max-width:600px){
+    .add-chords-fab{font-size:12.5px;padding:11px 14px;max-width:calc(100vw - 84px);}
+  }
+
   /* ---------- BARRA VERTICAL DE VELOCIDADE (visível durante a rolagem automática) ---------- */
   .speed-vbar{
     position:fixed;
@@ -2131,7 +2156,7 @@
           lines: song.lines || [], updated_at: new Date().toISOString()
         }])
       });
-    } else if(kind === 'edit'){
+    } else if(kind === 'edit' || kind === 'chords_added'){
       const song = payload.after || {};
       await authFetch(`${SUPABASE_URL}/rest/v1/${SUPABASE_SONGS_TABLE}?id=eq.${encodeURIComponent(songId)}`, {
         method: 'PATCH',
@@ -2641,6 +2666,21 @@
     render();
   }
 
+  // Conta quantos acordes a música já tem anotados (soma de todas as linhas)
+  // — usado pra decidir se mostra o convite "Adicionar acordes".
+  function songChordCount(song){
+    if(!song || !song.lines) return 0;
+    return song.lines.reduce((total, l) => total + (l.chords ? l.chords.length : 0), 0);
+  }
+
+  // Mesmo fluxo de edição de sempre, só marcando a origem como "adicionar
+  // acordes" pra dar 30 de Exp (em vez dos 10 de uma edição comum) quando
+  // essa contribuição específica for aprovada.
+  function goAddChords(id){
+    goEditSong(id);
+    if(state.editor) state.editor.source = 'add_chords';
+  }
+
   /* ================= MODAL: ADICIONAR A UMA LISTA ================= */
   function openAddToListModal(songId){
     const song = state.songs.find(s=>s.id===songId);
@@ -2793,6 +2833,7 @@
     new_manual: 'Nova cifra (manual)',
     new_pdf: 'Nova cifra (PDF)',
     edit: 'Edição de cifra',
+    chords_added: 'Acordes adicionados',
     link: 'Links adicionados',
     chord: 'Diagrama de acorde'
   };
@@ -2846,7 +2887,7 @@
         <div class="paper sheet contrib-sheet">${linesHtml || '<p class="muted-note">Sem letra.</p>'}</div>
       `;
     }
-    if(contrib.kind === 'edit'){
+    if(contrib.kind === 'edit' || contrib.kind === 'chords_added'){
       const before = payload.before || {};
       const after = payload.after || {};
       const beforeLines = (before.lines || []).map(lineHtml).join('');
@@ -4243,6 +4284,10 @@
           ${linkChips.length ? `<div class="song-links-row">${linkChips.join('')}</div>` : ''}
         </main>
       </div>
+      ${(isEditor() && songChordCount(song) < 3) ? `
+      <button class="add-chords-fab" data-action="goAddChords" data-id="${song.id}" title="Adicionar acordes a esta cifra">
+        + Adicionar acordes
+      </button>` : ''}
       <button class="autoscroll-fab ${state.autoScroll.active?'active':''}" data-action="openReadingControls" title="Controles de leitura">
         ${state.autoScroll.active ? '&#10074;&#10074;' : '&#9654;'}
       </button>
@@ -4572,7 +4617,11 @@
       const kind = ed.source === 'pdf' ? 'new_pdf' : 'new_manual';
       await recordContribution(kind, points, song, { after: newSnapshot });
     } else {
-      await recordContribution('edit', 10, song, { before: oldSnapshot, after: newSnapshot });
+      if(ed.source === 'add_chords'){
+        await recordContribution('chords_added', 30, song, { before: oldSnapshot, after: newSnapshot });
+      } else {
+        await recordContribution('edit', 10, song, { before: oldSnapshot, after: newSnapshot });
+      }
     }
     state.editor = null;
     if(isAdmin()){
@@ -5154,6 +5203,7 @@
 
     if(action==='openSong'){ goView(id, state._lastListIds.slice(), null); }
     else if(action==='editSong'){ e.stopPropagation(); goEditSong(id); }
+    else if(action==='goAddChords'){ e.stopPropagation(); goAddChords(id); }
     else if(action==='deleteSong'){ e.stopPropagation(); await deleteSong(id); }
     else if(action==='newSong') goNewSong();
     else if(action==='importPdf'){
