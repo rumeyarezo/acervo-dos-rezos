@@ -1322,6 +1322,7 @@
 <div id="app"></div>
 <div id="toast" class="toast"></div>
 <input type="file" id="pdfFileInput" accept="application/pdf" multiple style="display:none">
+<input type="file" id="imageFileInput" accept="image/*" style="display:none">
 
 <script>
 (function(){
@@ -4051,6 +4052,7 @@
             
             ${canEdit ? `
             <button class="btn-secondary" data-action="importPdf" title="Você pode selecionar vários arquivos de uma vez">Importar PDF</button>
+            <button class="btn-secondary" data-action="importImage" title="Reconhece letra e cifra a partir de uma foto ou print">Importar de print</button>
             <button class="btn-primary" data-action="newSong">Nova música</button>
             ` : editorRequestButtonHtml()}
           </div>
@@ -4989,9 +4991,9 @@
     return /^\(?[A-G](#|b)?[A-Za-z0-9°ºmM\/\(\)\+\-]*\)?$/.test(tok);
   }
 
-  function groupTextIntoRows(items){
+  function groupTextIntoRows(items, tolerance){
+    tolerance = tolerance || 2.5;
     const rows = [];
-    const tolerance = 2.5;
     items.forEach(it=>{
       if(!it.str || !it.str.trim()) return;
       let row = rows.find(r=>Math.abs(r.y - it.y) <= tolerance);
@@ -5055,7 +5057,24 @@
     for(let i=1;i<ys.length;i++) gaps.push(ys[i-1]-ys[i]);
     gaps.sort((a,b)=>a-b);
     const lineStep = gaps.length ? gaps[Math.floor(gaps.length/2)] : 14;
-    const fallbackCharWidth = 7;
+
+    // largura média de um caractere, estimada a partir das próprias linhas de
+    // letra deste documento (em vez de um valor fixo) — assim funciona tanto
+    // para PDFs (escala em pontos) quanto para fotos/prints (escala em pixels)
+    const observedCharWidths = [];
+    bodyRows.forEach(row=>{
+      if(rowIsChordRow(row) || !row.items.length) return;
+      const text = rowText(row);
+      if(!text.length) return;
+      const x0 = row.items[0].x;
+      const lastItem = row.items[row.items.length-1];
+      const totalWidth = (lastItem.x + lastItem.width) - x0;
+      if(totalWidth > 0) observedCharWidths.push(totalWidth / text.length);
+    });
+    observedCharWidths.sort((a,b)=>a-b);
+    const fallbackCharWidth = observedCharWidths.length
+      ? observedCharWidths[Math.floor(observedCharWidths.length/2)]
+      : 7;
 
     const lines = [];
     let pending = null;
@@ -5204,6 +5223,89 @@
     }
     showToast(`Importação concluída: ${successCount} cifra${successCount===1?'':'s'} enviada${successCount===1?'':'s'}${skippedCount ? `, ${skippedCount} ignorada${skippedCount===1?'':'s'} por serem repetidas` : ''}${failCount ? `, ${failCount} com erro` : ''}.`);
     render();
+  }
+
+  /* ================= IMPORTAR A PARTIR DE UM PRINT (OCR) =================
+     Reconhece o texto de uma imagem (foto ou print de uma cifra já
+     autorizada) e reaproveita a mesma lógica de linhas/acordes do
+     importador de PDF — a diferença é só de onde vêm as posições dos
+     caracteres: aqui, das caixas delimitadoras que o OCR devolve. */
+  let tesseractReadyPromise = null;
+  let tesseractWorkerPromise = null;
+  function ensureTesseract(){
+    if(tesseractReadyPromise) return tesseractReadyPromise;
+    tesseractReadyPromise = new Promise((resolve, reject)=>{
+      if(window.Tesseract){ resolve(); return; }
+      const s = document.createElement('script');
+      s.src = 'https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js';
+      s.onload = ()=> resolve();
+      s.onerror = ()=> reject(new Error('load-failed'));
+      document.head.appendChild(s);
+    });
+    return tesseractReadyPromise;
+  }
+  async function getTesseractWorker(){
+    await ensureTesseract();
+    if(!tesseractWorkerPromise){
+      tesseractWorkerPromise = window.Tesseract.createWorker('por');
+    }
+    return tesseractWorkerPromise;
+  }
+
+  async function extractImageRows(file){
+    const worker = await getTesseractWorker();
+    const { data } = await worker.recognize(file);
+    const words = (data && data.words) || [];
+    if(!words.length) return [];
+
+    // a altura típica de uma palavra reconhecida define a tolerância de
+    // agrupamento em linhas — uma foto de celular tem escala bem diferente
+    // de um PDF, então isso não pode ser um número fixo
+    const heights = words.map(w => w.bbox.y1 - w.bbox.y0).filter(h => h > 0).sort((a,b)=>a-b);
+    const medianHeight = heights.length ? heights[Math.floor(heights.length/2)] : 20;
+    const tolerance = Math.max(4, medianHeight * 0.5);
+
+    const items = words.map(w => ({
+      str: w.text,
+      x: w.bbox.x0,
+      y: -w.bbox.y0, // eixo da imagem cresce pra baixo; invertido pra bater com a convenção usada no import de PDF (linhas de cima pra baixo = y decrescente)
+      width: Math.max(1, w.bbox.x1 - w.bbox.x0)
+    }));
+    return groupTextIntoRows(items, tolerance);
+  }
+
+  async function handleImageFile(file){
+    if(!isEditor()){ showToast('Você precisa ser um editor aprovado para importar cifras.'); return; }
+    if(!requireConfirmedEmail()) return;
+    showToast('Lendo a imagem... isso pode levar um minuto na primeira vez.');
+    try {
+      const rows = await extractImageRows(file);
+      const parsed = buildSongFromRows(rows);
+      if(!parsed || parsed.lines.length===0){
+        showToast('Não consegui reconhecer texto nessa imagem — tente um print mais nítido, sem inclinação.');
+        return;
+      }
+      state.editor = {
+        id: null,
+        title: parsed.title,
+        artist: parsed.artist,
+        tone: parsed.tone,
+        theme: '',
+        source: 'image',
+        links: {youtube:'',spotify:'',deezer:'',other:''},
+        lines: parsed.lines,
+        activeLine: 0,
+        cursorPos: 0,
+        popupOpen: false,
+        popupValue: ''
+      };
+      state.view = 'editChords';
+      render();
+      showToast('Cifra reconhecida a partir da imagem — como é OCR, confira com atenção letra e posição das notas antes de salvar.');
+    } catch(e){
+      console.error('Erro ao importar imagem:', e);
+      showToast('Não foi possível reconhecer essa imagem: ' + (e && e.message ? e.message : 'erro desconhecido'));
+    }
   }
 
   /* ================= AUTOSCROLL ================= */
@@ -5414,6 +5516,10 @@
     else if(action==='importPdf'){
       if(!isEditor()) showToast('Você precisa ser um editor aprovado para importar PDFs.');
       else document.getElementById('pdfFileInput').click();
+    }
+    else if(action==='importImage'){
+      if(!isEditor()) showToast('Você precisa ser um editor aprovado para importar cifras.');
+      else document.getElementById('imageFileInput').click();
     }
     else if(action==='back') goBack();
     else if(action==='goToChords') goToChords();
@@ -5635,6 +5741,12 @@
     if(!files.length) return;
     if(files.length === 1) handlePdfFile(files[0]);
     else handlePdfFilesBatch(files);
+  });
+
+  document.getElementById('imageFileInput').addEventListener('change', function(e){
+    const file = e.target.files && e.target.files[0];
+    e.target.value = '';
+    if(file) handleImageFile(file);
   });
 
   document.getElementById('app').addEventListener('pointerdown', function(e){
