@@ -639,6 +639,17 @@
     resize:vertical;
   }
   .field-hint{font-size:11.5px;color:var(--muted);font-weight:400;margin-left:6px;text-transform:none;letter-spacing:0;}
+  .checkbox-row{
+    display:flex;
+    align-items:flex-start;
+    gap:8px;
+    font-size:13px;
+    color:var(--ink-soft);
+    margin-bottom:18px;
+    text-transform:none;
+    letter-spacing:0;
+  }
+  .checkbox-row input{width:auto;margin:2px 0 0;flex:none;}
 
   /* ---------- EDITOR: CHORD PLACEMENT ---------- */
   .help-bar{
@@ -2669,6 +2680,16 @@
     state.view = 'editMeta';
     render();
   }
+  function goNewSongFromText(){
+    if(!isEditor()){ showToast('Você precisa ser um editor aprovado para adicionar músicas.'); return; }
+    if(!requireConfirmedEmail()) return;
+    state.editor = {
+      id:null, title:'', artist:'', tone:'', theme:'', source:'text', pasteMode:true,
+      links:{youtube:'',spotify:'',deezer:'',other:''}, lines:[]
+    };
+    state.view = 'editMeta';
+    render();
+  }
   function goEditSong(id){
     if(!isEditor()){ showToast('Você precisa ser um editor aprovado para editar músicas.'); return; }
     if(!requireConfirmedEmail()) return;
@@ -4053,6 +4074,7 @@
             ${canEdit ? `
             <button class="btn-secondary" data-action="importPdf" title="Você pode selecionar vários arquivos de uma vez">Importar PDF</button>
             <button class="btn-secondary" data-action="importImage" title="Reconhece letra e cifra a partir de uma foto ou print">Importar de print</button>
+            <button class="btn-secondary" data-action="importText" title="Cole a letra com a cifra já junto que o app identifica sozinho">Importar de texto</button>
             <button class="btn-primary" data-action="newSong">Nova música</button>
             ` : editorRequestButtonHtml()}
           </div>
@@ -4461,6 +4483,10 @@
           <label>Letra
             <textarea id="lyricsTextarea" rows="16" placeholder="Cole ou digite a letra aqui, uma linha da música por linha de texto...">${escapeHtml(rawText)}</textarea>
           </label>
+          <label class="checkbox-row">
+            <input type="checkbox" id="pasteModeCheckbox" ${ed.pasteMode ? 'checked' : ''}>
+            Colei a letra com a cifra já junto (acordes numa linha acima da letra, como copia do Cifra Club)
+          </label>
           <button class="btn-primary" data-action="goToChords">Continuar para adicionar cifras</button>
         </div>
       </main>
@@ -4565,9 +4591,31 @@
     const artist = document.getElementById('artistInput').value.trim();
     const toneEl = document.getElementById('toneInput');
     const themeEl = document.getElementById('themeInput');
+    const pasteModeEl = document.getElementById('pasteModeCheckbox');
     ed.tone = toneEl ? toneEl.value.trim() : (ed.tone||'');
     ed.theme = themeEl ? themeEl.value.trim().replace(/\s+/g,'') : (ed.theme||'');
     const raw = document.getElementById('lyricsTextarea').value;
+
+    if(pasteModeEl && pasteModeEl.checked){
+      const parsed = parsePastedChordText(raw);
+      if(parsed.lines.length===0){
+        showToast('Não encontrei texto pra processar — cole a letra com a cifra antes de continuar.');
+        return;
+      }
+      ed.lines = parsed.lines;
+      if(!ed.tone && parsed.tone) ed.tone = parsed.tone;
+      ed.title = title;
+      ed.artist = artist;
+      ed.activeLine = 0;
+      ed.cursorPos = 0;
+      ed.popupOpen = false;
+      ed.popupValue = '';
+      state.view = 'editChords';
+      render();
+      showToast('Letra e cifra reconhecidas — confira o posicionamento das notas antes de salvar.');
+      return;
+    }
+
     const newLinesText = raw.split('\n');
     const oldLines = ed.lines || [];
     const newLines = newLinesText.map((text,i) => {
@@ -4592,6 +4640,63 @@
     ed.popupValue = '';
     state.view = 'editChords';
     render();
+  }
+
+  // Reaproveita o mesmo classificador de "isso é acorde ou é palavra?" do
+  // importador de PDF/imagem — só que aqui a posição de cada acorde já vem
+  // certinha (é a própria coluna de caractere no texto colado), sem precisar
+  // converter nenhuma coordenada.
+  function parsePastedChordText(raw){
+    const metaRegex = /^(Tom|Afina[cç][aã]o|Composi[cç][aã]o de|Capotraste)\s*:/i;
+    let tone = '';
+    const lines = [];
+    let pending = null;
+
+    function tokenizeWithColumns(lineText){
+      const tokens = [];
+      const re = /\S+/g;
+      let m;
+      while((m = re.exec(lineText))) tokens.push({ str: m[0], col: m.index });
+      return tokens;
+    }
+
+    function flushInstrumental(){
+      if(!pending) return;
+      lines.push({ text:'', chords: pending.map(t=>({ pos:t.col, chord:t.str })) });
+      pending = null;
+    }
+
+    (raw||'').split('\n').forEach(rawLine=>{
+      const lineText = rawLine.replace(/\r$/, '');
+      const trimmed = lineText.trim();
+
+      if(!trimmed){
+        flushInstrumental();
+        lines.push({ text:'', chords:[] });
+        return;
+      }
+      const toneMatch = trimmed.match(/^Tom\s*:\s*(.+)$/i);
+      if(toneMatch){ if(!tone) tone = toneMatch[1].trim(); return; }
+      if(metaRegex.test(trimmed)) return;
+      if(/^cifraclub$/i.test(trimmed)) return;
+
+      const tokens = tokenizeWithColumns(lineText);
+      const isChordOnlyLine = tokens.length>0 && tokens.every(t=>isChordToken(t.str));
+      if(isChordOnlyLine){
+        flushInstrumental();
+        pending = tokens;
+        return;
+      }
+
+      const chords = pending
+        ? pending.map(t=>({ pos: Math.max(0, Math.min(lineText.length, t.col)), chord: t.str })).sort((a,b)=>a.pos-b.pos)
+        : [];
+      pending = null;
+      lines.push({ text: lineText, chords });
+    });
+    flushInstrumental();
+
+    return { tone, lines };
   }
 
   async function reeditText(){
@@ -5521,6 +5626,7 @@
       if(!isEditor()) showToast('Você precisa ser um editor aprovado para importar cifras.');
       else document.getElementById('imageFileInput').click();
     }
+    else if(action==='importText') goNewSongFromText();
     else if(action==='back') goBack();
     else if(action==='goToChords') goToChords();
     else if(action==='cancelEdit') cancelEdit();
