@@ -521,31 +521,6 @@
   .autoscroll-fab:hover{background:var(--gold-light);}
   .autoscroll-fab.active{background:var(--leaf);color:#fff;border-color:#0e1a12;}
 
-  /* ---------- BOTÃO "ADICIONAR ACORDES" (canto esquerdo, some com 3+ acordes) ---------- */
-  .add-chords-fab{
-    position:fixed;
-    left:max(16px, env(safe-area-inset-left));
-    bottom:max(18px, env(safe-area-inset-bottom));
-    max-width:calc(100vw - 96px);
-    padding:14px 18px;
-    border-radius:999px;
-    background:var(--gold);
-    color:#1a1105;
-    font-size:14px;
-    font-weight:700;
-    white-space:nowrap;
-    overflow:hidden;
-    text-overflow:ellipsis;
-    box-shadow:0 4px 0 rgba(0,0,0,0.25), 0 12px 28px rgba(0,0,0,0.45);
-    border:3px solid #1a1105;
-    z-index:50;
-    -webkit-tap-highlight-color:transparent;
-  }
-  .add-chords-fab:hover{background:var(--gold-light);}
-  @media (max-width:600px){
-    .add-chords-fab{font-size:12.5px;padding:11px 14px;max-width:calc(100vw - 84px);}
-  }
-
   /* ---------- BARRA VERTICAL DE VELOCIDADE (visível durante a rolagem automática) ---------- */
   .speed-vbar{
     position:fixed;
@@ -748,6 +723,56 @@
     border:1px solid var(--gold);
     border-radius:6px;
     z-index:5;
+  }
+  .chord-popup-wrap{position:absolute;top:-2px;}
+  .chord-popup-wrap .chord-popup{position:static;}
+  .chord-suggestions{
+    position:absolute;
+    top:100%;
+    left:0;
+    margin-top:4px;
+    min-width:110px;
+    background:#fff9ea;
+    border:1px solid var(--gold);
+    border-radius:8px;
+    box-shadow:0 6px 18px rgba(0,0,0,0.25);
+    z-index:20;
+    overflow:hidden;
+  }
+  .chord-suggestion-item{
+    padding:6px 10px;
+    font-family:var(--font-mono);
+    font-size:13px;
+    font-weight:600;
+    color:var(--ink);
+    cursor:pointer;
+    white-space:nowrap;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:10px;
+  }
+  .chord-suggestion-item .tag{font-size:10px;font-weight:500;color:var(--muted);}
+  .chord-suggestion-item:hover, .chord-suggestion-item.highlighted{background:var(--gold);color:#2a1a05;}
+
+  .chord-dup-btn{
+    position:fixed;
+    padding:4px 9px;
+    font-size:12px;
+    font-weight:600;
+    color:#2a1a05;
+    background:var(--gold);
+    border:1px solid var(--gold-strong);
+    border-radius:999px;
+    box-shadow:0 4px 10px rgba(0,0,0,0.3);
+    z-index:30;
+    cursor:pointer;
+  }
+  .chord-ghost{
+    position:fixed;
+    opacity:0.9;
+    box-shadow:0 4px 14px rgba(0,0,0,0.45);
+    z-index:40;
   }
 
   .mobile-controls{
@@ -2156,7 +2181,7 @@
           lines: song.lines || [], updated_at: new Date().toISOString()
         }])
       });
-    } else if(kind === 'edit' || kind === 'chords_added'){
+    } else if(kind === 'edit'){
       const song = payload.after || {};
       await authFetch(`${SUPABASE_URL}/rest/v1/${SUPABASE_SONGS_TABLE}?id=eq.${encodeURIComponent(songId)}`, {
         method: 'PATCH',
@@ -2666,21 +2691,6 @@
     render();
   }
 
-  // Conta quantos acordes a música já tem anotados (soma de todas as linhas)
-  // — usado pra decidir se mostra o convite "Adicionar acordes".
-  function songChordCount(song){
-    if(!song || !song.lines) return 0;
-    return song.lines.reduce((total, l) => total + (l.chords ? l.chords.length : 0), 0);
-  }
-
-  // Mesmo fluxo de edição de sempre, só marcando a origem como "adicionar
-  // acordes" pra dar 30 de Exp (em vez dos 10 de uma edição comum) quando
-  // essa contribuição específica for aprovada.
-  function goAddChords(id){
-    goEditSong(id);
-    if(state.editor) state.editor.source = 'add_chords';
-  }
-
   /* ================= MODAL: ADICIONAR A UMA LISTA ================= */
   function openAddToListModal(songId){
     const song = state.songs.find(s=>s.id===songId);
@@ -2833,7 +2843,6 @@
     new_manual: 'Nova cifra (manual)',
     new_pdf: 'Nova cifra (PDF)',
     edit: 'Edição de cifra',
-    chords_added: 'Acordes adicionados',
     link: 'Links adicionados',
     chord: 'Diagrama de acorde'
   };
@@ -2887,7 +2896,7 @@
         <div class="paper sheet contrib-sheet">${linesHtml || '<p class="muted-note">Sem letra.</p>'}</div>
       `;
     }
-    if(contrib.kind === 'edit' || contrib.kind === 'chords_added'){
+    if(contrib.kind === 'edit'){
       const before = payload.before || {};
       const after = payload.after || {};
       const beforeLines = (before.lines || []).map(lineHtml).join('');
@@ -3943,6 +3952,7 @@
   function render(){
     const app = document.getElementById('app');
     if(state.view!=='view') removeSpeedVBar();
+    if(state.view!=='editChords') removeChordHoverPopup();
     if(state.view==='login'){ app.innerHTML = renderLogin(); afterRender(); return; }
     if(state.view==='signup'){ app.innerHTML = renderSignup(); afterRender(); return; }
     if(state.view==='forgot'){ app.innerHTML = renderForgotPassword(); afterRender(); return; }
@@ -4284,10 +4294,6 @@
           ${linkChips.length ? `<div class="song-links-row">${linkChips.join('')}</div>` : ''}
         </main>
       </div>
-      ${(isEditor() && songChordCount(song) < 3) ? `
-      <button class="add-chords-fab" data-action="goAddChords" data-id="${song.id}" title="Adicionar acordes a esta cifra">
-        + Adicionar acordes
-      </button>` : ''}
       <button class="autoscroll-fab ${state.autoScroll.active?'active':''}" data-action="openReadingControls" title="Controles de leitura">
         ${state.autoScroll.active ? '&#10074;&#10074;' : '&#9654;'}
       </button>
@@ -4468,7 +4474,10 @@
     ).join('');
     const caretHtml = isActive && !ed.popupOpen ? `<span class="caret" style="left:${ed.cursorPos}ch"></span>` : '';
     const popupHtml = isActive && ed.popupOpen ?
-      `<input id="chordPopupInput" class="chord-popup" style="left:${ed.cursorPos}ch" value="${escapeHtml(ed.popupValue)}" placeholder="Am">` : '';
+      `<div class="chord-popup-wrap" style="left:${ed.cursorPos}ch">
+        <input id="chordPopupInput" class="chord-popup" value="${escapeHtml(ed.popupValue)}" placeholder="Am">
+        <div class="chord-suggestions" id="chordSuggestions"></div>
+      </div>` : '';
     return `<div class="line ${isActive?'active-line':''}" data-line-index="${i}">
       <div class="chords-row">${chordsHtml}${caretHtml}${popupHtml}</div>
       <div class="lyrics-row" data-line-index="${i}">${escapeHtml(line.text) || '&nbsp;'}</div>
@@ -4491,9 +4500,9 @@
         </div>
       </header>
       <div class="help-bar">
-        <span><kbd>espaço</kbd> mover</span>
-        <span><kbd>enter</kbd> adicionar cifra</span>
+        <span>clique na cifra ou na letra pra posicionar</span>
         <span><kbd>&#8592;</kbd><kbd>&#8594;</kbd> ajustar</span>
+        <span><kbd>enter</kbd> adicionar cifra</span>
         <span><kbd>&#8593;</kbd><kbd>&#8595;</kbd> trocar linha</span>
         <a class="reedit" data-action="reeditText">Editar texto, tom ou tema</a>
       </div>
@@ -4506,6 +4515,7 @@
         <button data-action="moveLeft">&#8592;</button>
         <button data-action="moveRight">Espaço &#8594;</button>
         <button data-action="addChordHere">+ Cifra aqui</button>
+        <button data-action="duplicateChordHere">Duplicar</button>
         <button data-action="removeChordHere">Remover</button>
         <button data-action="lineUp">&#8593; Linha</button>
         <button data-action="lineDown">&#8595; Linha</button>
@@ -4522,7 +4532,24 @@
     sheet.innerHTML = ed.lines.map((l,i)=>editorLineHtml(l,i,ed)).join('');
     if(ed.popupOpen){
       const inp = document.getElementById('chordPopupInput');
-      if(inp){ inp.focus(); inp.select(); }
+      if(inp){
+        inp.focus(); inp.select();
+        inp.addEventListener('input', ()=>{
+          ed.popupValue = inp.value;
+          ed.suggestIndex = -1;
+          updateChordSuggestionsUI();
+        });
+      }
+      const box = document.getElementById('chordSuggestions');
+      if(box){
+        box.addEventListener('mousedown', e=>{
+          const item = e.target.closest('.chord-suggestion-item');
+          if(!item) return;
+          e.preventDefault(); // não deixa o input perder o foco antes do clique valer
+          selectChordSuggestion(item.dataset.suggestion);
+        });
+      }
+      updateChordSuggestionsUI();
     } else {
       const activeLineEl = sheet.querySelector('.active-line');
       if(activeLineEl) activeLineEl.scrollIntoView({block:'center', behavior:'smooth'});
@@ -4617,11 +4644,7 @@
       const kind = ed.source === 'pdf' ? 'new_pdf' : 'new_manual';
       await recordContribution(kind, points, song, { after: newSnapshot });
     } else {
-      if(ed.source === 'add_chords'){
-        await recordContribution('chords_added', 30, song, { before: oldSnapshot, after: newSnapshot });
-      } else {
-        await recordContribution('edit', 10, song, { before: oldSnapshot, after: newSnapshot });
-      }
+      await recordContribution('edit', 10, song, { before: oldSnapshot, after: newSnapshot });
     }
     state.editor = null;
     if(isAdmin()){
@@ -4680,7 +4703,70 @@
     const ed = state.editor;
     ed.popupOpen = true;
     ed.popupValue = '';
+    ed.suggestIndex = -1;
     renderEditorSheetOnly();
+  }
+
+  // Sugestões ao digitar uma cifra: primeiro os acordes que já aparecem
+  // nesta mesma música (o mais provável de ser o próximo), e só se nada
+  // bater com o que foi digitado, cai para o acervo de acordes inteiro.
+  function getUsedChordLabelsInEditor(ed){
+    const seen = new Map();
+    (ed.lines||[]).forEach(line=>{
+      (line.chords||[]).forEach(c=>{
+        const label = (c.chord||'').trim();
+        if(!label) return;
+        const parsed = parseChordName(label);
+        const key = parsed ? parsed.normalized : label.toLowerCase();
+        if(!seen.has(key)) seen.set(key, label);
+      });
+    });
+    return Array.from(seen.values());
+  }
+
+  function getChordSuggestions(query){
+    const ed = state.editor;
+    const q = (query||'').trim().toLowerCase();
+    const usedInSong = getUsedChordLabelsInEditor(ed);
+    let matches = usedInSong
+      .filter(label => !q || label.toLowerCase().includes(q))
+      .map(label => ({ label, tag: 'nesta música' }));
+    if(q && matches.length === 0){
+      const usedSet = new Set(usedInSong.map(l=>l.toLowerCase()));
+      matches = CHORD_LIBRARY.all
+        .map(def => def.key)
+        .filter(key => key.toLowerCase().includes(q) && !usedSet.has(key.toLowerCase()))
+        .filter((key, i, arr) => arr.indexOf(key) === i)
+        .map(label => ({ label, tag: 'acervo' }));
+    }
+    return matches.slice(0, 8);
+  }
+
+  function renderChordSuggestionsHtml(matches, highlightIndex){
+    if(!matches.length) return '';
+    return matches.map((m,i) =>
+      `<div class="chord-suggestion-item ${i===highlightIndex?'highlighted':''}" data-suggestion="${escapeHtml(m.label)}">
+        <span>${escapeHtml(m.label)}</span><span class="tag">${m.tag}</span>
+      </div>`
+    ).join('');
+  }
+
+  function updateChordSuggestionsUI(){
+    const ed = state.editor;
+    const box = document.getElementById('chordSuggestions');
+    if(!box) return;
+    const matches = getChordSuggestions(ed.popupValue);
+    ed._currentSuggestions = matches;
+    if(ed.suggestIndex >= matches.length) ed.suggestIndex = matches.length - 1;
+    box.innerHTML = renderChordSuggestionsHtml(matches, ed.suggestIndex);
+  }
+
+  function selectChordSuggestion(label){
+    const ed = state.editor;
+    ed.popupValue = label;
+    const inp = document.getElementById('chordPopupInput');
+    if(inp) inp.value = label;
+    confirmChordPopup();
   }
 
   function confirmChordPopup(){
@@ -4713,6 +4799,14 @@
     renderEditorSheetOnly();
   }
 
+  function duplicateChordAtCursor(){
+    const ed = state.editor;
+    const line = activeLine();
+    const idx = line.chords.findIndex(c=>c.pos===ed.cursorPos);
+    if(idx<0){ showToast('Posicione o cursor em cima de uma cifra pra duplicar.'); return; }
+    duplicateChord(ed.activeLine, idx);
+  }
+
   function focusSheet(){
     const sheet = document.getElementById('editorSheet');
     if(sheet) sheet.focus();
@@ -4732,12 +4826,15 @@
     return chWidthCache;
   }
 
-  /* ---- arrastar acordes já inseridos com o mouse (clicar e segurar) ---- */
+  /* ---- arrastar acordes já inseridos com o mouse (clicar e segurar) ----
+     Suporta soltar em outra linha: durante o arraste, um "fantasma" segue o
+     ponteiro livremente pela tela; ao soltar, descobrimos em cima de qual
+     linha o ponteiro está e calculamos a coluna certa naquela linha. */
   let chordDrag = null;
   function onChordPointerDown(e){
     if(state.view !== 'editChords') return;
     const el = e.target.closest('.chord');
-    if(!el) return;
+    if(!el || el.classList.contains('chord-ghost')) return;
     e.preventDefault();
     e.stopPropagation();
     const lineIndex = parseInt(el.dataset.lineIndex, 10);
@@ -4745,36 +4842,144 @@
     const line = state.editor.lines[lineIndex];
     const chord = line && line.chords[chordIndex];
     if(!chord) return;
+    const rect = el.getBoundingClientRect();
     chordDrag = {
-      el, lineIndex, chordIndex,
-      startX: e.clientX,
-      startPos: chord.pos,
-      currentPos: chord.pos,
-      maxPos: line.text.length,
+      chordText: chord.chord,
+      sourceLineIndex: lineIndex,
+      sourceChordIndex: chordIndex,
+      targetLineIndex: lineIndex,
+      startX: e.clientX, startY: e.clientY,
+      offsetX: e.clientX - rect.left,
+      offsetY: e.clientY - rect.top,
       chWidth: getChWidth(),
-      pointerId: e.pointerId
+      pointerId: e.pointerId,
+      ghostEl: null,
+      moved: false,
+      el
     };
-    el.classList.add('dragging');
     try{ el.setPointerCapture(e.pointerId); }catch(err){}
   }
+
+  function ensureChordGhost(){
+    if(chordDrag.ghostEl) return chordDrag.ghostEl;
+    const ghost = document.createElement('div');
+    ghost.className = 'chord chord-ghost';
+    ghost.textContent = chordDrag.chordText;
+    document.body.appendChild(ghost);
+    chordDrag.el.style.visibility = 'hidden';
+    chordDrag.ghostEl = ghost;
+    return ghost;
+  }
+
   function onChordPointerMove(e){
     if(!chordDrag || e.pointerId !== chordDrag.pointerId) return;
-    const deltaPx = e.clientX - chordDrag.startX;
-    const deltaCh = deltaPx / chordDrag.chWidth;
-    let newPos = Math.round(chordDrag.startPos + deltaCh);
-    newPos = Math.max(0, Math.min(chordDrag.maxPos, newPos));
-    chordDrag.currentPos = newPos;
-    chordDrag.el.style.left = newPos + 'ch';
+    const deltaX = Math.abs(e.clientX - chordDrag.startX);
+    const deltaY = Math.abs(e.clientY - chordDrag.startY);
+    if(!chordDrag.moved && (deltaX > 3 || deltaY > 3)) chordDrag.moved = true;
+    if(!chordDrag.moved) return;
+    const ghost = ensureChordGhost();
+    ghost.style.left = (e.clientX - chordDrag.offsetX) + 'px';
+    ghost.style.top = (e.clientY - chordDrag.offsetY) + 'px';
+
+    ghost.style.display = 'none'; // não deixa o próprio fantasma atrapalhar a detecção da linha
+    const under = document.elementFromPoint(e.clientX, e.clientY);
+    ghost.style.display = '';
+    const lineEl = under && under.closest('#editorSheet .line');
+    if(lineEl){
+      const li = parseInt(lineEl.dataset.lineIndex, 10);
+      if(!isNaN(li)) chordDrag.targetLineIndex = li;
+    }
   }
+
   function onChordPointerUp(e){
     if(!chordDrag || e.pointerId !== chordDrag.pointerId) return;
-    const { lineIndex, chordIndex, currentPos, el } = chordDrag;
-    el.classList.remove('dragging');
-    try{ el.releasePointerCapture(e.pointerId); }catch(err){}
-    const line = state.editor && state.editor.lines[lineIndex];
-    if(line && line.chords[chordIndex]) line.chords[chordIndex].pos = currentPos;
+    const { sourceLineIndex, sourceChordIndex, targetLineIndex, chordText, moved, ghostEl, el } = chordDrag;
+    if(ghostEl) ghostEl.remove();
+    if(el) el.style.visibility = '';
+
+    if(!moved){
+      chordDrag = null;
+      return;
+    }
+
+    const ed = state.editor;
+    const sourceLine = ed.lines[sourceLineIndex];
+    const targetLine = ed.lines[targetLineIndex];
+    if(!sourceLine || !targetLine){ chordDrag = null; renderEditorSheetOnly(); return; }
+
+    const targetRowEl = document.querySelector(`#editorSheet .line[data-line-index="${targetLineIndex}"] .lyrics-row`);
+    let newPos = 0;
+    if(targetRowEl){
+      const rect = targetRowEl.getBoundingClientRect();
+      newPos = Math.round((e.clientX - rect.left) / chordDrag.chWidth);
+    }
+    newPos = Math.max(0, Math.min(targetLine.text.length, newPos));
+
+    sourceLine.chords.splice(sourceChordIndex, 1);
+    const existingIdx = targetLine.chords.findIndex(c=>c.pos===newPos);
+    if(existingIdx>=0) targetLine.chords[existingIdx].chord = chordText;
+    else targetLine.chords.push({ pos: newPos, chord: chordText });
+    targetLine.chords.sort((a,b)=>a.pos-b.pos);
+
     chordDrag = null;
     renderEditorSheetOnly();
+  }
+
+  /* ---- parar o mouse em cima de uma cifra por 0,3s sugere "Duplicar" ---- */
+  let chordHoverTimer = null;
+  let chordHoverPopupEl = null;
+
+  function removeChordHoverPopup(){
+    if(chordHoverPopupEl){ chordHoverPopupEl.remove(); chordHoverPopupEl = null; }
+  }
+
+  function duplicateChord(lineIndex, chordIndex){
+    const ed = state.editor;
+    const line = ed.lines[lineIndex];
+    const chord = line && line.chords[chordIndex];
+    if(!chord) return;
+    const newPos = Math.min(line.text.length, chord.pos + 2);
+    line.chords.push({ pos: newPos, chord: chord.chord });
+    line.chords.sort((a,b)=>a.pos-b.pos);
+    renderEditorSheetOnly();
+  }
+
+  function wireChordHoverDuplicate(){
+    const sheet = document.getElementById('editorSheet');
+    if(!sheet) return;
+    sheet.addEventListener('pointerover', e=>{
+      const el = e.target.closest('.chord');
+      if(!el || el.classList.contains('chord-ghost')) return;
+      clearTimeout(chordHoverTimer);
+      const lineIndex = parseInt(el.dataset.lineIndex, 10);
+      const chordIndex = parseInt(el.dataset.chordIndex, 10);
+      chordHoverTimer = setTimeout(()=>{
+        removeChordHoverPopup();
+        const rect = el.getBoundingClientRect();
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'chord-dup-btn';
+        btn.textContent = 'Duplicar';
+        btn.style.left = rect.left + 'px';
+        btn.style.top = (rect.top - 30) + 'px';
+        btn.addEventListener('click', ev=>{
+          ev.stopPropagation();
+          duplicateChord(lineIndex, chordIndex);
+          removeChordHoverPopup();
+        });
+        document.body.appendChild(btn);
+        chordHoverPopupEl = btn;
+      }, 300);
+    });
+    sheet.addEventListener('pointerout', e=>{
+      const el = e.target.closest('.chord');
+      if(!el) return;
+      clearTimeout(chordHoverTimer);
+      setTimeout(()=>{
+        if(chordHoverPopupEl && chordHoverPopupEl.matches(':hover')) return;
+        removeChordHoverPopup();
+      }, 80);
+    });
   }
 
   /* ================= PDF IMPORT ================= */
@@ -5192,6 +5397,7 @@
     }
     if(state.view==='editChords'){
       focusSheet();
+      wireChordHoverDuplicate();
     }
   }
 
@@ -5203,7 +5409,6 @@
 
     if(action==='openSong'){ goView(id, state._lastListIds.slice(), null); }
     else if(action==='editSong'){ e.stopPropagation(); goEditSong(id); }
-    else if(action==='goAddChords'){ e.stopPropagation(); goAddChords(id); }
     else if(action==='deleteSong'){ e.stopPropagation(); await deleteSong(id); }
     else if(action==='newSong') goNewSong();
     else if(action==='importPdf'){
@@ -5222,6 +5427,7 @@
     else if(action==='moveRight') moveCursor(1);
     else if(action==='addChordHere') openChordPopup();
     else if(action==='removeChordHere') removeChordAtCursor();
+    else if(action==='duplicateChordHere') duplicateChordAtCursor();
     else if(action==='lineUp') changeActiveLine(-1);
     else if(action==='lineDown') changeActiveLine(1);
 
@@ -5352,13 +5558,15 @@
     }
   });
 
-  /* click on a lyric line in the editor to jump the cursor there */
+  /* clicar em qualquer ponto da linha (na faixa de acordes ou na letra) posiciona o cursor exatamente ali */
   document.getElementById('app').addEventListener('click', function(e){
     if(state.view!=='editChords') return;
-    const row = e.target.closest('.lyrics-row');
-    if(!row) return;
-    const idx = parseInt(row.dataset.lineIndex,10);
-    const rect = row.getBoundingClientRect();
+    const lineEl = e.target.closest('.line');
+    if(!lineEl) return;
+    const lyricsRow = lineEl.querySelector('.lyrics-row');
+    if(!lyricsRow) return;
+    const idx = parseInt(lineEl.dataset.lineIndex,10);
+    const rect = lyricsRow.getBoundingClientRect();
     const chWidth = getChWidth();
     const pos = Math.round((e.clientX - rect.left) / chWidth);
     const ed = state.editor;
@@ -5376,8 +5584,27 @@
     const inTitleFields = active && (active.id==='titleInline' || active.id==='artistInline');
 
     if(inPopup){
-      if(e.key==='Enter'){ e.preventDefault(); confirmChordPopup(); }
+      const ed = state.editor;
+      const matches = ed._currentSuggestions || [];
+      if(e.key==='Enter'){
+        e.preventDefault();
+        if(ed.suggestIndex >= 0 && matches[ed.suggestIndex]){
+          selectChordSuggestion(matches[ed.suggestIndex].label);
+        } else {
+          confirmChordPopup();
+        }
+      }
       else if(e.key==='Escape'){ e.preventDefault(); cancelChordPopup(); }
+      else if(e.key==='ArrowDown' && matches.length){
+        e.preventDefault();
+        ed.suggestIndex = (ed.suggestIndex + 1) % matches.length;
+        updateChordSuggestionsUI();
+      }
+      else if(e.key==='ArrowUp' && matches.length){
+        e.preventDefault();
+        ed.suggestIndex = ed.suggestIndex <= 0 ? matches.length - 1 : ed.suggestIndex - 1;
+        updateChordSuggestionsUI();
+      }
       return;
     }
     if(inTitleFields) return;
