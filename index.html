@@ -449,6 +449,133 @@
   }
   .link-chip:hover{border-color:var(--leaf);}
 
+  /* ---------- CARD LATERAL RETRÁTIL DA CIFRA ---------- */
+  .cifra-sidebar-wrap{
+    position:fixed;
+    left:0;
+    top:96px;
+    bottom:max(16px, env(safe-area-inset-bottom));
+    z-index:40;
+    display:flex;
+    align-items:stretch;
+    transition:transform .25s ease;
+  }
+  .cifra-sidebar-wrap.collapsed{transform:translateX(-230px);}
+  .cifra-sidebar-panel{
+    width:230px;
+    background:var(--bg-glass);
+    backdrop-filter:blur(8px);
+    border:1px solid var(--border-on-dark);
+    border-left:none;
+    border-radius:0 16px 16px 0;
+    padding:16px 14px;
+    overflow-y:auto;
+    color:var(--on-dark);
+    box-shadow:0 18px 40px rgba(12,20,14,0.3);
+    display:flex;
+    flex-direction:column;
+    gap:16px;
+  }
+  .cifra-sidebar-toggle{
+    align-self:center;
+    flex:none;
+    width:24px;
+    height:56px;
+    background:var(--bg-glass);
+    border:1px solid var(--border-on-dark);
+    border-left:none;
+    border-radius:0 10px 10px 0;
+    color:var(--on-dark);
+    font-size:16px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+  }
+  .cifra-sidebar-toggle:hover{color:var(--gold-light);}
+  .cifra-sidebar-section{border-top:1px solid var(--border-on-dark);padding-top:14px;}
+  .cifra-sidebar-section:first-child{border-top:none;padding-top:0;}
+  .cifra-sidebar-label{
+    font-size:11px;
+    text-transform:uppercase;
+    letter-spacing:0.5px;
+    color:var(--muted-on-dark);
+    margin-bottom:8px;
+    font-weight:600;
+  }
+  .cifra-sidebar-btn{
+    display:flex;
+    align-items:center;
+    gap:8px;
+    width:100%;
+    background:rgba(255,255,255,0.08);
+    border:1px solid var(--border-on-dark);
+    color:var(--on-dark);
+    padding:10px 12px;
+    border-radius:var(--radius-control);
+    font-size:13px;
+    font-weight:500;
+    text-align:left;
+  }
+  .cifra-sidebar-btn:hover{border-color:var(--gold-light);color:var(--gold-light);}
+  .cifra-sidebar-btn.active{background:var(--leaf);border-color:var(--leaf);color:#fff;}
+  .cifra-sidebar-btn-icon{font-size:15px;flex:none;}
+  .cifra-sidebar-row{display:flex;align-items:center;gap:10px;}
+  .cifra-sidebar-row .play-toggle{padding:9px 12px;flex:none;}
+  .cifra-sidebar-row .speed-slider{flex:1;min-width:0;width:auto;}
+  .cifra-sidebar-stepper{justify-content:space-between;}
+  .cifra-sidebar-step-btn{
+    width:32px;height:32px;
+    border-radius:50%;
+    background:rgba(255,255,255,0.08);
+    border:1px solid var(--border-on-dark);
+    color:var(--on-dark);
+    font-size:16px;
+    font-weight:700;
+    display:flex;align-items:center;justify-content:center;
+    flex:none;
+  }
+  .cifra-sidebar-step-btn:hover{border-color:var(--gold-light);color:var(--gold-light);}
+  .cifra-sidebar-step-btn:disabled{opacity:0.35;cursor:default;}
+  .cifra-sidebar-step-value{
+    flex:1;
+    text-align:center;
+    font-size:13.5px;
+    font-weight:700;
+    color:var(--on-dark);
+    white-space:nowrap;
+    overflow:hidden;
+    text-overflow:ellipsis;
+  }
+  .cifra-sidebar-extra{display:flex;flex-direction:column;gap:8px;}
+  .cifra-sidebar-extra-row{display:flex;gap:8px;}
+  .cifra-sidebar-extra-row .btn-secondary{
+    flex:1;
+    min-width:0;
+    color:var(--on-dark);
+    border-color:var(--border-on-dark);
+    font-size:12.5px;
+    padding:8px 6px;
+    text-align:center;
+    white-space:nowrap;
+    overflow:hidden;
+    text-overflow:ellipsis;
+  }
+  .cifra-sidebar-extra-row .btn-secondary:hover{border-color:var(--gold-light);color:var(--gold-light);}
+  .cifra-sidebar-extra-row .btn-secondary:disabled{opacity:0.4;cursor:default;}
+  .cifra-sidebar-extra > .btn-secondary{
+    color:var(--on-dark);
+    border-color:var(--border-on-dark);
+    font-size:12.5px;
+    padding:8px 10px;
+    text-align:center;
+  }
+  .cifra-sidebar-extra > .btn-secondary:hover{border-color:var(--gold-light);color:var(--gold-light);}
+  @media (max-width:600px){
+    .cifra-sidebar-wrap{top:78px;}
+    .cifra-sidebar-panel{width:210px;padding:14px 12px;}
+    .cifra-sidebar-wrap.collapsed{transform:translateX(-210px);}
+  }
+
   /* ---------- VIEW PAGE ---------- */
   .play-toggle{
     display:flex;align-items:center;gap:8px;
@@ -1580,6 +1707,8 @@
     autoScroll: { active: false, speed: 55 },
     sheetTheme: 'light',    // 'light' | 'dark' — tema de leitura da cifra, salvo neste navegador
     transposeSteps: 0,      // transposição temporária (só na tela) da cifra aberta, em semitons
+    capo: 0,                // posição do capotraste (0 = Sem Capo, 1..12 = casa), só na tela
+    sidebarOpen: true,      // card lateral retrátil da tela de cifra, salvo neste navegador
     editor: null,
     search: '',
     filterArtist: '',
@@ -2031,6 +2160,10 @@
 
   async function init(){
     try { state.sheetTheme = localStorage.getItem('cifrario_sheet_theme') || 'light'; } catch(e){}
+    try {
+      const so = localStorage.getItem('cifrario_sidebar_open');
+      state.sidebarOpen = so === null ? true : so === '1';
+    } catch(e){}
     render(); // mostra a tela de carregamento imediatamente, antes de checar a sessão
     const redirectResult = checkAuthRedirect();
     if(redirectResult === true){ render(); return; }
@@ -2450,6 +2583,38 @@
     };
   }
 
+  /* ---------- SALVAMENTO OFFLINE (por cifra, neste navegador) ---------- */
+  const OFFLINE_SONGS_KEY = 'cifrario_offline_songs';
+  function getOfflineSongsMap(){
+    try { return JSON.parse(localStorage.getItem(OFFLINE_SONGS_KEY) || '{}') || {}; }
+    catch(e){ return {}; }
+  }
+  function isSongOfflineSaved(id){
+    return !!getOfflineSongsMap()[id];
+  }
+  function songSnapshotForOffline(song){
+    return {
+      id: song.id, title: song.title, artist: song.artist, tone: song.tone,
+      theme: song.theme, links: song.links, lines: song.lines, like_count: song.like_count || 0
+    };
+  }
+  function toggleOfflineSave(id){
+    const song = state.songs.find(s=>s.id===id);
+    if(!song) return;
+    const map = getOfflineSongsMap();
+    const wasSaved = !!map[id];
+    if(wasSaved) delete map[id];
+    else map[id] = songSnapshotForOffline(song);
+    try {
+      localStorage.setItem(OFFLINE_SONGS_KEY, JSON.stringify(map));
+    } catch(e){
+      showToast('Não foi possível salvar offline neste dispositivo.');
+      return;
+    }
+    showToast(wasSaved ? 'Cifra removida do salvamento offline.' : 'Cifra salva para acesso offline.');
+    render();
+  }
+
   async function loadSongs(){
     try {
       const res = await authFetch(`${SUPABASE_URL}/rest/v1/${SUPABASE_SONGS_TABLE}?select=*&order=title.asc`);
@@ -2458,8 +2623,13 @@
       state.songs = rows.map(songFromRow);
     } catch (e) {
       console.error('Erro ao carregar músicas:', e);
-      state.songs = [];
-      showToast('Não foi possível carregar o acervo. Confira sua conexão.');
+      const offlineSongs = Object.values(getOfflineSongsMap());
+      state.songs = offlineSongs;
+      if(offlineSongs.length){
+        showToast('Sem conexão — mostrando apenas as cifras salvas offline.');
+      } else {
+        showToast('Não foi possível carregar o acervo. Confira sua conexão.');
+      }
     }
     state.loaded = true;
     render();
@@ -2660,6 +2830,7 @@
     if(fromListId !== undefined) state.cameFromListId = fromListId;
     state.view='view'; state.currentId=id; state.autoScroll.active=false;
     state.transposeSteps = 0; // cada cifra abre sempre no tom original
+    state.capo = 0;           // cada cifra abre sempre sem capotraste marcado
     closeAllMenus(); render();
   }
 
@@ -4256,6 +4427,69 @@
     </div>`;
   }
 
+  const CAPO_MIN = 0, CAPO_MAX = 12;
+  const CAPO_ORDINALS = ['1ª','2ª','3ª','4ª','5ª','6ª','7ª','8ª','9ª','10ª','11ª','12ª'];
+  function capoLabel(capo){
+    if(!capo) return 'Sem Capo';
+    return CAPO_ORDINALS[capo-1] + ' casa';
+  }
+
+  function sidebarCifraHtml(song, toneLabel, prevId, nextId){
+    const offline = isSongOfflineSaved(song.id);
+    const capo = state.capo || 0;
+    return `
+      <div class="cifra-sidebar-wrap ${state.sidebarOpen ? '' : 'collapsed'}">
+        <div class="cifra-sidebar-panel">
+          <div class="cifra-sidebar-section">
+            <button class="cifra-sidebar-btn ${offline?'active':''}" data-action="toggleOfflineSave" data-id="${song.id}">
+              <span class="cifra-sidebar-btn-icon">${offline?'&#10003;':'&#8595;'}</span>
+              <span>${offline?'Salva offline':'Salvar cifra offline'}</span>
+            </button>
+          </div>
+          ${isEditor() ? `
+          <div class="cifra-sidebar-section">
+            <button class="cifra-sidebar-btn" data-action="editSong" data-id="${song.id}">
+              <span class="cifra-sidebar-btn-icon">&#9998;</span>
+              <span>Corrigir</span>
+            </button>
+          </div>` : ''}
+          <div class="cifra-sidebar-section">
+            <div class="cifra-sidebar-label">Rolagem automática</div>
+            <div class="cifra-sidebar-row">
+              <button class="play-toggle ${state.autoScroll.active?'active':''}" id="playToggleSidebar" data-action="toggleScroll" title="Rolagem automática">
+                <span id="playIconSidebar">${state.autoScroll.active?'&#10074;&#10074;':'&#9654;'}</span>
+              </button>
+              <input type="range" id="speedSliderSidebar" class="speed-slider" min="1" max="100" step="1" value="${state.autoScroll.speed}">
+            </div>
+          </div>
+          <div class="cifra-sidebar-section">
+            <div class="cifra-sidebar-label">Capotraste</div>
+            <div class="cifra-sidebar-row cifra-sidebar-stepper">
+              <button class="cifra-sidebar-step-btn" data-action="capoDown" ${capo<=CAPO_MIN?'disabled':''} title="Diminuir capotraste">&#8722;</button>
+              <div class="cifra-sidebar-step-value">${capoLabel(capo)}</div>
+              <button class="cifra-sidebar-step-btn" data-action="capoUp" ${capo>=CAPO_MAX?'disabled':''} title="Aumentar capotraste">&#43;</button>
+            </div>
+          </div>
+          <div class="cifra-sidebar-section">
+            <div class="cifra-sidebar-label">Tom</div>
+            <div class="cifra-sidebar-row cifra-sidebar-stepper">
+              <button class="cifra-sidebar-step-btn" data-action="transposeDown" title="Descer meio tom">&#8722;</button>
+              <div class="cifra-sidebar-step-value">${escapeHtml(toneLabel)}</div>
+              <button class="cifra-sidebar-step-btn" data-action="transposeUp" title="Subir meio tom">&#43;</button>
+            </div>
+          </div>
+          <div class="cifra-sidebar-section cifra-sidebar-extra">
+            <div class="cifra-sidebar-extra-row">
+              <button class="btn-secondary" data-action="navPrev" ${!prevId?'disabled':''}>&#8249; Anterior</button>
+              <button class="btn-secondary" data-action="navNext" ${!nextId?'disabled':''}>Próxima &#8250;</button>
+            </div>
+            <button class="btn-secondary" data-action="toggleSheetTheme">${state.sheetTheme==='dark' ? '☀️ Modo claro' : '🌙 Modo escuro'}</button>
+          </div>
+        </div>
+        <button class="cifra-sidebar-toggle" data-action="toggleCifraSidebar" title="${state.sidebarOpen?'Recolher':'Expandir'}">${state.sidebarOpen?'&#8249;':'&#8250;'}</button>
+      </div>`;
+  }
+
   function renderSongView(song){
     if(!song) return renderList();
     const transposeSteps = state.transposeSteps || 0;
@@ -4302,25 +4536,17 @@
         <div class="topbar-actions">
           <button class="icon-btn like-icon-btn ${isFav?'fav-on':''}" data-action="toggleFavorite" data-id="${song.id}" title="${isFav?'Descurtir':'Curtir'}">${heartIconHtml(isFav)} <span>${song.like_count||0}</span></button>
           ${isEditor() ? `
-          <button class="icon-btn" data-action="editSong" data-id="${song.id}">Editar</button>
           <button class="icon-btn danger" data-action="deleteSong" data-id="${song.id}">Excluir</button>
           ` : ''}
         </div>
       </header>
-      <div class="transpose-bar">
-        <button class="transpose-btn" data-action="transposeDown" title="Descer meio tom">&#9837;</button>
-        <div class="transpose-current">${escapeHtml(toneLabel)}</div>
-        <button class="transpose-btn" data-action="transposeUp" title="Subir meio tom">&#9839;</button>
-      </div>
+      ${sidebarCifraHtml(song, toneLabel, prevId, nextId)}
       <div class="scroll-container" id="scrollContainer">
         <main class="container">
           <div class="paper sheet ${state.sheetTheme==='dark' ? 'sheet-dark' : ''}">${linesHtml}</div>
           ${linkChips.length ? `<div class="song-links-row">${linkChips.join('')}</div>` : ''}
         </main>
       </div>
-      <button class="autoscroll-fab ${state.autoScroll.active?'active':''}" data-action="openReadingControls" title="Controles de leitura">
-        ${state.autoScroll.active ? '&#10074;&#10074;' : '&#9654;'}
-      </button>
       ${brandWatermark()}
     `;
   }
@@ -4413,6 +4639,12 @@
     try { localStorage.setItem('cifrario_sheet_theme', state.sheetTheme); } catch(e){}
     const sheetEl = document.querySelector('.sheet');
     if(sheetEl) sheetEl.classList.toggle('sheet-dark', state.sheetTheme === 'dark');
+  }
+
+  function toggleCifraSidebar(){
+    state.sidebarOpen = !state.sidebarOpen;
+    try { localStorage.setItem('cifrario_sidebar_open', state.sidebarOpen ? '1' : '0'); } catch(e){}
+    render();
   }
 
   // Calcula um tamanho de fonte que faça a linha mais longa da cifra (letra
@@ -5492,6 +5724,8 @@
     const label = document.getElementById('speedValueModal');
     if(slider) slider.value = state.autoScroll.speed;
     if(label) label.textContent = state.autoScroll.speed + '%';
+    const sidebarSlider = document.getElementById('speedSliderSidebar');
+    if(sidebarSlider) sidebarSlider.value = state.autoScroll.speed;
   }
 
   function startAutoScroll(){
@@ -5542,6 +5776,12 @@
       const icon = document.getElementById('playIconModal');
       if(icon) icon.innerHTML = state.autoScroll.active ? '&#10074;&#10074;' : '&#9654;';
     }
+    const sidebarBtn = document.getElementById('playToggleSidebar');
+    if(sidebarBtn){
+      sidebarBtn.classList.toggle('active', state.autoScroll.active);
+      const icon = document.getElementById('playIconSidebar');
+      if(icon) icon.innerHTML = state.autoScroll.active ? '&#10074;&#10074;' : '&#9654;';
+    }
   }
 
   /* ================= EVENT WIRING ================= */
@@ -5572,6 +5812,12 @@
     }
     if(state.view==='view'){
       requestAnimationFrame(fitSheetFontSize);
+      const speedSidebar = document.getElementById('speedSliderSidebar');
+      if(speedSidebar) speedSidebar.addEventListener('input', e=>{
+        state.autoScroll.speed = parseInt(e.target.value, 10);
+        updateSpeedVBarUI();
+        syncSpeedControlsExternal();
+      });
     }
     if(state.view==='editMeta'){
       const themeEl = document.getElementById('themeInput');
@@ -5728,6 +5974,11 @@
     else if(action==='openReadingControls') openReadingControlsModal();
     else if(action==='transposeUp'){ state.transposeSteps = (state.transposeSteps||0) + 1; render(); }
     else if(action==='transposeDown'){ state.transposeSteps = (state.transposeSteps||0) - 1; render(); }
+    else if(action==='capoUp'){ state.capo = Math.min(CAPO_MAX, (state.capo||0) + 1); render(); }
+    else if(action==='capoDown'){ state.capo = Math.max(CAPO_MIN, (state.capo||0) - 1); render(); }
+    else if(action==='toggleCifraSidebar') toggleCifraSidebar();
+    else if(action==='toggleOfflineSave'){ e.stopPropagation(); toggleOfflineSave(id); }
+    else if(action==='toggleSheetTheme'){ toggleSheetTheme(); render(); }
 
     else if(action==='signIn') await signIn();
     else if(action==='signUp') await signUp();
