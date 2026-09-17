@@ -449,133 +449,6 @@
   }
   .link-chip:hover{border-color:var(--leaf);}
 
-  /* ---------- CARD LATERAL RETRÁTIL DA CIFRA ---------- */
-  .cifra-sidebar-wrap{
-    position:fixed;
-    left:0;
-    top:96px;
-    bottom:max(16px, env(safe-area-inset-bottom));
-    z-index:40;
-    display:flex;
-    align-items:stretch;
-    transition:transform .25s ease;
-  }
-  .cifra-sidebar-wrap.collapsed{transform:translateX(-230px);}
-  .cifra-sidebar-panel{
-    width:230px;
-    background:var(--bg-glass);
-    backdrop-filter:blur(8px);
-    border:1px solid var(--border-on-dark);
-    border-left:none;
-    border-radius:0 16px 16px 0;
-    padding:16px 14px;
-    overflow-y:auto;
-    color:var(--on-dark);
-    box-shadow:0 18px 40px rgba(12,20,14,0.3);
-    display:flex;
-    flex-direction:column;
-    gap:16px;
-  }
-  .cifra-sidebar-toggle{
-    align-self:center;
-    flex:none;
-    width:24px;
-    height:56px;
-    background:var(--bg-glass);
-    border:1px solid var(--border-on-dark);
-    border-left:none;
-    border-radius:0 10px 10px 0;
-    color:var(--on-dark);
-    font-size:16px;
-    display:flex;
-    align-items:center;
-    justify-content:center;
-  }
-  .cifra-sidebar-toggle:hover{color:var(--gold-light);}
-  .cifra-sidebar-section{border-top:1px solid var(--border-on-dark);padding-top:14px;}
-  .cifra-sidebar-section:first-child{border-top:none;padding-top:0;}
-  .cifra-sidebar-label{
-    font-size:11px;
-    text-transform:uppercase;
-    letter-spacing:0.5px;
-    color:var(--muted-on-dark);
-    margin-bottom:8px;
-    font-weight:600;
-  }
-  .cifra-sidebar-btn{
-    display:flex;
-    align-items:center;
-    gap:8px;
-    width:100%;
-    background:rgba(255,255,255,0.08);
-    border:1px solid var(--border-on-dark);
-    color:var(--on-dark);
-    padding:10px 12px;
-    border-radius:var(--radius-control);
-    font-size:13px;
-    font-weight:500;
-    text-align:left;
-  }
-  .cifra-sidebar-btn:hover{border-color:var(--gold-light);color:var(--gold-light);}
-  .cifra-sidebar-btn.active{background:var(--leaf);border-color:var(--leaf);color:#fff;}
-  .cifra-sidebar-btn-icon{font-size:15px;flex:none;}
-  .cifra-sidebar-row{display:flex;align-items:center;gap:10px;}
-  .cifra-sidebar-row .play-toggle{padding:9px 12px;flex:none;}
-  .cifra-sidebar-row .speed-slider{flex:1;min-width:0;width:auto;}
-  .cifra-sidebar-stepper{justify-content:space-between;}
-  .cifra-sidebar-step-btn{
-    width:32px;height:32px;
-    border-radius:50%;
-    background:rgba(255,255,255,0.08);
-    border:1px solid var(--border-on-dark);
-    color:var(--on-dark);
-    font-size:16px;
-    font-weight:700;
-    display:flex;align-items:center;justify-content:center;
-    flex:none;
-  }
-  .cifra-sidebar-step-btn:hover{border-color:var(--gold-light);color:var(--gold-light);}
-  .cifra-sidebar-step-btn:disabled{opacity:0.35;cursor:default;}
-  .cifra-sidebar-step-value{
-    flex:1;
-    text-align:center;
-    font-size:13.5px;
-    font-weight:700;
-    color:var(--on-dark);
-    white-space:nowrap;
-    overflow:hidden;
-    text-overflow:ellipsis;
-  }
-  .cifra-sidebar-extra{display:flex;flex-direction:column;gap:8px;}
-  .cifra-sidebar-extra-row{display:flex;gap:8px;}
-  .cifra-sidebar-extra-row .btn-secondary{
-    flex:1;
-    min-width:0;
-    color:var(--on-dark);
-    border-color:var(--border-on-dark);
-    font-size:12.5px;
-    padding:8px 6px;
-    text-align:center;
-    white-space:nowrap;
-    overflow:hidden;
-    text-overflow:ellipsis;
-  }
-  .cifra-sidebar-extra-row .btn-secondary:hover{border-color:var(--gold-light);color:var(--gold-light);}
-  .cifra-sidebar-extra-row .btn-secondary:disabled{opacity:0.4;cursor:default;}
-  .cifra-sidebar-extra > .btn-secondary{
-    color:var(--on-dark);
-    border-color:var(--border-on-dark);
-    font-size:12.5px;
-    padding:8px 10px;
-    text-align:center;
-  }
-  .cifra-sidebar-extra > .btn-secondary:hover{border-color:var(--gold-light);color:var(--gold-light);}
-  @media (max-width:600px){
-    .cifra-sidebar-wrap{top:78px;}
-    .cifra-sidebar-panel{width:210px;padding:14px 12px;}
-    .cifra-sidebar-wrap.collapsed{transform:translateX(-210px);}
-  }
-
   /* ---------- VIEW PAGE ---------- */
   .play-toggle{
     display:flex;align-items:center;gap:8px;
@@ -747,30 +620,6 @@
   .sheet-dark .lyrics-row{color:#f2efe3;}
   .sheet-dark .chord{background:rgba(199,154,46,0.28);color:#f0cf6a;}
   .sheet-dark .chord::after{border-top-color:rgba(240,207,106,0.6);}
-
-  /* ---------- EDITOR: ALTERNADOR LETRA / CIFRA ---------- */
-  .editor-mode-switch{
-    display:flex;
-    gap:0;
-    margin:14px 24px;
-    border:1px solid var(--border-on-dark);
-    border-radius:999px;
-    overflow:hidden;
-    width:fit-content;
-    background:var(--bg-glass);
-  }
-  .editor-mode-btn{
-    padding:9px 22px;
-    font-size:13px;
-    font-weight:600;
-    color:var(--muted-on-dark);
-  }
-  .editor-mode-btn.active{background:var(--gold);color:#241505;cursor:default;}
-  .editor-mode-btn:not(.active):hover{color:var(--on-dark);background:rgba(255,255,255,0.08);}
-  @media (max-width:600px){
-    .editor-mode-switch{margin:12px 16px;}
-    .editor-mode-btn{padding:8px 16px;}
-  }
 
   /* ---------- EDITOR: META STEP ---------- */
   .editor-meta label{
@@ -1261,6 +1110,42 @@
   .chord-tappable:hover{background:rgba(199,154,46,0.32);}
   .chord-popup-box{text-align:center;max-width:280px;}
   .chord-popup-box h3{font-size:24px;margin:0 0 12px;font-family:var(--font-serif);color:var(--ink);}
+  .chord-shape-note{
+    font-size:12.5px;
+    color:var(--ink-soft);
+    margin:-6px 0 10px;
+  }
+  .chord-shape-note strong{color:var(--leaf);}
+  .capo-bar{
+    display:flex;
+    align-items:center;
+    gap:8px;
+    margin:0 auto 6px;
+    justify-content:center;
+  }
+  .capo-fret-label{
+    font-size:12px;
+    font-weight:700;
+    color:var(--ink);
+    width:18px;
+    text-align:right;
+    flex:none;
+  }
+  .capo-bar-strip{
+    flex:1;
+    max-width:118px;
+    height:11px;
+    border-radius:999px;
+    background:var(--ink);
+    color:var(--on-dark);
+    font-size:8px;
+    font-weight:700;
+    letter-spacing:1px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    line-height:1;
+  }
 
   .chord-admin-actions{display:flex;gap:6px;flex-wrap:wrap;justify-content:center;margin-top:10px;}
   .chord-admin-actions .btn-secondary{color:var(--ink);border-color:var(--border);font-size:12px;padding:6px 10px;}
@@ -1731,8 +1616,6 @@
     autoScroll: { active: false, speed: 55 },
     sheetTheme: 'light',    // 'light' | 'dark' — tema de leitura da cifra, salvo neste navegador
     transposeSteps: 0,      // transposição temporária (só na tela) da cifra aberta, em semitons
-    capo: 0,                // posição do capotraste (0 = Sem Capo, 1..12 = casa), só na tela
-    sidebarOpen: true,      // card lateral retrátil da tela de cifra, salvo neste navegador
     editor: null,
     search: '',
     filterArtist: '',
@@ -2184,10 +2067,6 @@
 
   async function init(){
     try { state.sheetTheme = localStorage.getItem('cifrario_sheet_theme') || 'light'; } catch(e){}
-    try {
-      const so = localStorage.getItem('cifrario_sidebar_open');
-      state.sidebarOpen = so === null ? true : so === '1';
-    } catch(e){}
     render(); // mostra a tela de carregamento imediatamente, antes de checar a sessão
     const redirectResult = checkAuthRedirect();
     if(redirectResult === true){ render(); return; }
@@ -2346,6 +2225,7 @@
         headers: { 'Prefer': 'resolution=merge-duplicates,return=minimal' },
         body: JSON.stringify([{
           id: songId, title: song.title || '', artist: song.artist || '', tone: song.tone || '',
+          capo: song.capo || 0,
           theme: song.theme || '', links: song.links || {youtube:'',spotify:'',deezer:'',other:''},
           lines: song.lines || [], updated_at: new Date().toISOString()
         }])
@@ -2356,6 +2236,7 @@
         method: 'PATCH',
         body: JSON.stringify({
           title: song.title || '', artist: song.artist || '', tone: song.tone || '',
+          capo: song.capo || 0,
           theme: song.theme || '', lines: song.lines || [], updated_at: new Date().toISOString()
         })
       });
@@ -2506,24 +2387,11 @@
     const name = document.getElementById('profileNameInput').value.trim();
     const birth = document.getElementById('profileBirthInput').value;
     const phone = document.getElementById('profilePhoneInput').value.trim();
-    const btn = document.querySelector('[data-action="saveProfileInfo"]');
-    if(btn){ btn.disabled = true; btn.textContent = 'Salvando...'; }
     try {
-      const res = await authFetch(`${SUPABASE_URL}/rest/v1/cifrario_profiles?id=eq.${state.session.user.id}`, {
+      await authFetch(`${SUPABASE_URL}/rest/v1/cifrario_profiles?id=eq.${state.session.user.id}`, {
         method: 'PATCH',
-        headers: { 'Prefer': 'return=minimal' },
         body: JSON.stringify({ display_name: name, birth_date: birth || null, phone })
       });
-      // authFetch só rejeita em falha de rede — respostas 4xx/5xx do Supabase
-      // (ex.: coluna inexistente, política de RLS bloqueando o update) chegam
-      // aqui normalmente, então é essencial checar res.ok antes de comemorar.
-      if(!res.ok){
-        let detail = '';
-        try { const errBody = await res.json(); detail = errBody && (errBody.message || errBody.hint || ''); } catch(e){}
-        console.error('Erro ao salvar informações do perfil:', res.status, detail);
-        showToast(detail ? `Não foi possível salvar: ${detail}` : 'Não foi possível salvar suas informações. Tente novamente.');
-        return;
-      }
       state.profile.display_name = name;
       state.profile.birth_date = birth;
       state.profile.phone = phone;
@@ -2531,9 +2399,7 @@
       goList();
     } catch (e) {
       console.error('Erro ao salvar informações do perfil:', e);
-      showToast('Não foi possível salvar suas informações. Verifique sua conexão.');
-    } finally {
-      if(btn){ btn.disabled = false; btn.textContent = 'Salvar'; }
+      showToast('Não foi possível salvar suas informações.');
     }
   }
 
@@ -2612,6 +2478,7 @@
       title: r.title || '',
       artist: r.artist || '',
       tone: r.tone || '',
+      capo: r.capo || 0,
       theme: r.theme || '',
       links: r.links && typeof r.links==='object' ? {
         youtube: r.links.youtube||'', spotify: r.links.spotify||'',
@@ -2622,38 +2489,6 @@
     };
   }
 
-  /* ---------- SALVAMENTO OFFLINE (por cifra, neste navegador) ---------- */
-  const OFFLINE_SONGS_KEY = 'cifrario_offline_songs';
-  function getOfflineSongsMap(){
-    try { return JSON.parse(localStorage.getItem(OFFLINE_SONGS_KEY) || '{}') || {}; }
-    catch(e){ return {}; }
-  }
-  function isSongOfflineSaved(id){
-    return !!getOfflineSongsMap()[id];
-  }
-  function songSnapshotForOffline(song){
-    return {
-      id: song.id, title: song.title, artist: song.artist, tone: song.tone,
-      theme: song.theme, links: song.links, lines: song.lines, like_count: song.like_count || 0
-    };
-  }
-  function toggleOfflineSave(id){
-    const song = state.songs.find(s=>s.id===id);
-    if(!song) return;
-    const map = getOfflineSongsMap();
-    const wasSaved = !!map[id];
-    if(wasSaved) delete map[id];
-    else map[id] = songSnapshotForOffline(song);
-    try {
-      localStorage.setItem(OFFLINE_SONGS_KEY, JSON.stringify(map));
-    } catch(e){
-      showToast('Não foi possível salvar offline neste dispositivo.');
-      return;
-    }
-    showToast(wasSaved ? 'Cifra removida do salvamento offline.' : 'Cifra salva para acesso offline.');
-    render();
-  }
-
   async function loadSongs(){
     try {
       const res = await authFetch(`${SUPABASE_URL}/rest/v1/${SUPABASE_SONGS_TABLE}?select=*&order=title.asc`);
@@ -2662,13 +2497,8 @@
       state.songs = rows.map(songFromRow);
     } catch (e) {
       console.error('Erro ao carregar músicas:', e);
-      const offlineSongs = Object.values(getOfflineSongsMap());
-      state.songs = offlineSongs;
-      if(offlineSongs.length){
-        showToast('Sem conexão — mostrando apenas as cifras salvas offline.');
-      } else {
-        showToast('Não foi possível carregar o acervo. Confira sua conexão.');
-      }
+      state.songs = [];
+      showToast('Não foi possível carregar o acervo. Confira sua conexão.');
     }
     state.loaded = true;
     render();
@@ -2681,7 +2511,7 @@
         headers: { 'Prefer': 'resolution=merge-duplicates,return=minimal' },
         body: JSON.stringify([{
           id: song.id, title: song.title, artist: song.artist,
-          tone: song.tone, theme: song.theme||'', links: song.links||{},
+          tone: song.tone, capo: song.capo||0, theme: song.theme||'', links: song.links||{},
           lines: song.lines, updated_at: new Date().toISOString()
         }])
       });
@@ -2869,7 +2699,6 @@
     if(fromListId !== undefined) state.cameFromListId = fromListId;
     state.view='view'; state.currentId=id; state.autoScroll.active=false;
     state.transposeSteps = 0; // cada cifra abre sempre no tom original
-    state.capo = 0;           // cada cifra abre sempre sem capotraste marcado
     closeAllMenus(); render();
   }
 
@@ -2884,7 +2713,7 @@
     if(!isEditor()){ showToast('Você precisa ser um editor aprovado para adicionar músicas.'); return; }
     if(!requireConfirmedEmail()) return;
     state.editor = {
-      id:null, title:'', artist:'', tone:'', theme:'', source:'manual',
+      id:null, title:'', artist:'', tone:'', capo:0, theme:'', source:'manual',
       links:{youtube:'',spotify:'',deezer:'',other:''}, lines:[]
     };
     state.view = 'editMeta';
@@ -2894,7 +2723,7 @@
     if(!isEditor()){ showToast('Você precisa ser um editor aprovado para adicionar músicas.'); return; }
     if(!requireConfirmedEmail()) return;
     state.editor = {
-      id:null, title:'', artist:'', tone:'', theme:'', source:'text', pasteMode:true,
+      id:null, title:'', artist:'', tone:'', capo:0, theme:'', source:'text', pasteMode:true,
       links:{youtube:'',spotify:'',deezer:'',other:''}, lines:[]
     };
     state.view = 'editMeta';
@@ -2910,6 +2739,7 @@
       title: song.title,
       artist: song.artist,
       tone: song.tone || '',
+      capo: song.capo || 0,
       theme: song.theme || '',
       links: { ...(song.links || {youtube:'',spotify:'',deezer:'',other:''}) },
       lines: song.lines.map(l => ({ text: l.text, chords: l.chords.map(c=>({...c})) })),
@@ -2918,7 +2748,7 @@
       popupOpen: false,
       popupValue: ''
     };
-    state.view = 'editMeta';
+    state.view = 'editChords';
     closeAllMenus();
     render();
   }
@@ -3121,6 +2951,7 @@
       const metaBits = [];
       if(song.artist) metaBits.push(escapeHtml(song.artist));
       if(song.tone) metaBits.push('Tom: ' + escapeHtml(song.tone));
+      if(song.capo) metaBits.push('Capotraste na ' + song.capo + 'ª casa');
       if(song.theme) metaBits.push(escapeHtml(song.theme));
       const linesHtml = (song.lines || []).map(lineHtml).join('');
       return `
@@ -3692,15 +3523,26 @@
   function renderChordDiagram(def, opts){
     opts = opts || {};
     const size = opts.size === 'large' ? 220 : 150;
+    const capoFret = Math.max(0, parseInt(opts.capoFret,10) || 0);
     const W = 160, H = 190;
     const nStrings = 6, nFrets = 4;
     const left = 22, top = 34, right = 138, bottom = 174;
     const stringGap = (right-left)/(nStrings-1);
     const fretGap = (bottom-top)/nFrets;
 
+    // Barra de capotraste: um indicador visual separado, acima do diagrama
+    // em si — a forma dos dedos continua sendo a mesma do acorde-forma
+    // (não muda nada dentro do SVG), só avisamos em que casa o capo está.
+    const capoBarHtml = capoFret > 0 ? `
+      <div class="capo-bar" style="width:${size}px;">
+        <span class="capo-fret-label">${capoFret}</span>
+        <span class="capo-bar-strip">CAPOTRASTE</span>
+      </div>` : '';
+
     if(!def){
       return `
         <div class="chord-diagram-missing" style="width:${size}px;">
+          ${capoBarHtml}
           <svg viewBox="0 0 ${W} ${H}" width="${size}" height="${size*(H/W)}"><text x="${W/2}" y="${H/2}" text-anchor="middle" font-size="34">🎸</text></svg>
           <div class="chord-diagram-missing-text">Diagrama ainda não cadastrado</div>
           <div class="chord-diagram-missing-sub">Este acorde foi encontrado no acervo, mas ainda não possui uma posição de violão validada.</div>
@@ -3757,7 +3599,7 @@
       }
     });
     svg += `</svg>`;
-    return `<div class="chord-diagram-wrap">${svg}</div>`;
+    return `<div class="chord-diagram-wrap">${capoBarHtml}${svg}</div>`;
   }
 
   function chordNotesLabel(def){
@@ -3859,14 +3701,21 @@
 
   /* ================= ACERVO DE ACORDES: POPUP AO TOCAR NO ACORDE ================= */
   function showChordPopup(chordText){
-    const parsed = parseChordName(chordText);
+    const song = state.songs.find(s=>s.id===state.currentId);
+    const capoFret = song && song.capo ? Math.max(0, parseInt(song.capo,10) || 0) : 0;
+    const shapeChordText = capoFret > 0 ? transposeChordName(chordText, -capoFret) : chordText;
+    const parsed = parseChordName(shapeChordText);
     const def = parsed ? getChordDefinition(parsed) : null;
     const overlay = document.createElement('div');
     overlay.className = 'confirm-overlay';
+    const titleHtml = capoFret > 0
+      ? `<h3>${escapeHtml(chordText)}</h3>
+         <div class="chord-shape-note">com forma de <strong>${escapeHtml((parsed && parsed.original) || shapeChordText)}</strong></div>`
+      : `<h3>${escapeHtml((parsed && parsed.original) || chordText)}</h3>`;
     overlay.innerHTML = `
       <div class="confirm-box chord-popup-box">
-        <h3>${escapeHtml((parsed && parsed.original) || chordText)}</h3>
-        ${renderChordDiagram(def, {size:'large'})}
+        ${titleHtml}
+        ${renderChordDiagram(def, {size:'large', capoFret})}
         ${def ? `
           <div class="chord-info" style="text-align:center;">
             <div>Afinação padrão</div>
@@ -4466,69 +4315,6 @@
     </div>`;
   }
 
-  const CAPO_MIN = 0, CAPO_MAX = 12;
-  const CAPO_ORDINALS = ['1ª','2ª','3ª','4ª','5ª','6ª','7ª','8ª','9ª','10ª','11ª','12ª'];
-  function capoLabel(capo){
-    if(!capo) return 'Sem Capo';
-    return CAPO_ORDINALS[capo-1] + ' casa';
-  }
-
-  function sidebarCifraHtml(song, toneLabel, prevId, nextId){
-    const offline = isSongOfflineSaved(song.id);
-    const capo = state.capo || 0;
-    return `
-      <div class="cifra-sidebar-wrap ${state.sidebarOpen ? '' : 'collapsed'}">
-        <div class="cifra-sidebar-panel">
-          <div class="cifra-sidebar-section">
-            <button class="cifra-sidebar-btn ${offline?'active':''}" data-action="toggleOfflineSave" data-id="${song.id}">
-              <span class="cifra-sidebar-btn-icon">${offline?'&#10003;':'&#8595;'}</span>
-              <span>${offline?'Salva offline':'Salvar cifra offline'}</span>
-            </button>
-          </div>
-          ${isEditor() ? `
-          <div class="cifra-sidebar-section">
-            <button class="cifra-sidebar-btn" data-action="editSong" data-id="${song.id}">
-              <span class="cifra-sidebar-btn-icon">&#9998;</span>
-              <span>Corrigir</span>
-            </button>
-          </div>` : ''}
-          <div class="cifra-sidebar-section">
-            <div class="cifra-sidebar-label">Rolagem automática</div>
-            <div class="cifra-sidebar-row">
-              <button class="play-toggle ${state.autoScroll.active?'active':''}" id="playToggleSidebar" data-action="toggleScroll" title="Rolagem automática">
-                <span id="playIconSidebar">${state.autoScroll.active?'&#10074;&#10074;':'&#9654;'}</span>
-              </button>
-              <input type="range" id="speedSliderSidebar" class="speed-slider" min="1" max="100" step="1" value="${state.autoScroll.speed}">
-            </div>
-          </div>
-          <div class="cifra-sidebar-section">
-            <div class="cifra-sidebar-label">Capotraste</div>
-            <div class="cifra-sidebar-row cifra-sidebar-stepper">
-              <button class="cifra-sidebar-step-btn" data-action="capoDown" ${capo<=CAPO_MIN?'disabled':''} title="Diminuir capotraste">&#8722;</button>
-              <div class="cifra-sidebar-step-value">${capoLabel(capo)}</div>
-              <button class="cifra-sidebar-step-btn" data-action="capoUp" ${capo>=CAPO_MAX?'disabled':''} title="Aumentar capotraste">&#43;</button>
-            </div>
-          </div>
-          <div class="cifra-sidebar-section">
-            <div class="cifra-sidebar-label">Tom</div>
-            <div class="cifra-sidebar-row cifra-sidebar-stepper">
-              <button class="cifra-sidebar-step-btn" data-action="transposeDown" title="Descer meio tom">&#8722;</button>
-              <div class="cifra-sidebar-step-value">${escapeHtml(toneLabel)}</div>
-              <button class="cifra-sidebar-step-btn" data-action="transposeUp" title="Subir meio tom">&#43;</button>
-            </div>
-          </div>
-          <div class="cifra-sidebar-section cifra-sidebar-extra">
-            <div class="cifra-sidebar-extra-row">
-              <button class="btn-secondary" data-action="navPrev" ${!prevId?'disabled':''}>&#8249; Anterior</button>
-              <button class="btn-secondary" data-action="navNext" ${!nextId?'disabled':''}>Próxima &#8250;</button>
-            </div>
-            <button class="btn-secondary" data-action="toggleSheetTheme">${state.sheetTheme==='dark' ? '☀️ Modo claro' : '🌙 Modo escuro'}</button>
-          </div>
-        </div>
-        <button class="cifra-sidebar-toggle" data-action="toggleCifraSidebar" title="${state.sidebarOpen?'Recolher':'Expandir'}">${state.sidebarOpen?'&#8249;':'&#8250;'}</button>
-      </div>`;
-  }
-
   function renderSongView(song){
     if(!song) return renderList();
     const transposeSteps = state.transposeSteps || 0;
@@ -4553,6 +4339,7 @@
 
     const metaBits = [];
     if(song.artist) metaBits.push(escapeHtml(song.artist));
+    if(song.capo) metaBits.push('Capotraste na ' + song.capo + 'ª casa');
     if(song.theme) metaBits.push(escapeHtml(song.theme));
 
     const toneBase = song.tone || '';
@@ -4575,17 +4362,25 @@
         <div class="topbar-actions">
           <button class="icon-btn like-icon-btn ${isFav?'fav-on':''}" data-action="toggleFavorite" data-id="${song.id}" title="${isFav?'Descurtir':'Curtir'}">${heartIconHtml(isFav)} <span>${song.like_count||0}</span></button>
           ${isEditor() ? `
+          <button class="icon-btn" data-action="editSong" data-id="${song.id}">Editar</button>
           <button class="icon-btn danger" data-action="deleteSong" data-id="${song.id}">Excluir</button>
           ` : ''}
         </div>
       </header>
-      ${sidebarCifraHtml(song, toneLabel, prevId, nextId)}
+      <div class="transpose-bar">
+        <button class="transpose-btn" data-action="transposeDown" title="Descer meio tom">&#9837;</button>
+        <div class="transpose-current">${escapeHtml(toneLabel)}</div>
+        <button class="transpose-btn" data-action="transposeUp" title="Subir meio tom">&#9839;</button>
+      </div>
       <div class="scroll-container" id="scrollContainer">
         <main class="container">
           <div class="paper sheet ${state.sheetTheme==='dark' ? 'sheet-dark' : ''}">${linesHtml}</div>
           ${linkChips.length ? `<div class="song-links-row">${linkChips.join('')}</div>` : ''}
         </main>
       </div>
+      <button class="autoscroll-fab ${state.autoScroll.active?'active':''}" data-action="openReadingControls" title="Controles de leitura">
+        ${state.autoScroll.active ? '&#10074;&#10074;' : '&#9654;'}
+      </button>
       ${brandWatermark()}
     `;
   }
@@ -4680,12 +4475,6 @@
     if(sheetEl) sheetEl.classList.toggle('sheet-dark', state.sheetTheme === 'dark');
   }
 
-  function toggleCifraSidebar(){
-    state.sidebarOpen = !state.sidebarOpen;
-    try { localStorage.setItem('cifrario_sidebar_open', state.sidebarOpen ? '1' : '0'); } catch(e){}
-    render();
-  }
-
   // Calcula um tamanho de fonte que faça a linha mais longa da cifra (letra
   // ou posição de acorde) caber na largura da tela, sem cortar palavras nem
   // precisar de rolagem horizontal — mantém o alinhamento porque cifra e
@@ -4728,59 +4517,6 @@
     sheet.style.setProperty('--sheet-font-size', fontSize + 'px');
   }
 
-  /* ================= EDITOR: LIMITES DE POSICIONAMENTO DE CIFRA =================
-     Antes, a posição de uma cifra (e do cursor) ficava sempre travada em
-     "line.text.length" — ou seja, era impossível colocar uma cifra depois do
-     fim da frase, e em linhas de letra vazia só dava pra colocar cifra na
-     coluna 0. Agora:
-       - o usuário pode posicionar cifras livremente além do fim da frase
-         (inclusive em linhas totalmente vazias, por exemplo pra marcar um
-         trecho instrumental);
-       - CHORD_OVERHANG_LIMIT é a "folga" (em colunas) permitida além do fim
-         da frase antes de considerarmos que a cifra foi parar longe demais;
-       - se a cifra for efetivamente confirmada além dessa folga, em vez de
-         deixá-la boiando numa posição incoerente na mesma linha, criamos uma
-         linha em branco logo abaixo (empurrando todo o restante da música
-         uma linha pra baixo) e colocamos a cifra lá. */
-  const CHORD_OVERHANG_LIMIT = 30;
-  const CURSOR_OVERHANG_BUFFER = 10;
-
-  function maxCursorPosForLine(line){
-    return (line.text ? line.text.length : 0) + CHORD_OVERHANG_LIMIT + CURSOR_OVERHANG_BUFFER;
-  }
-
-  // Insere (ou move) uma cifra na linha "lineIndex" na coluna "pos". Se "pos"
-  // estourar o limite de folga da linha, cria uma nova linha em branco logo
-  // depois e recoloca a cifra lá, preservando a posição relativa ao ponto de
-  // corte. Retorna { lineIndex, pos } com o destino final da cifra.
-  function placeChordAt(lineIndex, pos, chordText){
-    const ed = state.editor;
-    const line = ed.lines[lineIndex];
-    const safePos = Math.max(0, Math.round(pos));
-    const limit = (line.text ? line.text.length : 0) + CHORD_OVERHANG_LIMIT;
-
-    let targetLineIndex = lineIndex;
-    let targetPos = safePos;
-
-    if(safePos > limit){
-      // Muito além do fim da frase: empurra o restante da música uma linha
-      // pra baixo e realoca a cifra numa linha nova, em branco.
-      targetPos = Math.max(0, safePos - limit);
-      const newLine = { text: '', chords: [] };
-      ed.lines.splice(lineIndex + 1, 0, newLine);
-      targetLineIndex = lineIndex + 1;
-      showToast('Essa cifra ficou muito longe do fim da frase — criamos uma linha nova pra ela.');
-    }
-
-    const targetLine = ed.lines[targetLineIndex];
-    const existingIdx = targetLine.chords.findIndex(c => c.pos === targetPos);
-    if(existingIdx >= 0) targetLine.chords[existingIdx].chord = chordText;
-    else targetLine.chords.push({ pos: targetPos, chord: chordText });
-    targetLine.chords.sort((a,b) => a.pos - b.pos);
-
-    return { lineIndex: targetLineIndex, pos: targetPos };
-  }
-
   /* ================= EDITOR: META STEP ================= */
   function renderEditMeta(){
     const ed = state.editor;
@@ -4790,10 +4526,6 @@
         <button class="topbar-back" data-action="cancelEdit">Cancelar</button>
         <div class="song-title-block"><h1>${ed.id ? 'Editar letra' : 'Nova música'}</h1></div>
       </header>
-      <div class="editor-mode-switch">
-        <button class="editor-mode-btn active" disabled>Letra</button>
-        <button class="editor-mode-btn" data-action="goToChords">Cifra</button>
-      </div>
       <main class="container">
         <div class="paper editor-meta">
           <label>Título
@@ -4804,6 +4536,9 @@
           </label>
           <label>Tom (opcional)
             <input id="toneInput" value="${escapeHtml(ed.tone||'')}" placeholder="Ex.: G, Am, D#m...">
+          </label>
+          <label>Capotraste <span class="field-hint">(opcional — casa em que o capo está preso; deixe 0 se não usa)</span>
+            <input id="capoInput" type="number" min="0" max="12" step="1" value="${ed.capo ? ed.capo : 0}">
           </label>
           <label>Tema <span class="field-hint">(opcional, uma única palavra — ex.: louvor, natal, adoração)</span>
             <input id="themeInput" value="${escapeHtml(ed.theme||'')}" placeholder="Ex.: louvor">
@@ -4855,10 +4590,6 @@
           <button class="btn-primary" data-action="finishEdit">Salvar música</button>
         </div>
       </header>
-      <div class="editor-mode-switch">
-        <button class="editor-mode-btn" data-action="reeditText">Letra</button>
-        <button class="editor-mode-btn active" disabled>Cifra</button>
-      </div>
       <div class="help-bar">
         <span>clique na cifra ou na letra pra posicionar</span>
         <span><kbd>&#8592;</kbd><kbd>&#8594;</kbd> ajustar</span>
@@ -4923,8 +4654,10 @@
     const artist = document.getElementById('artistInput').value.trim();
     const toneEl = document.getElementById('toneInput');
     const themeEl = document.getElementById('themeInput');
+    const capoEl = document.getElementById('capoInput');
     const pasteModeEl = document.getElementById('pasteModeCheckbox');
     ed.tone = toneEl ? toneEl.value.trim() : (ed.tone||'');
+    ed.capo = capoEl ? Math.max(0, parseInt(capoEl.value, 10) || 0) : (ed.capo||0);
     ed.theme = themeEl ? themeEl.value.trim().replace(/\s+/g,'') : (ed.theme||'');
     const raw = document.getElementById('lyricsTextarea').value;
 
@@ -4936,6 +4669,7 @@
       }
       ed.lines = parsed.lines;
       if(!ed.tone && parsed.tone) ed.tone = parsed.tone;
+      if(!ed.capo && parsed.capo) ed.capo = parsed.capo;
       ed.title = title;
       ed.artist = artist;
       ed.activeLine = 0;
@@ -4979,8 +4713,9 @@
   // certinha (é a própria coluna de caractere no texto colado), sem precisar
   // converter nenhuma coordenada.
   function parsePastedChordText(raw){
-    const metaRegex = /^(Tom|Afina[cç][aã]o|Composi[cç][aã]o de|Capotraste)\s*:/i;
+    const metaRegex = /^(Tom|Afina[cç][aã]o|Composi[cç][aã]o de)\s*:/i;
     let tone = '';
+    let capo = 0;
     const lines = [];
     let pending = null;
 
@@ -5009,6 +4744,8 @@
       }
       const toneMatch = trimmed.match(/^Tom\s*:\s*(.+)$/i);
       if(toneMatch){ if(!tone) tone = toneMatch[1].trim(); return; }
+      const capoMatch = trimmed.match(/^Capotraste\s*:?\s*(?:na\s*)?(\d+)/i);
+      if(capoMatch){ if(!capo) capo = parseInt(capoMatch[1],10) || 0; return; }
       if(metaRegex.test(trimmed)) return;
       if(/^cifraclub$/i.test(trimmed)) return;
 
@@ -5028,7 +4765,7 @@
     });
     flushInstrumental();
 
-    return { tone, lines };
+    return { tone, capo, lines };
   }
 
   async function reeditText(){
@@ -5055,13 +4792,14 @@
     const isNewSong = !ed.id;
     const oldSong = !isNewSong ? state.songs.find(s=>s.id===ed.id) : null;
     const oldSnapshot = oldSong ? {
-      title: oldSong.title, artist: oldSong.artist, tone: oldSong.tone,
+      title: oldSong.title, artist: oldSong.artist, tone: oldSong.tone, capo: oldSong.capo||0,
       theme: oldSong.theme, lines: JSON.parse(JSON.stringify(oldSong.lines))
     } : null;
     const song = {
       id: ed.id || uid(),
       title, artist,
       tone: (ed.tone||'').trim(),
+      capo: Math.max(0, parseInt(ed.capo,10) || 0),
       theme: (ed.theme||'').trim(),
       links: ed.links || {youtube:'',spotify:'',deezer:'',other:''},
       lines: ed.lines.map(l => ({ text: l.text, chords: [...l.chords].sort((a,b)=>a.pos-b.pos) }))
@@ -5069,7 +4807,7 @@
     // A alteração só é publicada no acervo quando aprovada (na hora, se for o
     // admin; senão, quando o admin aprovar depois) — por isso não mexemos em
     // state.songs nem persistimos a música aqui: quem faz isso é recordContribution.
-    const newSnapshot = { title: song.title, artist: song.artist, tone: song.tone, theme: song.theme, lines: song.lines };
+    const newSnapshot = { title: song.title, artist: song.artist, tone: song.tone, capo: song.capo, theme: song.theme, lines: song.lines };
     if(isNewSong){
       const dup = findDuplicateSong(song.title, song.artist);
       if(dup){
@@ -5125,7 +4863,7 @@
   function moveCursor(delta){
     const ed = state.editor;
     const line = activeLine();
-    ed.cursorPos = Math.max(0, Math.min(maxCursorPosForLine(line), ed.cursorPos + delta));
+    ed.cursorPos = Math.max(0, Math.min(line.text.length, ed.cursorPos + delta));
     renderEditorSheetOnly();
   }
 
@@ -5133,7 +4871,7 @@
     const ed = state.editor;
     const newIndex = Math.max(0, Math.min(ed.lines.length-1, ed.activeLine + delta));
     ed.activeLine = newIndex;
-    ed.cursorPos = Math.min(ed.cursorPos, maxCursorPosForLine(ed.lines[newIndex]));
+    ed.cursorPos = Math.min(ed.cursorPos, ed.lines[newIndex].text.length);
     ed.popupOpen = false;
     renderEditorSheetOnly();
   }
@@ -5213,9 +4951,11 @@
     const inp = document.getElementById('chordPopupInput');
     const val = inp ? inp.value.trim() : '';
     if(val){
-      const dest = placeChordAt(ed.activeLine, ed.cursorPos, val);
-      ed.activeLine = dest.lineIndex;
-      ed.cursorPos = dest.pos;
+      const line = activeLine();
+      const existingIdx = line.chords.findIndex(c=>c.pos===ed.cursorPos);
+      if(existingIdx>=0) line.chords[existingIdx].chord = val;
+      else line.chords.push({ pos: ed.cursorPos, chord: val });
+      line.chords.sort((a,b)=>a.pos-b.pos);
     }
     ed.popupOpen = false;
     renderEditorSheetOnly();
@@ -5350,10 +5090,13 @@
       const rect = targetRowEl.getBoundingClientRect();
       newPos = Math.round((e.clientX - rect.left) / chordDrag.chWidth);
     }
-    newPos = Math.max(0, newPos);
+    newPos = Math.max(0, Math.min(targetLine.text.length, newPos));
 
     sourceLine.chords.splice(sourceChordIndex, 1);
-    placeChordAt(targetLineIndex, newPos, chordText);
+    const existingIdx = targetLine.chords.findIndex(c=>c.pos===newPos);
+    if(existingIdx>=0) targetLine.chords[existingIdx].chord = chordText;
+    else targetLine.chords.push({ pos: newPos, chord: chordText });
+    targetLine.chords.sort((a,b)=>a.pos-b.pos);
 
     chordDrag = null;
     renderEditorSheetOnly();
@@ -5372,7 +5115,9 @@
     const line = ed.lines[lineIndex];
     const chord = line && line.chords[chordIndex];
     if(!chord) return;
-    placeChordAt(lineIndex, chord.pos + 2, chord.chord);
+    const newPos = Math.min(line.text.length, chord.pos + 2);
+    line.chords.push({ pos: newPos, chord: chord.chord });
+    line.chords.sort((a,b)=>a.pos-b.pos);
     renderEditorSheetOnly();
   }
 
@@ -5466,15 +5211,17 @@
     rows = rows.filter(r=>rowText(r).length>0);
     if(rows.length===0) return null;
 
-    let title = '', artist = '', tone = '';
+    let title = '', artist = '', tone = '', capo = 0;
     let titleFound = false, artistFound = false;
-    const metaRegex = /^(Tom|Afina[cç][aã]o|Composi[cç][aã]o de|Capotraste)\s*:/i;
+    const metaRegex = /^(Tom|Afina[cç][aã]o|Composi[cç][aã]o de)\s*:/i;
     const bodyRows = [];
 
     rows.forEach(r=>{
       const txt = rowText(r);
       const toneMatch = txt.match(/^Tom\s*:\s*(.+)$/i);
       if(toneMatch){ tone = toneMatch[1].trim(); return; }
+      const capoMatch = txt.match(/^Capotraste\s*:?\s*(?:na\s*)?(\d+)/i);
+      if(capoMatch){ capo = parseInt(capoMatch[1],10) || 0; return; }
       if(metaRegex.test(txt)) return;
       if(/^cifraclub$/i.test(txt)) return;
       if(!titleFound && !rowIsChordRow(r)){ title = txt; titleFound = true; return; }
@@ -5549,7 +5296,7 @@
     });
     flushInstrumental();
 
-    return { title, artist, tone, lines };
+    return { title, artist, tone, capo, lines };
   }
 
   let pdfjsReadyPromise = null;
@@ -5591,6 +5338,7 @@
         title: parsed.title,
         artist: parsed.artist,
         tone: parsed.tone,
+        capo: parsed.capo || 0,
         theme: '', // fica em branco — pode ser preenchido depois em "Editar texto, tom ou tema"
         source: 'pdf',
         links: {youtube:'',spotify:'',deezer:'',other:''},
@@ -5636,9 +5384,10 @@
         queuedKeys.add(key);
         const song = {
           id: uid(), title: parsed.title, artist: parsed.artist, tone: parsed.tone || '',
+          capo: parsed.capo || 0,
           theme: '', links: {youtube:'',spotify:'',deezer:'',other:''}, lines: parsed.lines
         };
-        const snapshot = { title: song.title, artist: song.artist, tone: song.tone, theme: song.theme, lines: song.lines };
+        const snapshot = { title: song.title, artist: song.artist, tone: song.tone, capo: song.capo, theme: song.theme, lines: song.lines };
         await recordContribution('new_pdf', 30, song, { after: snapshot }, { silent: true });
         successCount++;
         totalPoints += 30;
@@ -5720,6 +5469,7 @@
         title: parsed.title,
         artist: parsed.artist,
         tone: parsed.tone,
+        capo: parsed.capo || 0,
         theme: '',
         source: 'image',
         links: {youtube:'',spotify:'',deezer:'',other:''},
@@ -5817,8 +5567,6 @@
     const label = document.getElementById('speedValueModal');
     if(slider) slider.value = state.autoScroll.speed;
     if(label) label.textContent = state.autoScroll.speed + '%';
-    const sidebarSlider = document.getElementById('speedSliderSidebar');
-    if(sidebarSlider) sidebarSlider.value = state.autoScroll.speed;
   }
 
   function startAutoScroll(){
@@ -5869,12 +5617,6 @@
       const icon = document.getElementById('playIconModal');
       if(icon) icon.innerHTML = state.autoScroll.active ? '&#10074;&#10074;' : '&#9654;';
     }
-    const sidebarBtn = document.getElementById('playToggleSidebar');
-    if(sidebarBtn){
-      sidebarBtn.classList.toggle('active', state.autoScroll.active);
-      const icon = document.getElementById('playIconSidebar');
-      if(icon) icon.innerHTML = state.autoScroll.active ? '&#10074;&#10074;' : '&#9654;';
-    }
   }
 
   /* ================= EVENT WIRING ================= */
@@ -5905,12 +5647,6 @@
     }
     if(state.view==='view'){
       requestAnimationFrame(fitSheetFontSize);
-      const speedSidebar = document.getElementById('speedSliderSidebar');
-      if(speedSidebar) speedSidebar.addEventListener('input', e=>{
-        state.autoScroll.speed = parseInt(e.target.value, 10);
-        updateSpeedVBarUI();
-        syncSpeedControlsExternal();
-      });
     }
     if(state.view==='editMeta'){
       const themeEl = document.getElementById('themeInput');
@@ -6067,11 +5803,6 @@
     else if(action==='openReadingControls') openReadingControlsModal();
     else if(action==='transposeUp'){ state.transposeSteps = (state.transposeSteps||0) + 1; render(); }
     else if(action==='transposeDown'){ state.transposeSteps = (state.transposeSteps||0) - 1; render(); }
-    else if(action==='capoUp'){ state.capo = Math.min(CAPO_MAX, (state.capo||0) + 1); render(); }
-    else if(action==='capoDown'){ state.capo = Math.max(CAPO_MIN, (state.capo||0) - 1); render(); }
-    else if(action==='toggleCifraSidebar') toggleCifraSidebar();
-    else if(action==='toggleOfflineSave'){ e.stopPropagation(); toggleOfflineSave(id); }
-    else if(action==='toggleSheetTheme'){ toggleSheetTheme(); render(); }
 
     else if(action==='signIn') await signIn();
     else if(action==='signUp') await signUp();
@@ -6127,7 +5858,7 @@
     const pos = Math.round((e.clientX - rect.left) / chWidth);
     const ed = state.editor;
     ed.activeLine = idx;
-    ed.cursorPos = Math.max(0, Math.min(maxCursorPosForLine(ed.lines[idx]), pos));
+    ed.cursorPos = Math.max(0, Math.min(ed.lines[idx].text.length, pos));
     ed.popupOpen = false;
     renderEditorSheetOnly();
     focusSheet();
