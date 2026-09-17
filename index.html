@@ -1263,7 +1263,37 @@
     box-shadow:0 6px 16px rgba(12,20,14,0.10);
   }
   .chord-card h3{margin:0 0 10px;font-size:19px;font-family:var(--font-serif);color:var(--ink);}
-  .chord-diagram-wrap{display:flex;justify-content:center;margin:6px 0;}
+  .chord-diagram-wrap{display:flex;flex-direction:column;align-items:center;justify-content:center;margin:6px 0;}
+  .capo-bar{
+    display:flex;
+    align-items:center;
+    gap:8px;
+    margin:0 auto 2px;
+    justify-content:center;
+  }
+  .capo-fret-label{
+    font-size:12px;
+    font-weight:700;
+    color:var(--ink);
+    width:18px;
+    text-align:right;
+    flex:none;
+  }
+  .capo-bar-strip{
+    flex:1;
+    max-width:118px;
+    height:11px;
+    border-radius:999px;
+    background:var(--ink);
+    color:var(--on-dark);
+    font-size:8px;
+    font-weight:700;
+    letter-spacing:1px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    line-height:1;
+  }
   .chord-diagram-svg{display:block;}
   .chord-info{
     text-align:left;
@@ -1297,6 +1327,12 @@
   .chord-tappable:hover{background:rgba(199,154,46,0.32);}
   .chord-popup-box{text-align:center;max-width:280px;}
   .chord-popup-box h3{font-size:24px;margin:0 0 12px;font-family:var(--font-serif);color:var(--ink);}
+  .chord-shape-note{
+    font-size:12.5px;
+    color:var(--ink-soft);
+    margin:-6px 0 10px;
+  }
+  .chord-shape-note strong{color:var(--leaf);}
 
   .chord-admin-actions{display:flex;gap:6px;flex-wrap:wrap;justify-content:center;margin-top:10px;}
   .chord-admin-actions .btn-secondary{color:var(--ink);border-color:var(--border);font-size:12px;padding:6px 10px;}
@@ -3728,15 +3764,27 @@
   function renderChordDiagram(def, opts){
     opts = opts || {};
     const size = opts.size === 'large' ? 220 : 150;
+    const capoFret = Math.max(0, parseInt(opts.capoFret,10) || 0);
     const W = 160, H = 190;
     const nStrings = 6, nFrets = 4;
     const left = 22, top = 34, right = 138, bottom = 174;
     const stringGap = (right-left)/(nStrings-1);
     const fretGap = (bottom-top)/nFrets;
 
+    // Barra de capotraste: mostrada por fora do SVG, bem colada em cima do
+    // desenho — representa onde o capo ficaria preso no braço do violão de
+    // verdade. Não muda nenhuma posição de dedo dentro do diagrama, é só o
+    // indicador visual de onde essa forma é tocada no braço.
+    const capoBarHtml = capoFret > 0 ? `
+      <div class="capo-bar" style="width:${size}px;">
+        <span class="capo-fret-label">${capoFret}</span>
+        <span class="capo-bar-strip">CAPOTRASTE</span>
+      </div>` : '';
+
     if(!def){
       return `
         <div class="chord-diagram-missing" style="width:${size}px;">
+          ${capoBarHtml}
           <svg viewBox="0 0 ${W} ${H}" width="${size}" height="${size*(H/W)}"><text x="${W/2}" y="${H/2}" text-anchor="middle" font-size="34">🎸</text></svg>
           <div class="chord-diagram-missing-text">Diagrama ainda não cadastrado</div>
           <div class="chord-diagram-missing-sub">Este acorde foi encontrado no acervo, mas ainda não possui uma posição de violão validada.</div>
@@ -3793,7 +3841,7 @@
       }
     });
     svg += `</svg>`;
-    return `<div class="chord-diagram-wrap">${svg}</div>`;
+    return `<div class="chord-diagram-wrap">${capoBarHtml}${svg}</div>`;
   }
 
   function chordNotesLabel(def){
@@ -3895,14 +3943,20 @@
 
   /* ================= ACERVO DE ACORDES: POPUP AO TOCAR NO ACORDE ================= */
   function showChordPopup(chordText){
-    const parsed = parseChordName(chordText);
+    const capoFret = Math.max(0, parseInt(state.capo,10) || 0);
+    const shapeChordText = capoFret > 0 ? transposeChordName(chordText, -capoFret) : chordText;
+    const parsed = parseChordName(shapeChordText);
     const def = parsed ? getChordDefinition(parsed) : null;
     const overlay = document.createElement('div');
     overlay.className = 'confirm-overlay';
+    const titleHtml = capoFret > 0
+      ? `<h3>${escapeHtml(chordText)}</h3>
+         <div class="chord-shape-note">com forma de <strong>${escapeHtml((parsed && parsed.original) || shapeChordText)}</strong></div>`
+      : `<h3>${escapeHtml((parsed && parsed.original) || chordText)}</h3>`;
     overlay.innerHTML = `
       <div class="confirm-box chord-popup-box">
-        <h3>${escapeHtml((parsed && parsed.original) || chordText)}</h3>
-        ${renderChordDiagram(def, {size:'large'})}
+        ${titleHtml}
+        ${renderChordDiagram(def, {size:'large', capoFret})}
         ${def ? `
           <div class="chord-info" style="text-align:center;">
             <div>Afinação padrão</div>
