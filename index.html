@@ -18,6 +18,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&family=Fraunces:wght@500;600&display=swap" rel="stylesheet">
 <style>
   :root{
+    --offline-bar-h: 0px; /* JS ajusta este valor quando a faixa de "sem conexão" aparece */
     --bg:#26432f;
     --bg-deep:#1c3323;
     --bg-glass:rgba(28,51,35,0.92);
@@ -98,14 +99,19 @@
     align-items:center;
     gap:16px;
     padding:16px 24px;
+    padding-top:calc(16px + env(safe-area-inset-top));
     border-bottom:1px solid var(--border-on-dark);
     position:sticky;
-    top:0;
+    top:var(--offline-bar-h, 0px);
     background:var(--bg-glass);
     backdrop-filter:blur(8px);
-    z-index:10;
+    z-index:20;
     color:var(--on-dark);
   }
+  /* Quando a faixa de "sem conexão" está visível, ela já reserva o espaço do
+     entalhe/notch — o cabeçalho não precisa somar essa folga de novo, só
+     descer para baixo da faixa (feito pelo var(--offline-bar-h) acima). */
+  body.is-offline .topbar{ padding-top:16px; }
   .brand{
     display:flex;
     align-items:center;
@@ -116,7 +122,17 @@
     color:var(--on-dark);
     font-family:var(--font-serif);
   }
-  .brand-logo{height:32px;width:auto;display:block;flex:none;}
+  .brand-logo{
+    height:32px;
+    width:32px;
+    display:block;
+    flex:none;
+    background:#fff;
+    border-radius:9px;
+    padding:4px;
+    box-shadow:0 1px 3px rgba(0,0,0,0.25);
+    object-fit:contain;
+  }
   .brand .dot{color:var(--gold-light);}
   .brand-green{color:var(--leaf-light);}
   .topbar-back{
@@ -1030,7 +1046,7 @@
   .sw-update-bar{
     position:fixed;
     left:50%;
-    bottom:24px;
+    bottom:max(24px, calc(24px + env(safe-area-inset-bottom)));
     transform:translateX(-50%);
     display:flex;
     align-items:center;
@@ -1076,7 +1092,7 @@
     z-index:130;
     padding-top:calc(6px + env(safe-area-inset-top));
   }
-  body.is-offline{padding-top:30px;}
+  body.is-offline{padding-top:var(--offline-bar-h, 0px);}
 
   .confirm-overlay{
     position:fixed;
@@ -1607,7 +1623,10 @@
 
   @media (max-width:600px){
     .container{padding:20px 16px 100px;}
-    .topbar{padding:14px 16px;}
+    .topbar{padding:14px 16px;padding-top:calc(14px + env(safe-area-inset-top));gap:10px;}
+    body.is-offline .topbar{padding-top:14px;}
+    .brand{font-size:17px;gap:8px;}
+    .brand-logo{height:28px;width:28px;}
     .paper{padding:18px 16px 14px;border-radius:16px;}
     .contrib-compare{grid-template-columns:1fr;}
     .chord-grid{grid-template-columns:repeat(auto-fill,minmax(150px,1fr));}
@@ -6575,6 +6594,14 @@
     document.body.appendChild(barra);
   }
 
+  // Mede a altura real da faixa de "sem conexão" (que varia com o entalhe
+  // do aparelho) e disponibiliza esse valor para o CSS. É isso que evita o
+  // cabeçalho ficar escondido atrás da faixa.
+  function medirFaixaOffline(){
+    const barra = document.querySelector('.offline-bar');
+    document.documentElement.style.setProperty('--offline-bar-h', barra ? barra.offsetHeight + 'px' : '0px');
+  }
+
   function atualizarFaixaOffline(){
     const offline = !navigator.onLine;
     document.body.classList.toggle('is-offline', offline);
@@ -6587,7 +6614,12 @@
     } else if(!offline && barra){
       barra.remove();
     }
+    medirFaixaOffline();
   }
+  // Girar a tela muda o tamanho do entalhe/notch — remede se a faixa
+  // continuar visível.
+  window.addEventListener('resize', medirFaixaOffline);
+  window.addEventListener('orientationchange', ()=> setTimeout(medirFaixaOffline, 50));
 
   function registrarServiceWorker(){
     if(!('serviceWorker' in navigator)) return;
