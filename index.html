@@ -381,6 +381,32 @@
   .card-menu button.danger{color:var(--danger);}
   .card-menu button.danger:hover{background:var(--danger-soft);}
 
+  /* Menu do botão "+ Nova cifra", que reúne as 4 formas de adicionar cifra
+     (antes eram 4 botões separados no topo da lista). */
+  .new-song-menu-wrap{position:relative;}
+  .new-song-menu{
+    position:absolute;
+    top:calc(100% + 6px);
+    right:0;
+    background:var(--surface);
+    border:1px solid var(--border);
+    border-radius:12px;
+    box-shadow:0 14px 30px rgba(12,20,14,0.22);
+    min-width:220px;
+    padding:6px;
+    z-index:30;
+  }
+  .new-song-menu button{
+    display:block;
+    width:100%;
+    text-align:left;
+    padding:9px 10px;
+    border-radius:8px;
+    font-size:13.5px;
+    color:var(--ink);
+  }
+  .new-song-menu button:hover{background:var(--surface-hover);}
+
   .empty-state{
     grid-column:1/-1;
     text-align:center;
@@ -724,8 +750,20 @@
   .cifra-float-btn:disabled{opacity:0.35;}
   .cifra-float-btn.active{background:var(--leaf);border-color:var(--leaf-light);color:#fff;}
   .cifra-float-btn.cifra-float-btn-main{width:60px;height:60px;font-size:20px;}
+
+  /* Botão de voltar flutuante: fica sempre visível dentro da cifra, mesmo
+     rolando a tela para baixo (o cabeçalho sticky pode ficar fora de vista
+     em alguns navegadores durante a rolagem). Fica no canto oposto ao
+     cluster de navegação para não sobrepor nada. */
+  .cifra-float-back{
+    position:fixed;
+    left:max(18px, env(safe-area-inset-left));
+    bottom:max(18px, env(safe-area-inset-bottom));
+    z-index:46;
+  }
   @media (max-width:600px){
     .cifra-float-nav{gap:10px;}
+    .cifra-float-back{left:max(14px, env(safe-area-inset-left));}
     .cifra-float-btn{width:46px;height:46px;font-size:16px;}
     .cifra-float-btn.cifra-float-btn-main{width:52px;height:52px;font-size:18px;}
   }
@@ -1284,6 +1322,18 @@
     white-space:nowrap;
     align-self:center;
   }
+  /* Categoria do usuário (por nível de xp), bem discreta, logo abaixo do
+     cabeçalho verde — não entra na linha do cabeçalho para não quebrá-la. */
+  .user-category-line{
+    text-align:right;
+    font-size:10px;
+    color:var(--muted-on-dark);
+    padding:3px 24px 0;
+    letter-spacing:0.4px;
+  }
+  @media (max-width:600px){
+    .user-category-line{padding:3px 16px 0;}
+  }
   .request-status-chip{
     font-size:12.5px;
     color:var(--muted-on-dark);
@@ -1690,8 +1740,12 @@
       padding:11px 8px;
       font-size:13.5px;
     }
-    /* "Nova música" ocupa a linha inteira, com destaque */
+    /* "+ Nova cifra" ocupa a linha inteira, com destaque (o botão fica dentro
+       de um wrapper por causa do menu suspenso, então o grid-column precisa
+       ir no wrapper — que é o filho direto do grid — e não no botão) */
     .list-head-actions .btn-primary{grid-column:1 / -1;}
+    .list-head-actions .new-song-menu-wrap{grid-column:1 / -1;width:100%;}
+    .list-head-actions .new-song-menu-wrap .btn-primary{width:100%;}
     /* Filtros: os dois selects lado a lado, o botão de curtidas embaixo */
     .filters-row{gap:8px;margin-bottom:18px;}
     .filters-row select{flex:1 1 0;min-width:0;}
@@ -1959,6 +2013,7 @@
     filterTheme: '',
     filterFavOnly: false,
     openMenuId: null,
+    newSongMenuOpen: false,
     _lastListIds: [],
     session: null,          // { access_token, refresh_token, user: {id, email} }
     authError: '',
@@ -2467,11 +2522,35 @@
   function isEditor(){
     return isAdmin() || !!(state.profile && (state.profile.role === 'editor' || state.profile.role === 'admin'));
   }
+  // Meta de pontos para completar um nível: níveis 1 a 10 valem sempre
+  // XP_PER_LEVEL (100). Do nível 11 em diante a meta sobe 10 pontos a cada
+  // nível (nível 11 = 110, nível 12 = 120, e assim por diante).
+  function levelTarget(level){
+    if(level < 11) return XP_PER_LEVEL;
+    return XP_PER_LEVEL + (level - 10) * 10;
+  }
+  // O total de Exp de Rezo do usuário nunca é resetado — a barra sempre soma
+  // o total acumulado. Aqui só descobrimos em que nível esse total cai e
+  // quanto falta dentro do nível atual, percorrendo as metas crescentes.
   function levelInfo(exp){
     const safeExp = exp || 0;
-    const level = Math.floor(safeExp / XP_PER_LEVEL) + 1;
-    const progress = safeExp % XP_PER_LEVEL;
-    return { level, progress };
+    let level = 1;
+    let remaining = safeExp;
+    while(remaining >= levelTarget(level)){
+      remaining -= levelTarget(level);
+      level++;
+    }
+    const progress = remaining;
+    const target = levelTarget(level);
+    return { level, progress, target };
+  }
+  // Categoria exibida embaixo do cabeçalho, de acordo com a faixa de nível.
+  function levelCategoryLabel(level){
+    if(level <= 1) return 'Observante';
+    if(level <= 3) return 'Iniciante';
+    if(level <= 10) return 'Experiente';
+    if(level <= 25) return 'Guardian';
+    return 'Viajante do espaço';
   }
 
   async function askDisplayName(){
@@ -2580,7 +2659,7 @@
         <div class="celebrate-emoji">🎉</div>
         <h3>Parabéns!</h3>
         <p>Você ganhou <strong>+${gained} Exp de Rezo</strong> por suas contribuições aprovadas!</p>
-        <div class="level-chip-big">Nível ${level} · ${progress}/100</div>
+        <div class="level-chip-big">Nível ${level} · ${progress}/${levelTarget(level)}</div>
         <div class="confirm-actions"><button class="btn-primary" data-choice="ok">Show!</button></div>
       </div>`;
     document.body.appendChild(overlay);
@@ -2912,6 +2991,26 @@
     render();
   }
 
+  // Salva de uma vez todas as cifras do acervo (as que já estiverem carregadas
+  // em state.songs) para leitura offline, usando o mesmo formato/local de
+  // armazenamento das cifras salvas individualmente.
+  function saveAllSongsOffline(){
+    if(!state.songs.length){
+      showToast('Não há cifras carregadas para salvar.');
+      return;
+    }
+    const map = getOfflineSongsMap();
+    state.songs.forEach(song => { map[song.id] = songSnapshotForOffline(song); });
+    try {
+      localStorage.setItem(OFFLINE_SONGS_KEY, JSON.stringify(map));
+    } catch(e){
+      showToast('Não foi possível salvar todas as cifras offline — pode faltar espaço neste dispositivo.');
+      return;
+    }
+    showToast(`${state.songs.length} cifras salvas para acesso offline.`);
+    render();
+  }
+
   // O Supabase devolve no máximo 1000 linhas por requisição. Sem paginar, a
   // partir da música 1001 o acervo simplesmente "sumiria" sem nenhum erro.
   // Aqui buscamos de 1000 em 1000 até a página vir incompleta.
@@ -3157,7 +3256,7 @@
   }
 
   /* ================= NAVIGATION ================= */
-  function closeAllMenus(){ state.openMenuId = null; }
+  function closeAllMenus(){ state.openMenuId = null; state.newSongMenuOpen = false; }
 
   function goList(){ stopAutoScroll(); state.view='list'; state.currentId=null; closeAllMenus(); render(); }
   function goLists(){ stopAutoScroll(); state.view='lists'; closeAllMenus(); render(); }
@@ -4574,7 +4673,8 @@
 
     const artists = uniqueSorted(state.songs.map(s=>s.artist));
     const themes = uniqueSorted(state.songs.map(s=>s.theme));
-    const { level, progress } = levelInfo(state.profile ? state.profile.exp : 0);
+    const { level, progress, target } = levelInfo(state.profile ? state.profile.exp : 0);
+    const levelCategory = levelCategoryLabel(level);
     const canEdit = isEditor();
 
     const cards = songs.map(songCardHtml).join('');
@@ -4591,7 +4691,7 @@
         <div class="brand"><img src="${LOGO_ICON}" class="brand-logo" alt="Acervo dos Rezos"></div>
         <div class="topbar-scroll">
           <div class="topbar-actions">
-            <span class="level-chip" title="Exp de Rezo">Nv. ${level} · ${progress}/100</span>
+            <span class="level-chip" title="Exp de Rezo">Nv. ${level} · ${progress}/${target}</span>
             <button class="user-email" data-action="openProfileInfo" title="Ver minhas informações">${escapeHtml((state.profile && state.profile.display_name) || state.session.user.email)}</button>
             ${isAdmin() ? `<button class="icon-btn" data-action="goAdmin">Administração</button>` : ''}
             <button class="icon-btn" data-action="goChordLibrary">🎸 Acervo de Acordes</button>
@@ -4600,6 +4700,7 @@
           </div>
         </div>
       </header>
+      <div class="user-category-line">${levelCategory}</div>
       <main class="container">
         <div class="app-hero">
           <div class="app-hero-title"><span class="brand-green">Acervo</span> <span class="dot">dos</span> <span class="brand-green">Rezos</span></div>
@@ -4608,12 +4709,18 @@
         <div class="list-head">
           <input id="searchInput" class="search" placeholder="Buscar por título, artista ou tema" value="${escapeHtml(state.search)}">
           <div class="list-head-actions">
-            
+            <button class="btn-secondary" data-action="saveAllOffline" title="Baixa todas as cifras do acervo para ler sem internet, mesmo sem conexão">&#8595; Salvar tudo offline</button>
             ${canEdit ? `
-            <button class="btn-secondary" data-action="importPdf" title="Você pode selecionar vários arquivos de uma vez">Importar PDF</button>
-            <button class="btn-secondary" data-action="importImage" title="Reconhece letra e cifra a partir de uma foto ou print">Importar de print</button>
-            <button class="btn-secondary" data-action="importText" title="Cole a letra com a cifra já junto que o app identifica sozinho">Importar de texto</button>
-            <button class="btn-primary" data-action="newSong">Nova música</button>
+            <div class="new-song-menu-wrap">
+              <button class="btn-primary" data-action="toggleNewSongMenu">+ Nova cifra</button>
+              ${state.newSongMenuOpen ? `
+              <div class="new-song-menu">
+                <button data-action="importPdf" title="Você pode selecionar vários arquivos de uma vez">Importar PDF</button>
+                <button data-action="importImage" title="Reconhece letra e cifra a partir de uma foto ou print">Importar Imagem</button>
+                <button data-action="importText" title="Cole a letra com a cifra já junto que o app identifica sozinho">Enviar texto copiado</button>
+                <button data-action="newSong">Começar do zero</button>
+              </div>` : ''}
+            </div>
             ` : editorRequestButtonHtml()}
           </div>
         </div>
@@ -4818,6 +4925,18 @@
     `;
   }
 
+  // Botão de voltar sempre flutuante dentro da cifra — independe do cabeçalho
+  // sticky (que em alguns navegadores some da tela ao rolar) e independe do
+  // card lateral estar aberto ou recolhido, para dar pra voltar de qualquer
+  // ponto da rolagem.
+  function floatingBackHtml(){
+    return `
+      <div class="cifra-float-back">
+        <button class="cifra-float-btn" data-action="back" title="Voltar ao acervo">&#8592;</button>
+      </div>
+    `;
+  }
+
   function sidebarCifraHtml(song, toneLabel, prevId, nextId){
     const offline = isSongOfflineSaved(song.id);
     const capo = state.capo || 0;
@@ -4926,6 +5045,7 @@
       </header>
       ${sidebarCifraHtml(song, toneLabel, prevId, nextId)}
       ${floatingNavHtml(prevId, nextId)}
+      ${floatingBackHtml()}
       <div class="scroll-container" id="scrollContainer">
         <main class="container">
           <div class="paper sheet ${state.sheetTheme==='dark' ? 'sheet-dark' : ''}">${linesHtml}</div>
@@ -6364,16 +6484,24 @@
     if(action==='openSong'){ goView(id, state._lastListIds.slice(), null); }
     else if(action==='editSong'){ e.stopPropagation(); goEditSong(id); }
     else if(action==='deleteSong'){ e.stopPropagation(); await deleteSong(id); }
-    else if(action==='newSong') goNewSong();
+    else if(action==='toggleNewSongMenu'){
+      e.stopPropagation();
+      state.newSongMenuOpen = !state.newSongMenuOpen;
+      render();
+    }
+    else if(action==='newSong'){ state.newSongMenuOpen = false; goNewSong(); }
     else if(action==='importPdf'){
+      state.newSongMenuOpen = false;
       if(!isEditor()) showToast('Você precisa ser um editor aprovado para importar PDFs.');
       else document.getElementById('pdfFileInput').click();
     }
     else if(action==='importImage'){
+      state.newSongMenuOpen = false;
       if(!isEditor()) showToast('Você precisa ser um editor aprovado para importar cifras.');
       else document.getElementById('imageFileInput').click();
     }
-    else if(action==='importText') goNewSongFromText();
+    else if(action==='importText'){ state.newSongMenuOpen = false; goNewSongFromText(); }
+    else if(action==='saveAllOffline') saveAllSongsOffline();
     else if(action==='back') goBack();
     else if(action==='goToChords') goToChords();
     else if(action==='cancelEdit') cancelEdit();
@@ -6518,6 +6646,14 @@
   document.addEventListener('click', function(e){
     if(state.openMenuId && !e.target.closest('.card-menu-wrap')){
       state.openMenuId = null;
+      render();
+    }
+  });
+
+  /* fecha o menu "+ Nova cifra" ao clicar fora dele */
+  document.addEventListener('click', function(e){
+    if(state.newSongMenuOpen && !e.target.closest('.new-song-menu-wrap')){
+      state.newSongMenuOpen = false;
       render();
     }
   });
