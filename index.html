@@ -300,6 +300,23 @@
   }
   .song-card.menu-open{z-index:40;}
   .song-card:hover{border-color:var(--gold);transform:translateY(-2px);box-shadow:0 12px 24px rgba(12,20,14,0.16);}
+  /* Card com foto do artista: a foto entra pela esquerda e vai desvanecendo
+     pro branco opaco de sempre conforme chega na direita — onde ficam os
+     ícones de ação (que continuam sobre fundo sólido, sem disputar com a foto). */
+  .song-card.has-artist-photo{
+    background-image:
+      linear-gradient(to right, rgba(255,255,255,0) 0%, rgba(255,255,255,0.55) 42%, var(--surface) 72%),
+      var(--artist-photo);
+    background-repeat: no-repeat, no-repeat;
+    background-size: cover, cover;
+    background-position: center, left center;
+  }
+  /* leve brilho branco atrás do texto pra continuar legível em cima de
+     qualquer foto, já que ela fica bem visível do lado esquerdo do card */
+  .song-card.has-artist-photo h3,
+  .song-card.has-artist-photo .artist{
+    text-shadow: 0 1px 3px rgba(255,255,255,0.85), 0 1px 10px rgba(255,255,255,0.85);
+  }
   .song-card h3{
     margin:0 0 4px;
     font-size:17px;
@@ -2026,7 +2043,8 @@
     pendingEditorRequests: [],
     pendingContributions: [],
     chordSearch: '',
-    chordFilter: 'todos'
+    chordFilter: 'todos',
+    artistPhotos: {}   // { [artistaNormalizado]: urlDaFoto | null }, cache em memória (persistida no localStorage)
   };
   // 100% da barra equivale à antiga velocidade do botão 3; 1% é bem lento ("quase parando").
   // Curva quadrática: a faixa baixa/média fica bem devagar e só perto do topo acelera de verdade.
@@ -4620,14 +4638,93 @@
     afterRender();
   }
 
+  /* ================= FOTO DO ARTISTA (busca automática, por nome, com cache) =================
+     Busca a foto do cantor/artista na Wikipedia (PT, com fallback em EN) e guarda o
+     resultado (a URL, ou null quando não acha) em localStorage, por artista — assim só
+     busca uma vez por artista, não uma vez por música nem a cada visita.
+     Enquanto a foto não chega (ou se nunca achar), o card continua branco opaco como
+     sempre: isso é só uma camada visual por cima, nunca trava nem quebra a lista. */
+  const ARTIST_PHOTOS_CACHE_KEY = 'cifrario_artist_photos';
+  const artistPhotoAttempted = {}; // evita disparar a mesma busca 2x em paralelo nesta sessão
+
+  function getArtistPhotosCache(){
+    try { return JSON.parse(localStorage.getItem(ARTIST_PHOTOS_CACHE_KEY) || '{}') || {}; }
+    catch(e){ return {}; }
+  }
+  function saveArtistPhotoToCache(key, url){
+    const cache = getArtistPhotosCache();
+    cache[key] = url; // url pode ser null: já buscamos esse artista e não achou foto
+    try { localStorage.setItem(ARTIST_PHOTOS_CACHE_KEY, JSON.stringify(cache)); } catch(e){}
+  }
+  async function fetchArtistPhotoFromWikipedia(artistName, lang){
+    const url = `https://${lang}.wikipedia.org/w/api.php?action=query&generator=search&gsrsearch=${encodeURIComponent(artistName)}&gsrlimit=1&prop=pageimages&piprop=thumbnail&pithumbsize=400&format=json&origin=*`;
+    const res = await fetch(url);
+    if(!res.ok) return null;
+    const data = await res.json();
+    const pages = data && data.query && data.query.pages;
+    if(!pages) return null;
+    const page = Object.values(pages)[0];
+    return (page && page.thumbnail && page.thumbnail.source) || null;
+  }
+  async function fetchArtistPhoto(artistName){
+    try {
+      let foto = await fetchArtistPhotoFromWikipedia(artistName, 'pt');
+      if(!foto) foto = await fetchArtistPhotoFromWikipedia(artistName, 'en');
+      return foto;
+    } catch(e){
+      return null; // sem internet, CORS, instabilidade da Wikipedia etc. — falha em silêncio
+    }
+  }
+  // Roda até "limit" buscas em paralelo por vez, em vez de disparar tudo de uma
+  // vez (educado com a Wikipedia quando o acervo tem muitos artistas diferentes).
+  async function runWithConcurrency(items, limit, worker){
+    let i = 0;
+    async function next(){
+      if(i >= items.length) return;
+      const item = items[i++];
+      await worker(item);
+      return next();
+    }
+    await Promise.all(Array.from({length: Math.min(limit, items.length)}, next));
+  }
+  // Dispara em segundo plano a busca de foto para os artistas do acervo que
+  // ainda não têm nada em cache. Ao final, re-renderiza uma vez só (não uma
+  // vez por foto), pra não ficar piscando a tela.
+  function ensureArtistPhotos(songs){
+    if(!navigator.onLine) return;
+    const cache = getArtistPhotosCache();
+    const vistos = new Set();
+    const pendentes = [];
+    songs.forEach(s => {
+      const nome = (s.artist || '').trim();
+      if(!nome) return;
+      const key = normalizeText(nome);
+      if(vistos.has(key)) return;
+      vistos.add(key);
+      if(Object.prototype.hasOwnProperty.call(cache, key)){ state.artistPhotos[key] = cache[key]; return; }
+      if(artistPhotoAttempted[key]) return;
+      pendentes.push({ key, nome });
+    });
+    if(!pendentes.length) return;
+    pendentes.forEach(p => { artistPhotoAttempted[p.key] = true; });
+    runWithConcurrency(pendentes, 4, async (p) => {
+      const url = await fetchArtistPhoto(p.nome);
+      saveArtistPhotoToCache(p.key, url);
+      state.artistPhotos[p.key] = url;
+    }).then(render);
+  }
+
   /* ================= LIST VIEW (ACERVO) ================= */
   function songCardHtml(s){
     const isFav = state.favoriteIds.has(s.id);
     const menuOpen = state.openMenuId === s.id;
     const canEdit = isEditor();
     const linkTitle = 'Adicionar links da música (YouTube, Spotify, Deezer, etc.)';
+    const artistKey = normalizeText(s.artist || '');
+    const artistPhoto = artistKey ? state.artistPhotos[artistKey] : null;
+    const photoStyle = artistPhoto ? ` style="--artist-photo:url('${escapeHtml(artistPhoto)}')"` : '';
     return `
-      <div class="song-card ${menuOpen?'menu-open':''}" data-action="openSong" data-id="${s.id}">
+      <div class="song-card ${menuOpen?'menu-open':''} ${artistPhoto?'has-artist-photo':''}" data-action="openSong" data-id="${s.id}"${photoStyle}>
         <div class="card-actions">
           ${canEdit ? `<button class="card-icon" data-action="openLinks" data-id="${s.id}" title="${linkTitle}">&#128279;</button>` : ''}
           <div class="card-menu-wrap" data-id="${s.id}">
@@ -4678,6 +4775,7 @@
     const canEdit = isEditor();
 
     const cards = songs.map(songCardHtml).join('');
+    ensureArtistPhotos(state.songs); // busca em segundo plano; não atrasa este render
     const empty = state.songs.length === 0 ? `<div class="empty-state">
         <div class="big">Nenhuma música por aqui ainda.</div>
         <div>Adicione a primeira letra e cifra para começar seu repertório.</div>
