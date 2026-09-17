@@ -31,5 +31,14 @@
       "type": "image/png",
       "purpose": "maskable"
     }
+  ],
+  "screenshots": [
+    {
+      "src": "./screenshots/screenshot-lista.png",
+      "sizes": "720x1420",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "Lista de músicas do Acervo dos Rezos, com busca, filtros e importação de cifras"
+    }
   ]
 }
