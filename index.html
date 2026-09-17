@@ -197,6 +197,26 @@
     flex-wrap:wrap;
     align-items:center;
   }
+  /* Faixa de marca da tela inicial: nome do app bem visível, mas leve, sem
+     empurrar as músicas para muito longe. */
+  .app-hero{
+    text-align:center;
+    padding:4px 0 18px;
+  }
+  .app-hero-title{
+    font-family:var(--font-serif);
+    font-size:30px;
+    font-weight:700;
+    letter-spacing:0.3px;
+    line-height:1.1;
+  }
+  .app-hero-title .dot{color:var(--gold-light);}
+  .app-hero-title .brand-green{color:var(--leaf-light);}
+  .app-hero-sub{
+    color:var(--muted-on-dark);
+    font-size:13.5px;
+    margin-top:6px;
+  }
   .storage-banner{
     background:rgba(177,69,79,0.14);
     border:1px solid var(--danger);
@@ -1648,6 +1668,36 @@
     .paper{padding:18px 16px 14px;border-radius:16px;}
     .contrib-compare{grid-template-columns:1fr;}
     .chord-grid{grid-template-columns:repeat(auto-fill,minmax(150px,1fr));}
+
+    /* --- Tela inicial mais limpa e organizada no celular --- */
+    .app-hero{padding:2px 0 16px;}
+    .app-hero-title{font-size:25px;}
+    .app-hero-sub{font-size:12.5px;padding:0 8px;}
+    /* Busca sempre em uma linha própria, largura total */
+    .list-head{gap:10px;margin-bottom:12px;}
+    .search{flex:1 1 100%;min-width:0;}
+    /* Botões de importar/novo em grade de 2 colunas, alvos de toque parelhos */
+    .list-head-actions{
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:8px;
+      width:100%;
+    }
+    .list-head-actions .btn-secondary,
+    .list-head-actions .btn-primary{
+      width:100%;
+      text-align:center;
+      padding:11px 8px;
+      font-size:13.5px;
+    }
+    /* "Nova música" ocupa a linha inteira, com destaque */
+    .list-head-actions .btn-primary{grid-column:1 / -1;}
+    /* Filtros: os dois selects lado a lado, o botão de curtidas embaixo */
+    .filters-row{gap:8px;margin-bottom:18px;}
+    .filters-row select{flex:1 1 0;min-width:0;}
+    .fav-filter-btn{flex:1 1 100%;justify-content:center;}
+    /* Cards em coluna única, respiro maior entre eles */
+    .song-grid{grid-template-columns:1fr;gap:12px;}
   }
 </style>
 <body>
@@ -4551,6 +4601,10 @@
         </div>
       </header>
       <main class="container">
+        <div class="app-hero">
+          <div class="app-hero-title"><span class="brand-green">Acervo</span> <span class="dot">dos</span> <span class="brand-green">Rezos</span></div>
+          <div class="app-hero-sub">Cifras, letras e listas de rezos para tocar e cantar</div>
+        </div>
         <div class="list-head">
           <input id="searchInput" class="search" placeholder="Buscar por título, artista ou tema" value="${escapeHtml(state.search)}">
           <div class="list-head-actions">
@@ -5012,7 +5066,15 @@
       maxChars = Math.max(maxChars, (l.text||'').length);
       (l.chords||[]).forEach(c=>{ maxChars = Math.max(maxChars, c.pos + (c.chord||'').length); });
     });
-    const availableWidth = sheet.clientWidth - 8;
+    // Mede o espaço REALMENTE visível. Como .sheet tem overflow-x:auto, o
+    // clientWidth dele pode incluir área rolável e enganar a conta. O pai
+    // (.paper) nunca rola de lado, então a largura interna dele (descontado
+    // o padding) é o teto verdadeiro do que cabe sem cortar.
+    const paper = sheet.closest('.paper') || sheet;
+    const cs = getComputedStyle(paper);
+    const padL = parseFloat(cs.paddingLeft) || 0;
+    const padR = parseFloat(cs.paddingRight) || 0;
+    const availableWidth = paper.clientWidth - padL - padR - 2; // -2px de folga de segurança
     if(availableWidth <= 0) return;
     const charWidthPerPx = getMonoCharWidthPerPx();
     let fontSize = Math.floor(availableWidth / (maxChars * charWidthPerPx));
@@ -6239,6 +6301,12 @@
     }
     if(state.view==='view'){
       requestAnimationFrame(fitSheetFontSize);
+      // As fontes web (mono) podem carregar depois do primeiro cálculo — a
+      // largura por caractere muda quando a fonte real entra, então recalcula
+      // assim que o navegador confirmar que as fontes terminaram de carregar.
+      if(document.fonts && document.fonts.ready){
+        document.fonts.ready.then(()=>{ _monoCharWidthPerPx = null; fitSheetFontSize(); });
+      }
       const speedSidebar = document.getElementById('speedSliderSidebar');
       if(speedSidebar) speedSidebar.addEventListener('input', e=>{
         state.autoScroll.speed = parseInt(e.target.value, 10);
