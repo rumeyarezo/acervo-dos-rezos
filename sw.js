@@ -10,7 +10,7 @@
    Se você esquecer, as pessoas continuam vendo a versão antiga.
    ============================================================ */
 
-const CACHE_VERSION = 'v2';
+const CACHE_VERSION = 'v3';
 const SHELL_CACHE = `acervo-shell-${CACHE_VERSION}`;
 const RUNTIME_CACHE = `acervo-runtime-${CACHE_VERSION}`;
 

@@ -48,7 +48,7 @@
     --font-mono:'JetBrains Mono', ui-monospace, Menlo, Consolas, monospace;
   }
   *{box-sizing:border-box;}
-  html,body{margin:0;padding:0;}
+  html,body{margin:0;padding:0;overflow-x:hidden;}
   body{
     background:
       radial-gradient(1100px 620px at 12% -8%, rgba(255,255,255,0.05), transparent 55%),
@@ -57,6 +57,7 @@
     color:var(--ink);
     font-family:var(--font-display);
     min-height:100vh;
+    width:100%;
     -webkit-font-smoothing:antialiased;
   }
   button{
@@ -1235,6 +1236,23 @@
 
   /* ---------- NÍVEL / SOLICITAÇÃO / ADMINISTRAÇÃO ---------- */
   .topbar-actions{flex-wrap:wrap;justify-content:flex-end;}
+  /* Faixa de infos do cabeçalho (nível, e-mail, botões) quando precisa
+     arrastar para o lado em vez de quebrar linha ou estourar a tela.
+     Só essa faixa rola — o resto da página fica parado. */
+  .topbar-scroll{
+    flex:1;
+    min-width:0;
+    display:flex;
+    overflow-x:auto;
+    -webkit-overflow-scrolling:touch;
+    scrollbar-width:none;
+  }
+  .topbar-scroll::-webkit-scrollbar{display:none;}
+  .topbar-scroll .topbar-actions{
+    flex-wrap:nowrap;
+    margin-left:auto;
+  }
+  .topbar-scroll .topbar-actions > *{flex:none;}
   .level-chip{
     background:var(--gold-soft);
     color:var(--gold-light);
@@ -2072,10 +2090,14 @@
   }
 
   async function apiSignUp(email, password){
+    // Sem isso, o link do e-mail de confirmação usa só a "Site URL" cadastrada
+    // no painel do Supabase — se ela estiver desatualizada ou não bater com
+    // o endereço real do app, o clique cai numa página que não existe (404).
+    const redirectTo = window.location.origin + window.location.pathname;
     const res = await fetch(`${SUPABASE_URL}/auth/v1/signup`, {
       method: 'POST',
       headers: { 'apikey': SUPABASE_ANON_KEY, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password })
+      body: JSON.stringify({ email, password, options: { redirect_to: redirectTo } })
     });
     const data = await res.json().catch(()=>({}));
     if(!res.ok) throw new Error(authErrorMessage(data, 'Não foi possível criar a conta.'));
@@ -4516,14 +4538,16 @@
 
     return `
       <header class="topbar">
-        <div class="brand"><img src="${LOGO_ICON}" class="brand-logo" alt="Acervo dos Rezos"> <span class="brand-green">Acervo</span> <span class="dot">dos</span> <span class="brand-green">Rezos</span></div>
-        <div class="topbar-actions">
-          <span class="level-chip" title="Exp de Rezo">Nv. ${level} · ${progress}/100</span>
-          <button class="user-email" data-action="openProfileInfo" title="Ver minhas informações">${escapeHtml((state.profile && state.profile.display_name) || state.session.user.email)}</button>
-          ${isAdmin() ? `<button class="icon-btn" data-action="goAdmin">Administração</button>` : ''}
-          <button class="icon-btn" data-action="goChordLibrary">🎸 Acervo de Acordes</button>
-          <button class="icon-btn" data-action="goLists">Minhas listas</button>
-          <button class="icon-btn" data-action="signOut">Sair</button>
+        <div class="brand"><img src="${LOGO_ICON}" class="brand-logo" alt="Acervo dos Rezos"></div>
+        <div class="topbar-scroll">
+          <div class="topbar-actions">
+            <span class="level-chip" title="Exp de Rezo">Nv. ${level} · ${progress}/100</span>
+            <button class="user-email" data-action="openProfileInfo" title="Ver minhas informações">${escapeHtml((state.profile && state.profile.display_name) || state.session.user.email)}</button>
+            ${isAdmin() ? `<button class="icon-btn" data-action="goAdmin">Administração</button>` : ''}
+            <button class="icon-btn" data-action="goChordLibrary">🎸 Acervo de Acordes</button>
+            <button class="icon-btn" data-action="goLists">Minhas listas</button>
+            <button class="icon-btn" data-action="signOut">Sair</button>
+          </div>
         </div>
       </header>
       <main class="container">
