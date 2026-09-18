@@ -4647,6 +4647,34 @@
      busca uma vez por artista, não uma vez por música nem a cada visita.
      Enquanto a foto não chega (ou se nunca achar), o card continua branco opaco como
      sempre: isso é só uma camada visual por cima, nunca trava nem quebra a lista. */
+  // Fotos curadas manualmente (enviadas pelo Caio via pasta "Rezadores" no Drive).
+  // Chave = normalizeText(artist) exatamente como vem da coluna cifrario_songs.artist.
+  // Essas fotos têm prioridade total sobre a busca automática na Wikipedia: nunca
+  // são sobrescritas pelo cache nem disparam fetch nenhum.
+  const ARTIST_PHOTO_OVERRIDES = {
+    'advan haschi': 'fotos-artistas/advan-haschi.jpg',
+    'bea venturada': 'fotos-artistas/bea-venturada.jpg',
+    'chandra lacombe': 'fotos-artistas/chandra-lacombe.jpg',
+    'com fe, cafe': 'fotos-artistas/com-fe-cafe.jpg',
+    'dois sois': 'fotos-artistas/dois-sois.jpg',
+    'gustavito': 'fotos-artistas/gustavito.jpg',
+    'haajori': 'fotos-artistas/haajori.jpg',
+    'morada': 'fotos-artistas/morada.jpg',
+    'marco mattielo': 'fotos-artistas/marco-mattielo.jpg',
+    'max mello & suzan flores': 'fotos-artistas/max-mello-suzan-flores.jpg',
+    'medicinas de oxossi': 'fotos-artistas/medicinas-de-oxossi.jpg',
+    'nini gallon': 'fotos-artistas/nini-gallon.jpg',
+    'rica silva': 'fotos-artistas/rica-silva.jpg',
+    'runua rezo': 'fotos-artistas/runua-rezo.jpg',
+    'taina santos': 'fotos-artistas/taina-santos.jpg',
+    'takan cavalo branco': 'fotos-artistas/takan-cavalo-branco.jpg',
+    'teko pora': 'fotos-artistas/teko-pora.jpg',
+    'tribo do jaguar': 'fotos-artistas/tribo-do-jaguar.jpg',
+    'tukum': 'fotos-artistas/tukum.jpg',
+    'thiago biral | txi ruas': 'fotos-artistas/thiago-biral-txi-ruas.jpg',
+    'vibra luz': 'fotos-artistas/vibra-luz.jpg'
+  };
+
   const ARTIST_PHOTOS_CACHE_KEY = 'cifrario_artist_photos';
   const artistPhotoAttempted = {}; // evita disparar a mesma busca 2x em paralelo nesta sessão
 
@@ -4694,21 +4722,32 @@
   // ainda não têm nada em cache. Ao final, re-renderiza uma vez só (não uma
   // vez por foto), pra não ficar piscando a tela.
   function ensureArtistPhotos(songs){
-    if(!navigator.onLine) return;
     const cache = getArtistPhotosCache();
     const vistos = new Set();
     const pendentes = [];
+    let overrideAplicado = false;
     songs.forEach(s => {
       const nome = (s.artist || '').trim();
       if(!nome) return;
       const key = normalizeText(nome);
       if(vistos.has(key)) return;
       vistos.add(key);
+      // Foto curada manualmente tem prioridade sobre tudo (cache e busca automática).
+      if(Object.prototype.hasOwnProperty.call(ARTIST_PHOTO_OVERRIDES, key)){
+        if(state.artistPhotos[key] !== ARTIST_PHOTO_OVERRIDES[key]){
+          state.artistPhotos[key] = ARTIST_PHOTO_OVERRIDES[key];
+          overrideAplicado = true;
+        }
+        return;
+      }
       if(Object.prototype.hasOwnProperty.call(cache, key)){ state.artistPhotos[key] = cache[key]; return; }
       if(artistPhotoAttempted[key]) return;
       pendentes.push({ key, nome });
     });
-    if(!pendentes.length) return;
+    // Fotos manuais não dependem de internet (são arquivos do próprio site), então
+    // aplicamos e re-renderizamos mesmo offline; só a busca na Wikipedia exige rede.
+    if(overrideAplicado) render();
+    if(!navigator.onLine || !pendentes.length) return;
     pendentes.forEach(p => { artistPhotoAttempted[p.key] = true; });
     runWithConcurrency(pendentes, 4, async (p) => {
       const url = await fetchArtistPhoto(p.nome);
