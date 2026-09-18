@@ -1,3 +1,0 @@
-Teste automatico de push via Composio remote sandbox.
-Gerado em: 2026-09-18T16:40:55.539098+00:00
-Pode apagar este arquivo com seguranca.
