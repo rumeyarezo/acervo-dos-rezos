@@ -302,9 +302,13 @@
   .song-card:hover{border-color:var(--gold);transform:translateY(-2px);box-shadow:0 12px 24px rgba(12,20,14,0.16);}
   /* Card com foto do artista: um quadradinho fixo no início (canto
      superior esquerdo) do card, foto quase inteira dentro do quadrado
-     (background-size:cover), sem misturar com o fundo do card. */
+     (background-size:cover), sem misturar com o fundo do card. O botão
+     de curtida fica ao lado direito da foto, numa coluna reservada que
+     nunca recebe texto (título/artista/tag começam só depois dela) —
+     por isso ele nunca fica em cima da foto nem some conforme o card
+     cresce de altura. */
   .song-card.has-artist-photo{
-    padding-left:104px;
+    padding-left:146px;
     min-height:100px;
   }
   .song-card.has-artist-photo::before{
@@ -320,6 +324,11 @@
     background-position:center;
     background-repeat:no-repeat;
     box-shadow:0 2px 8px rgba(12,20,14,0.18);
+  }
+  .song-card.has-artist-photo .like-btn{
+    left:94px;
+    bottom:auto;
+    top:44px;
   }
 
   .song-card h3{
@@ -1389,6 +1398,18 @@
   .admin-row-title{font-weight:600;font-size:14.5px;color:var(--ink);}
   .admin-row-sub{font-size:12.5px;color:var(--muted);margin-top:2px;}
   .admin-row-actions{display:flex;gap:8px;flex:none;}
+  .admin-row-photo{cursor:pointer;}
+  .admin-row-photo.active{border-color:var(--gold);background:var(--gold-soft);}
+  .admin-photos-hint{color:var(--muted);font-size:13.5px;margin:0 0 12px;}
+  .admin-photos-selected{
+    background:var(--leaf-soft);
+    color:var(--leaf);
+    font-weight:600;
+    padding:10px 14px;
+    border-radius:12px;
+    margin-bottom:14px;
+    font-size:14px;
+  }
   .celebrate-box{text-align:center;}
   .celebrate-emoji{font-size:44px;margin-bottom:6px;}
   .celebrate-box h3{margin:0 0 8px;}
@@ -3631,10 +3652,41 @@
         <div class="admin-tabs">
           <button class="admin-tab ${tab==='requests'?'active':''}" data-action="adminTabRequests">Solicitações de acesso</button>
           <button class="admin-tab ${tab==='contributions'?'active':''}" data-action="adminTabContributions">Contribuições pendentes</button>
+          <button class="admin-tab ${tab==='photos'?'active':''}" data-action="adminTabPhotos">Fotos de artistas</button>
         </div>
-        ${tab==='requests' ? renderAdminRequests() : renderAdminContributions()}
+        ${tab==='requests' ? renderAdminRequests() : tab==='contributions' ? renderAdminContributions() : renderAdminPhotos()}
       </main>
       ${brandWatermark()}
+    `;
+  }
+
+  // Lista, na área de admin, os artistas que ainda não têm foto cadastrada
+  // em ARTIST_PHOTO_OVERRIDES (comparando por normalizeText, igual ao
+  // lookup usado no card). Clicar num nome só seleciona/realça ele na
+  // tela — não existe upload aqui, a foto é enviada direto pro Claude
+  // no chat, que depois entra no código e no repositório.
+  function renderAdminPhotos(){
+    const seen = {};
+    (state.songs || []).forEach(s => {
+      const raw = (s.artist || '').trim();
+      if(!raw) return;
+      const key = normalizeText(raw);
+      if(!seen[key]) seen[key] = raw;
+    });
+    const missing = Object.keys(seen)
+      .filter(key => !ARTIST_PHOTO_OVERRIDES[key])
+      .map(key => seen[key])
+      .sort((a,b) => a.localeCompare(b, 'pt-BR'));
+    const selected = state.selectedArtistForPhoto || '';
+    return `
+      <p class="admin-photos-hint">${missing.length} artista${missing.length===1?'':'s'} sem foto cadastrada. Clique num nome pra selecionar — depois é só me mandar a foto dele(a) aqui no chat.</p>
+      ${selected ? `<div class="admin-photos-selected">Selecionado: <strong>${escapeHtml(selected)}</strong></div>` : ''}
+      ${missing.length ? `<div class="admin-list">` + missing.map(name => `
+        <div class="admin-row admin-row-photo ${name===selected?'active':''}" data-action="selectArtistForPhoto" data-artist="${escapeHtml(name)}">
+          <div class="admin-row-info">
+            <div class="admin-row-title">${escapeHtml(name)}</div>
+          </div>
+        </div>`).join('') + `</div>` : `<div class="empty-state"><div class="big">Todos os artistas já têm foto cadastrada!</div></div>`}
     `;
   }
 
@@ -4724,38 +4776,25 @@
   // ainda não têm nada em cache. Ao final, re-renderiza uma vez só (não uma
   // vez por foto), pra não ficar piscando a tela.
   function ensureArtistPhotos(songs){
-    const cache = getArtistPhotosCache();
     const vistos = new Set();
-    const pendentes = [];
     let overrideAplicado = false;
+    // Busca automática na Wikipedia foi desativada por pedido do Caio:
+    // artista sem foto cadastrada manualmente (ARTIST_PHOTO_OVERRIDES)
+    // fica em branco mesmo, sem tentar achar nada na internet.
     songs.forEach(s => {
       const nome = (s.artist || '').trim();
       if(!nome) return;
       const key = normalizeText(nome);
       if(vistos.has(key)) return;
       vistos.add(key);
-      // Foto curada manualmente tem prioridade sobre tudo (cache e busca automática).
       if(Object.prototype.hasOwnProperty.call(ARTIST_PHOTO_OVERRIDES, key)){
         if(state.artistPhotos[key] !== ARTIST_PHOTO_OVERRIDES[key]){
           state.artistPhotos[key] = ARTIST_PHOTO_OVERRIDES[key];
           overrideAplicado = true;
         }
-        return;
       }
-      if(Object.prototype.hasOwnProperty.call(cache, key)){ state.artistPhotos[key] = cache[key]; return; }
-      if(artistPhotoAttempted[key]) return;
-      pendentes.push({ key, nome });
     });
-    // Fotos manuais não dependem de internet (são arquivos do próprio site), então
-    // aplicamos e re-renderizamos mesmo offline; só a busca na Wikipedia exige rede.
     if(overrideAplicado) render();
-    if(!navigator.onLine || !pendentes.length) return;
-    pendentes.forEach(p => { artistPhotoAttempted[p.key] = true; });
-    runWithConcurrency(pendentes, 4, async (p) => {
-      const url = await fetchArtistPhoto(p.nome);
-      saveArtistPhotoToCache(p.key, url);
-      state.artistPhotos[p.key] = url;
-    }).then(render);
   }
 
   /* ================= LIST VIEW (ACERVO) ================= */
@@ -6777,6 +6816,8 @@
     else if(action==='saveProfileInfo') await saveProfileInfo();
     else if(action==='adminTabRequests'){ state.adminTab='requests'; render(); }
     else if(action==='adminTabContributions'){ state.adminTab='contributions'; render(); }
+    else if(action==='adminTabPhotos'){ state.adminTab='photos'; render(); }
+    else if(action==='selectArtistForPhoto'){ state.selectedArtistForPhoto = (state.selectedArtistForPhoto === el.dataset.artist) ? '' : el.dataset.artist; render(); }
     else if(action==='approveEditorRequest') await approveEditorRequest(id, el.dataset.user);
     else if(action==='rejectEditorRequest') await rejectEditorRequest(id);
     else if(action==='approveContribution') await approveContribution(id);
