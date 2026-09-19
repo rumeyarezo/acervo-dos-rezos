@@ -300,26 +300,28 @@
   }
   .song-card.menu-open{z-index:40;}
   .song-card:hover{border-color:var(--gold);transform:translateY(-2px);box-shadow:0 12px 24px rgba(12,20,14,0.16);}
-  /* Card com foto do artista: aumentamos um pouco o card (min-width acima) e
-     empurramos o texto pra direita com padding-left, pra ele nunca cair em
-     cima da parte nítida da foto — a faixa visível da foto fica reservada
-     só pra esquerda; o texto só começa depois do degrade virar branco. */
+  /* Card com foto do artista: um quadradinho fixo no início (canto
+     superior esquerdo) do card, foto quase inteira dentro do quadrado
+     (background-size:cover), sem misturar com o fundo do card. */
   .song-card.has-artist-photo{
-    background-image:
-      linear-gradient(to right, rgba(255,255,255,0) 0%, rgba(255,255,255,0.75) 18%, var(--surface) 38%),
-      var(--artist-photo);
-    background-repeat: no-repeat, no-repeat;
-    background-size: cover, cover;
-    background-position: center, left center;
     padding-left:104px;
+    min-height:100px;
   }
-  /* leve brilho branco atrás do texto, de reforço — o padding-left já tira o
-     texto de cima da foto nítida, isso aqui é só uma garantia extra */
-  .song-card.has-artist-photo h3,
-  .song-card.has-artist-photo .artist,
-  .song-card.has-artist-photo .like-count{
-    text-shadow: 0 1px 3px rgba(255,255,255,0.85), 0 1px 10px rgba(255,255,255,0.85);
+  .song-card.has-artist-photo::before{
+    content:"";
+    position:absolute;
+    top:16px;
+    left:16px;
+    width:72px;
+    height:72px;
+    border-radius:12px;
+    background-image:var(--artist-photo);
+    background-size:cover;
+    background-position:center;
+    background-repeat:no-repeat;
+    box-shadow:0 2px 8px rgba(12,20,14,0.18);
   }
+
   .song-card h3{
     margin:0 0 4px;
     font-size:17px;
