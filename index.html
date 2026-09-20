@@ -3815,6 +3815,7 @@
   // testados (mais específicos primeiro, para "maj7" não virar "maj" + "7").
   const QUALITY_TOKENS = [
     'maj7','maj9','maj',
+    '7M','9M',
     'm7b5','m7','min7','m6','m9','m11','m13','madd9','min','m',
     'dim7','dim','°',
     'aug','+',
@@ -3826,6 +3827,7 @@
   // Nome canônico da qualidade (algumas grafias diferentes apontam pro mesmo acorde)
   const QUALITY_CANON = {
     'maj7':'maj7','maj9':'maj9','maj':'maj',
+    '7M':'maj7','9M':'maj9',
     'm7b5':'m7b5','m7':'m7','min7':'m7','m6':'m6','m9':'m9','m11':'m11','m13':'m13','madd9':'madd9','min':'m','m':'m',
     'dim7':'dim7','dim':'dim','°':'dim',
     'aug':'aug','+':'aug',
@@ -4361,6 +4363,8 @@
     const shapeChordText = capoFret > 0 ? transposeChordName(chordText, -capoFret) : chordText;
     const parsed = parseChordName(shapeChordText);
     const def = parsed ? getChordDefinition(parsed) : null;
+    const canRegister = !def && isEditor();
+    const registerChordText = (parsed && parsed.original) || shapeChordText;
     const overlay = document.createElement('div');
     overlay.className = 'confirm-overlay';
     const titleHtml = capoFret > 0
@@ -4376,9 +4380,19 @@
             <div>Afinação padrão</div>
             <div><strong>Notas:</strong> ${chordNotesLabel(def)}</div>
           </div>` : ''}
-        <div class="confirm-actions"><button class="btn-primary" data-choice="close">Fechar</button></div>
+        <div class="confirm-actions">
+          ${canRegister ? `<button class="btn-secondary" id="chordPopupRegisterBtn">Cadastrar este acorde</button>` : ''}
+          <button class="btn-primary" data-choice="close">Fechar</button>
+        </div>
       </div>`;
     document.body.appendChild(overlay);
+    if(canRegister){
+      const registerBtn = overlay.querySelector('#chordPopupRegisterBtn');
+      if(registerBtn) registerBtn.addEventListener('click', () => {
+        overlay.remove();
+        goChordBuilder(registerChordText);
+      });
+    }
     overlay.addEventListener('click', e=>{
       if(e.target===overlay || e.target.closest('[data-choice]')) overlay.remove();
     });
