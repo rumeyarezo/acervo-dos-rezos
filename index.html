@@ -1402,6 +1402,11 @@
   .admin-row-photo.active{border-color:var(--gold);background:var(--gold-soft);}
   .admin-photos-hint{color:var(--muted);font-size:13.5px;margin:0 0 12px;}
   .admin-photos-selected{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:10px;
+    flex-wrap:wrap;
     background:var(--leaf-soft);
     color:var(--leaf);
     font-weight:600;
@@ -1410,6 +1415,7 @@
     margin-bottom:14px;
     font-size:14px;
   }
+  .admin-photo-upload-btn{flex:none;}
   .celebrate-box{text-align:center;}
   .celebrate-emoji{font-size:44px;margin-bottom:6px;}
   .celebrate-box h3{margin:0 0 8px;}
@@ -1802,6 +1808,7 @@
 <div id="toast" class="toast"></div>
 <input type="file" id="pdfFileInput" accept="application/pdf" multiple style="display:none">
 <input type="file" id="imageFileInput" accept="image/*" style="display:none">
+<input type="file" id="artistPhotoFileInput" accept="image/*" style="display:none">
 
 <script>
 (function(){
@@ -3673,14 +3680,19 @@
       const key = normalizeText(raw);
       if(!seen[key]) seen[key] = raw;
     });
+    const uploadedKeys = state.uploadedArtistPhotoKeys || new Set();
     const missing = Object.keys(seen)
-      .filter(key => !ARTIST_PHOTO_OVERRIDES[key])
+      .filter(key => !ARTIST_PHOTO_OVERRIDES[key] && !uploadedKeys.has(key))
       .map(key => seen[key])
       .sort((a,b) => a.localeCompare(b, 'pt-BR'));
     const selected = state.selectedArtistForPhoto || '';
+    const uploading = !!state.uploadingArtistPhoto;
     return `
-      <p class="admin-photos-hint">${missing.length} artista${missing.length===1?'':'s'} sem foto cadastrada. Clique num nome pra selecionar — depois é só me mandar a foto dele(a) aqui no chat.</p>
-      ${selected ? `<div class="admin-photos-selected">Selecionado: <strong>${escapeHtml(selected)}</strong></div>` : ''}
+      <p class="admin-photos-hint">${missing.length} artista${missing.length===1?'':'s'} sem foto cadastrada. Clique num nome pra selecionar e envie a foto direto por aqui.</p>
+      ${selected ? `<div class="admin-photos-selected">
+        <span>Selecionado: <strong>${escapeHtml(selected)}</strong></span>
+        <button class="btn-primary admin-photo-upload-btn" data-action="triggerArtistPhotoUpload" ${uploading?'disabled':''}>${uploading?'Enviando...':'Enviar foto'}</button>
+      </div>` : ''}
       ${missing.length ? `<div class="admin-list">` + missing.map(name => `
         <div class="admin-row admin-row-photo ${name===selected?'active':''}" data-action="selectArtistForPhoto" data-artist="${escapeHtml(name)}">
           <div class="admin-row-info">
@@ -4775,6 +4787,94 @@
   // Dispara em segundo plano a busca de foto para os artistas do acervo que
   // ainda não têm nada em cache. Ao final, re-renderiza uma vez só (não uma
   // vez por foto), pra não ficar piscando a tela.
+  let uploadedArtistPhotosLoaded = false;
+
+  // Lê a lista de fotos que o admin já enviou pelo painel (bucket
+  // "artist-photos" no Supabase Storage) e aplica no state.artistPhotos,
+  // do mesmo jeito que uma foto curada manualmente — só que sem precisar
+  // mexer no código. Foto manual (ARTIST_PHOTO_OVERRIDES) sempre continua
+  // tendo prioridade se as duas existirem pro mesmo artista.
+  async function loadUploadedArtistPhotos(){
+    if(!state.uploadedArtistPhotoKeys) state.uploadedArtistPhotoKeys = new Set();
+    try{
+      const res = await fetch(`${SUPABASE_URL}/storage/v1/object/list/artist-photos`, {
+        method: 'POST',
+        headers: { 'apikey': SUPABASE_ANON_KEY, 'Authorization': 'Bearer ' + SUPABASE_ANON_KEY, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ limit: 1000, sortBy: { column: 'name', order: 'asc' } })
+      });
+      if(!res.ok) return;
+      const items = await res.json();
+      let changed = false;
+      (items || []).forEach(it => {
+        if(!it || !it.name) return;
+        const key = it.name.replace(/\.[a-zA-Z0-9]+$/, '');
+        state.uploadedArtistPhotoKeys.add(key);
+        if(ARTIST_PHOTO_OVERRIDES[key]) return;
+        const url = `${SUPABASE_URL}/storage/v1/object/public/artist-photos/${it.name}`;
+        if(state.artistPhotos[key] !== url){ state.artistPhotos[key] = url; changed = true; }
+      });
+      if(changed) render();
+    }catch(e){ console.error('Erro ao carregar fotos de artista enviadas pelo admin:', e); }
+  }
+
+  // Redimensiona a foto escolhida pra no máximo 260px no lado maior e
+  // comprime como JPEG (qualidade ~0.78) — o mesmo padrão das fotos já
+  // cadastradas manualmente, pra manter o acervo leve.
+  function resizeImageToJpeg(file, maxDim, quality){
+    return new Promise((resolve, reject) => {
+      const url = URL.createObjectURL(file);
+      const img = new Image();
+      img.onload = () => {
+        URL.revokeObjectURL(url);
+        let width = img.naturalWidth, height = img.naturalHeight;
+        if(width > height){ if(width > maxDim){ height = Math.round(height * (maxDim / width)); width = maxDim; } }
+        else { if(height > maxDim){ width = Math.round(width * (maxDim / height)); height = maxDim; } }
+        const canvas = document.createElement('canvas');
+        canvas.width = width; canvas.height = height;
+        canvas.getContext('2d').drawImage(img, 0, 0, width, height);
+        canvas.toBlob(blob => blob ? resolve(blob) : reject(new Error('Falha ao gerar JPEG')), 'image/jpeg', quality);
+      };
+      img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('Não consegui abrir essa imagem')); };
+      img.src = url;
+    });
+  }
+
+  async function handleArtistPhotoFile(file){
+    if(state.selectedArtistForPhoto) await uploadArtistPhoto(state.selectedArtistForPhoto, file);
+  }
+
+  // Envia a foto pro bucket "artist-photos" do Supabase Storage (só o
+  // admin consegue, por RLS) — sem depender de commit no GitHub nem de
+  // mandar a foto pelo chat.
+  async function uploadArtistPhoto(artistName, file){
+    const key = normalizeText(artistName);
+    if(!key) return;
+    if(!state.uploadedArtistPhotoKeys) state.uploadedArtistPhotoKeys = new Set();
+    state.uploadingArtistPhoto = true;
+    render();
+    try{
+      const blob = await resizeImageToJpeg(file, 260, 0.78);
+      const path = `${key}.jpg`;
+      const res = await authFetch(`${SUPABASE_URL}/storage/v1/object/artist-photos/${encodeURIComponent(path)}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'image/jpeg', 'x-upsert': 'true' },
+        body: blob
+      });
+      if(!res.ok){
+        const errTxt = await res.text().catch(() => '');
+        throw new Error(errTxt || ('HTTP ' + res.status));
+      }
+      state.uploadedArtistPhotoKeys.add(key);
+      state.artistPhotos[key] = `${SUPABASE_URL}/storage/v1/object/public/artist-photos/${path}?v=${Date.now()}`;
+      showToast('Foto de ' + artistName + ' enviada!');
+    }catch(e){
+      console.error('Erro ao enviar foto do artista:', e);
+      showToast('Não consegui enviar a foto. Tenta de novo.');
+    }
+    state.uploadingArtistPhoto = false;
+    render();
+  }
+
   function ensureArtistPhotos(songs){
     const vistos = new Set();
     let overrideAplicado = false;
@@ -4859,6 +4959,7 @@
 
     const cards = songs.map(songCardHtml).join('');
     ensureArtistPhotos(state.songs); // busca em segundo plano; não atrasa este render
+    if(!uploadedArtistPhotosLoaded){ uploadedArtistPhotosLoaded = true; loadUploadedArtistPhotos(); }
     const empty = state.songs.length === 0 ? `<div class="empty-state">
         <div class="big">Nenhuma música por aqui ainda.</div>
         <div>Adicione a primeira letra e cifra para começar seu repertório.</div>
@@ -6816,8 +6917,9 @@
     else if(action==='saveProfileInfo') await saveProfileInfo();
     else if(action==='adminTabRequests'){ state.adminTab='requests'; render(); }
     else if(action==='adminTabContributions'){ state.adminTab='contributions'; render(); }
-    else if(action==='adminTabPhotos'){ state.adminTab='photos'; render(); }
+    else if(action==='adminTabPhotos'){ state.adminTab='photos'; render(); if(!uploadedArtistPhotosLoaded){ uploadedArtistPhotosLoaded = true; loadUploadedArtistPhotos(); } }
     else if(action==='selectArtistForPhoto'){ state.selectedArtistForPhoto = (state.selectedArtistForPhoto === el.dataset.artist) ? '' : el.dataset.artist; render(); }
+    else if(action==='triggerArtistPhotoUpload'){ if(state.selectedArtistForPhoto && !state.uploadingArtistPhoto) document.getElementById('artistPhotoFileInput').click(); }
     else if(action==='approveEditorRequest') await approveEditorRequest(id, el.dataset.user);
     else if(action==='rejectEditorRequest') await rejectEditorRequest(id);
     else if(action==='approveContribution') await approveContribution(id);
@@ -6948,6 +7050,12 @@
     const file = e.target.files && e.target.files[0];
     e.target.value = '';
     if(file) handleImageFile(file);
+  });
+
+  document.getElementById('artistPhotoFileInput').addEventListener('change', function(e){
+    const file = e.target.files && e.target.files[0];
+    e.target.value = '';
+    if(file) handleArtistPhotoFile(file);
   });
 
   document.getElementById('app').addEventListener('pointerdown', function(e){
