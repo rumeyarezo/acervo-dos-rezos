@@ -4800,7 +4800,7 @@
       const res = await fetch(`${SUPABASE_URL}/storage/v1/object/list/artist-photos`, {
         method: 'POST',
         headers: { 'apikey': SUPABASE_ANON_KEY, 'Authorization': 'Bearer ' + SUPABASE_ANON_KEY, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ limit: 1000, sortBy: { column: 'name', order: 'asc' } })
+        body: JSON.stringify({ prefix: '', limit: 1000, sortBy: { column: 'name', order: 'asc' } })
       });
       if(!res.ok) return;
       const items = await res.json();
