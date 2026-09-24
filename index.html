@@ -1353,6 +1353,24 @@
     white-space:nowrap;
     align-self:center;
   }
+  /* Selo de pendências no botão Administração: número de solicitações +
+     cifras aguardando revisão. Some quando está tudo em dia. */
+  .admin-badge{
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    min-width:18px;
+    height:18px;
+    padding:0 5px;
+    margin-left:4px;
+    font-size:11px;
+    font-weight:700;
+    line-height:1;
+    color:#fff;
+    background:#c0392b;
+    border-radius:999px;
+    vertical-align:middle;
+  }
   /* Categoria do usuário (por nível de xp), bem discreta, logo abaixo do
      cabeçalho verde — não entra na linha do cabeçalho para não quebrá-la. */
   .user-category-line{
@@ -1436,6 +1454,36 @@
   .contrib-preview-meta{font-size:13px;color:var(--muted);margin-bottom:10px;}
   .contrib-sheet{max-height:260px;overflow-y:auto;padding:16px;font-size:14px;}
   .contrib-compare{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+  /* Faixa de tipo de contribuição no topo da validação */
+  .contrib-kind-banner{
+    display:flex;
+    flex-direction:column;
+    gap:4px;
+    padding:12px 14px;
+    border-radius:12px;
+    margin-bottom:14px;
+    background:var(--gold-soft);
+    border:1px solid var(--gold);
+  }
+  .contrib-kind-tag{
+    display:inline-block;
+    align-self:flex-start;
+    font-size:12px;
+    font-weight:700;
+    letter-spacing:0.3px;
+    text-transform:uppercase;
+    color:var(--gold-strong);
+    background:#fff;
+    border:1px solid var(--gold);
+    border-radius:999px;
+    padding:3px 10px;
+  }
+  .contrib-kind-tag.small{font-size:10.5px;padding:2px 8px;text-transform:none;}
+  .contrib-kind-desc{font-size:13.5px;color:var(--ink);font-weight:600;}
+  /* Cores por tipo: novas em verde, correções em âmbar, links/acordes neutros */
+  .contrib-kind-new_manual, .contrib-kind-new_pdf{background:rgba(127,227,154,0.14);border-color:var(--leaf);}
+  .contrib-kind-new_manual .contrib-kind-tag, .contrib-kind-new_pdf .contrib-kind-tag,
+  .contrib-kind-tag.contrib-kind-new_manual, .contrib-kind-tag.contrib-kind-new_pdf{color:#2f7d4a;border-color:var(--leaf);}
   .contrib-compare-label{
     font-size:11.5px;
     font-weight:700;
@@ -2075,6 +2123,7 @@
     adminTab: 'requests',      // 'requests' | 'contributions'
     pendingEditorRequests: [],
     pendingContributions: [],
+    adminPendingCount: 0,
     chordSearch: '',
     chordFilter: 'todos',
     artistPhotos: {}   // { [artistaNormalizado]: urlDaFoto | null }, cache em memória (persistida no localStorage)
@@ -2521,6 +2570,7 @@
     await loadLists();
     await loadFavorites();
     await loadCustomChords();
+    loadAdminPendingCount(); // aviso de pendências no botão Administração (não bloqueia o boot)
     if(state._pendingConfirmType === 'signup'){
       state._pendingConfirmType = null;
     }
@@ -2738,7 +2788,7 @@
           lines: song.lines || [], updated_at: new Date().toISOString()
         }])
       });
-    } else if(kind === 'edit'){
+    } else if(kind === 'edit' || kind === 'edit_chord'){
       const song = payload.after || {};
       await authFetch(`${SUPABASE_URL}/rest/v1/${SUPABASE_SONGS_TABLE}?id=eq.${encodeURIComponent(songId)}`, {
         method: 'PATCH',
@@ -2933,12 +2983,37 @@
       ]);
       state.pendingEditorRequests = reqRes.ok ? await reqRes.json() : [];
       state.pendingContributions = contribRes.ok ? await contribRes.json() : [];
+      state.adminPendingCount = state.pendingEditorRequests.length + state.pendingContributions.length;
     } catch (e) {
       console.error('Erro ao carregar dados de administração:', e);
       state.pendingEditorRequests = [];
       state.pendingContributions = [];
     }
     render();
+  }
+
+  // Conta rápida de pendências (sem baixar o conteúdo inteiro), para o aviso
+  // no botão de Administração. É o "sininho" do app: assim que o admin abre,
+  // já vê quantas solicitações de acesso e cifras aguardam revisão. Não é
+  // notificação com o app fechado — para isso, ver a nota de e-mail abaixo.
+  async function loadAdminPendingCount(){
+    if(!isAdmin()) return;
+    try {
+      const [reqRes, contribRes] = await Promise.all([
+        authFetch(`${SUPABASE_URL}/rest/v1/cifrario_editor_requests?select=id&status=eq.pending`),
+        authFetch(`${SUPABASE_URL}/rest/v1/cifrario_contributions?select=id&status=eq.pending`)
+      ]);
+      const reqs = reqRes.ok ? await reqRes.json() : [];
+      const contribs = contribRes.ok ? await contribRes.json() : [];
+      state.adminPendingCount = reqs.length + contribs.length;
+      const btn = document.querySelector('[data-action="goAdmin"]');
+      if(btn) renderAdminBadge(btn);
+    } catch(e){ /* silencioso: é só um aviso */ }
+  }
+
+  function renderAdminBadge(btn){
+    const n = state.adminPendingCount || 0;
+    btn.innerHTML = 'Administração' + (n > 0 ? ` <span class="admin-badge">${n}</span>` : '');
   }
 
   async function approveEditorRequest(requestId, userId){
@@ -3510,7 +3585,7 @@
         });
         overlay.remove();
         if(newlyAdded > 0){
-          await recordContribution('link', newlyAdded * 10, song, { before: { links: oldLinks }, after: { links: newLinksVal } });
+          await recordContribution('link', newlyAdded * 20, song, { before: { links: oldLinks }, after: { links: newLinksVal } });
           if(!isAdmin()) showToast('Links enviados! Eles aparecerão assim que o administrador aprovar.');
         } else {
           showToast('Nenhum link novo para salvar.');
@@ -3522,12 +3597,28 @@
 
   /* ================= ÁREA DE ADMINISTRAÇÃO: TELAS ================= */
   const CONTRIB_KIND_LABEL = {
-    new_manual: 'Nova cifra (manual)',
-    new_pdf: 'Nova cifra (PDF)',
-    edit: 'Edição de cifra',
-    link: 'Links adicionados',
+    new_manual: 'Nova cifra manual',
+    new_pdf: 'Cifra importada (PDF/print/texto)',
+    edit: 'Correção de letra',
+    edit_chord: 'Correção de cifra',
+    link: 'Links de plataformas',
     chord: 'Diagrama de acorde'
   };
+  // Descrição longa mostrada em destaque no topo da validação.
+  function contribKindDescription(contrib){
+    const payload = contrib.payload || {};
+    if(contrib.kind === 'new_manual' || contrib.kind === 'new_pdf'){
+      const song = payload.after || {};
+      const temCifra = (song.lines || []).some(l => (l.chords || []).length > 0);
+      const origem = contrib.kind === 'new_pdf' ? 'importada (PDF, print ou texto)' : 'inserida manualmente';
+      return temCifra ? `Nova música ${origem} — com letra e cifra` : `Nova música ${origem} — somente letra`;
+    }
+    if(contrib.kind === 'edit') return 'Correção na letra de uma música já existente';
+    if(contrib.kind === 'edit_chord') return 'Correção nos acordes (cifra) de uma música já existente';
+    if(contrib.kind === 'link') return 'Inclusão de links das plataformas digitais';
+    if(contrib.kind === 'chord') return 'Novo diagrama de acorde para o Acervo de Acordes';
+    return CONTRIB_KIND_LABEL[contrib.kind] || contrib.kind;
+  }
 
   function renderAdminRequests(){
     const pending = state.pendingEditorRequests || [];
@@ -3552,7 +3643,7 @@
       <div class="admin-row">
         <div class="admin-row-info">
           <div class="admin-row-title">${escapeHtml(c.song_title || 'Sem título')}</div>
-          <div class="admin-row-sub">${escapeHtml(c.email)} · ${CONTRIB_KIND_LABEL[c.kind] || c.kind} · +${c.points} Exp</div>
+          <div class="admin-row-sub"><span class="contrib-kind-tag small contrib-kind-${c.kind}">${escapeHtml(CONTRIB_KIND_LABEL[c.kind] || c.kind)}</span> ${escapeHtml(c.email)} · +${c.points} Exp</div>
         </div>
         <div class="admin-row-actions">
           <button class="btn-secondary" data-action="viewContribution" data-id="${c.id}">Ver e revisar</button>
@@ -3578,7 +3669,7 @@
         <div class="paper sheet contrib-sheet">${linesHtml || '<p class="muted-note">Sem letra.</p>'}</div>
       `;
     }
-    if(contrib.kind === 'edit'){
+    if(contrib.kind === 'edit' || contrib.kind === 'edit_chord'){
       const before = payload.before || {};
       const after = payload.after || {};
       const beforeLines = (before.lines || []).map(lineHtml).join('');
@@ -3629,8 +3720,12 @@
     overlay.className = 'confirm-overlay';
     overlay.innerHTML = `
       <div class="confirm-box contrib-modal">
+        <div class="contrib-kind-banner contrib-kind-${contrib.kind}">
+          <span class="contrib-kind-tag">${escapeHtml(CONTRIB_KIND_LABEL[contrib.kind] || contrib.kind)}</span>
+          <span class="contrib-kind-desc">${escapeHtml(contribKindDescription(contrib))}</span>
+        </div>
         <h3>${escapeHtml(contrib.song_title || 'Sem título')}</h3>
-        <p class="modal-sub">${escapeHtml(contrib.email)} · ${CONTRIB_KIND_LABEL[contrib.kind] || contrib.kind} · +${contrib.points} Exp</p>
+        <p class="modal-sub">Enviado por ${escapeHtml(contrib.email)} · vale <strong>+${contrib.points} Exp</strong> quando aprovado</p>
         ${contributionDetailHtml(contrib)}
         <div class="confirm-actions">
           <button class="btn-secondary" data-choice="close" style="color:var(--ink);border-color:var(--border);">Fechar</button>
@@ -4989,7 +5084,7 @@
           <div class="topbar-actions">
             <span class="level-chip" title="Exp de Rezo">Nv. ${level} · ${progress}/${target}</span>
             <button class="user-email" data-action="openProfileInfo" title="Ver minhas informações">${escapeHtml((state.profile && state.profile.display_name) || state.session.user.email)}</button>
-            ${isAdmin() ? `<button class="icon-btn" data-action="goAdmin">Administração</button>` : ''}
+            ${isAdmin() ? `<button class="icon-btn" data-action="goAdmin">Administração${state.adminPendingCount > 0 ? ` <span class="admin-badge">${state.adminPendingCount}</span>` : ''}</button>` : ''}
             <button class="icon-btn" data-action="goChordLibrary">🎸 Acervo de Acordes</button>
             <button class="icon-btn" data-action="goLists">Minhas listas</button>
             <button class="icon-btn" data-action="signOut">Sair</button>
@@ -5840,6 +5935,9 @@
     // admin; senão, quando o admin aprovar depois) — por isso não mexemos em
     // state.songs nem persistimos a música aqui: quem faz isso é recordContribution.
     const newSnapshot = { title: song.title, artist: song.artist, tone: song.tone, theme: song.theme, lines: song.lines };
+    // Uma música é "completa" (letra + cifra) se tiver ao menos um acorde em
+    // qualquer linha; senão, é "só letra". Isso define a pontuação.
+    const temCifra = (song.lines || []).some(l => (l.chords || []).length > 0);
     if(isNewSong){
       const dup = findDuplicateSong(song.title, song.artist);
       if(dup){
@@ -5849,11 +5947,23 @@
           return;
         }
       }
-      const points = ed.source === 'pdf' ? 30 : 50;
-      const kind = ed.source === 'pdf' ? 'new_pdf' : 'new_manual';
+      // Pontos: importada completa 50 / só letra 20; manual completa 80 / só letra 20.
+      const importada = ed.source === 'pdf';
+      let points;
+      if(importada) points = temCifra ? 50 : 20;
+      else points = temCifra ? 80 : 20;
+      const kind = importada ? 'new_pdf' : 'new_manual';
       await recordContribution(kind, points, song, { after: newSnapshot });
     } else {
-      await recordContribution('edit', 10, song, { before: oldSnapshot, after: newSnapshot });
+      // Edição: distingue se o que mudou foi a LETRA (texto das linhas) ou a
+      // CIFRA (acordes). Se mexeu nos acordes, vale como edição de cifra (+30);
+      // caso contrário, edição de letra (+20). Mexer em ambos conta como cifra.
+      const antes = oldSnapshot ? JSON.stringify((oldSnapshot.lines||[]).map(l=>l.chords||[])) : '';
+      const depois = JSON.stringify((song.lines||[]).map(l=>l.chords||[]));
+      const mexeuNaCifra = antes !== depois;
+      const editKind = mexeuNaCifra ? 'edit_chord' : 'edit';
+      const editPoints = mexeuNaCifra ? 30 : 20;
+      await recordContribution(editKind, editPoints, song, { before: oldSnapshot, after: newSnapshot });
     }
     state.editor = null;
     if(isAdmin()){
@@ -6409,9 +6519,11 @@
           theme: '', links: {youtube:'',spotify:'',deezer:'',other:''}, lines: parsed.lines
         };
         const snapshot = { title: song.title, artist: song.artist, tone: song.tone, theme: song.theme, lines: song.lines };
-        await recordContribution('new_pdf', 30, song, { after: snapshot }, { silent: true });
+        const pdfTemCifra = (song.lines || []).some(l => (l.chords || []).length > 0);
+        const pdfPoints = pdfTemCifra ? 50 : 20;
+        await recordContribution('new_pdf', pdfPoints, song, { after: snapshot }, { silent: true });
         successCount++;
-        totalPoints += 30;
+        totalPoints += pdfPoints;
       } catch(err){
         console.error('Erro ao importar PDF em lote:', file.name, err);
         failCount++;
