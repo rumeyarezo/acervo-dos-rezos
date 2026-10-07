@@ -1416,8 +1416,20 @@
   .admin-row-title{font-weight:600;font-size:14.5px;color:var(--ink);}
   .admin-row-sub{font-size:12.5px;color:var(--muted);margin-top:2px;}
   .admin-row-actions{display:flex;gap:8px;flex:none;}
-  .admin-row-photo{cursor:pointer;}
+  .admin-row-photo{flex-wrap:nowrap;}
+  .admin-row-photo .admin-row-info{flex:1;min-width:0;}
+  .admin-row-photo .admin-row-title{overflow-wrap:anywhere;}
   .admin-row-photo.active{border-color:var(--gold);background:var(--gold-soft);}
+  .admin-row-photo-btn{
+    flex:none;
+    white-space:nowrap;
+    padding:9px 14px;
+    font-size:13px;
+    color:var(--ink);
+    border-color:var(--border);
+    background:var(--surface-soft);
+  }
+  .admin-row-photo-btn:disabled{opacity:0.55;cursor:default;}
   .admin-photos-hint{color:var(--muted);font-size:13.5px;margin:0 0 12px;}
   .admin-photos-selected{
     display:flex;
@@ -1454,6 +1466,146 @@
   .contrib-preview-meta{font-size:13px;color:var(--muted);margin-bottom:10px;}
   .contrib-sheet{max-height:260px;overflow-y:auto;padding:16px;font-size:14px;}
   .contrib-compare{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+  /* Convite para virar colaborador: a carta de boas-vindas do Acervo */
+  .confirm-box.contributor-invite{
+    max-width:540px;
+    padding:0;
+    background:var(--surface-soft);
+    border-radius:22px;
+    display:flex;
+    flex-direction:column;
+    max-height:min(90vh, 90dvh);
+    overflow:hidden;
+  }
+  .invite-scroll{
+    overflow-y:auto;
+    -webkit-overflow-scrolling:touch;
+    padding:26px 26px 6px;
+  }
+  .nowrap{white-space:nowrap;}
+  .invite-head{display:flex;align-items:center;gap:12px;margin-bottom:18px;}
+  .invite-logo{height:44px;width:44px;padding:5px;border-radius:12px;box-shadow:0 1px 4px rgba(0,0,0,0.18);}
+  .invite-kicker{
+    font-size:11.5px;
+    font-weight:700;
+    letter-spacing:0.7px;
+    text-transform:uppercase;
+    color:var(--gold-strong);
+  }
+  .contributor-invite .invite-title{
+    margin:0;
+    font-family:var(--font-serif);
+    font-size:24px;
+    font-weight:700;
+    line-height:1.28;
+    color:var(--ink);
+  }
+  .invite-rule{display:flex;align-items:center;gap:10px;margin:16px 0 18px;}
+  .invite-rule::before,.invite-rule::after{content:"";flex:1;height:1px;background:var(--border);}
+  .invite-rule span{width:8px;height:8px;background:var(--gold);transform:rotate(45deg);border-radius:1px;}
+  .contributor-invite .invite-p{
+    margin:0 0 16px;
+    font-size:15.5px;
+    line-height:1.75;
+    color:var(--ink-soft);
+  }
+  .invite-list{list-style:none;margin:20px 0;padding:16px 18px;background:#fff;border:1px solid var(--border);border-radius:14px;}
+  .invite-list li{
+    position:relative;
+    padding:6px 0 6px 24px;
+    font-size:15px;
+    line-height:1.5;
+    color:var(--ink);
+  }
+  .invite-list li::before{
+    content:"";
+    position:absolute;
+    left:3px;top:14px;
+    width:8px;height:8px;
+    background:var(--gold);
+    transform:rotate(45deg);
+    border-radius:1px;
+  }
+  .invite-beta{
+    background:var(--gold-soft);
+    border:1px solid var(--gold);
+    border-radius:12px;
+    padding:12px 14px;
+    font-size:14px;
+    line-height:1.55;
+    color:var(--ink);
+  }
+  .contributor-invite .invite-sign{
+    margin:22px 0 14px;
+    font-family:var(--font-serif);
+    font-style:italic;
+    font-size:16px;
+    line-height:1.6;
+    color:var(--ink);
+  }
+  .contributor-invite .invite-sign strong{font-style:normal;}
+  .contributor-invite .invite-note{
+    margin:0 0 14px;
+    padding-top:12px;
+    border-top:1px dashed var(--border);
+    font-size:12.5px;
+    line-height:1.5;
+    color:var(--muted);
+  }
+  .confirm-actions.invite-actions{
+    flex:none;
+    margin:0;
+    padding:14px 22px calc(16px + env(safe-area-inset-bottom));
+    background:var(--surface-soft);
+    border-top:1px solid var(--border);
+    box-shadow:0 -8px 18px rgba(31,43,33,0.06);
+  }
+  @media (max-width:560px){
+    .confirm-overlay{padding:12px;}
+    .invite-scroll{padding:22px 18px 4px;}
+    .contributor-invite .invite-title{font-size:21px;}
+    .contributor-invite .invite-p{font-size:15px;}
+    .confirm-actions.invite-actions{padding:12px 16px calc(14px + env(safe-area-inset-bottom));}
+    .confirm-actions.invite-actions{display:grid;grid-template-columns:1fr 1.7fr;gap:10px;}
+    .confirm-actions.invite-actions .btn-secondary,
+    .confirm-actions.invite-actions .btn-primary{width:100%;min-width:0;padding-left:10px;padding-right:10px;text-align:center;}
+  }
+  /* Aviso informativo dentro da administração */
+  .admin-notice{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:10px;
+    flex-wrap:wrap;
+    background:var(--gold-soft);
+    border:1px solid var(--gold);
+    border-radius:14px;
+    padding:10px 12px 10px 16px;
+    margin:0 0 14px;
+    color:var(--on-dark);
+    font-size:14px;
+  }
+  .admin-notice strong{color:var(--gold-light);}
+  .admin-notice-actions{display:flex;align-items:center;gap:6px;flex:none;}
+  .admin-notice .btn-primary{padding:7px 16px;font-size:13px;}
+  .admin-notice-close{
+    width:32px;height:32px;
+    border-radius:50%;
+    font-size:22px;
+    line-height:1;
+    color:var(--muted-on-dark);
+  }
+  .admin-users-bar{margin:0 0 12px;}
+  .admin-note{
+    background:var(--gold-soft);
+    border:1px solid var(--gold);
+    border-radius:12px;
+    padding:12px 14px;
+    font-size:13.5px;
+    line-height:1.55;
+    color:var(--ink);
+    margin-bottom:16px;
+  }
   /* Faixa de tipo de contribuição no topo da validação */
   .contrib-kind-banner{
     display:flex;
@@ -1872,6 +2024,14 @@
   // "sem conta". Cole aqui a URL do projeto e a chave "anon public"
   // (Settings > API no painel do Supabase).
   //
+  // NOTA (30/09/2026): o banco REAL divergia deste script — a tabela de músicas
+  // tinha políticas antigas de escrita pública (qualquer pessoa, sem login, podia
+  // inserir/alterar/apagar) e os perfis eram legíveis por qualquer usuário logado.
+  // A correção está em seguranca-acervo.sql (fora do repositório, entregue à parte).
+  // Depois dela: só o admin escreve em cifrario_songs; o contador de curtidas é
+  // mantido por gatilho em cifrario_favorites; perfis só são lidos pelo dono ou
+  // pelo admin; e o gatilho de papéis permite UMA transição: viewer -> editor.
+  //
   // IMPORTANTE — rode isto uma vez no SQL Editor do Supabase. Este script é
   // o pacote completo (substitui os scripts de versões anteriores do app):
   //
@@ -2123,7 +2283,10 @@
     adminTab: 'requests',      // 'requests' | 'contributions'
     pendingEditorRequests: [],
     pendingContributions: [],
-    adminPendingCount: 0,
+    adminPendingCount: 0,      // selo do botão Administração = contribuições + novos usuários
+    adminPendingContribs: 0,
+    adminNewUsers: [],         // pessoas que entraram desde a última vez que o admin marcou "visto"
+    adminNoticeDismissed: false,
     chordSearch: '',
     chordFilter: 'todos',
     artistPhotos: {}   // { [artistaNormalizado]: urlDaFoto | null }, cache em memória (persistida no localStorage)
@@ -2571,6 +2734,7 @@
     await loadFavorites();
     await loadCustomChords();
     loadAdminPendingCount(); // aviso de pendências no botão Administração (não bloqueia o boot)
+    startAdminPolling();     // e confere de tempos em tempos se chegou gente nova
     if(state._pendingConfirmType === 'signup'){
       state._pendingConfirmType = null;
     }
@@ -2619,6 +2783,13 @@
   function isAdmin(){
     return !!(state.profile && state.profile.role === 'admin') ||
            !!(state.session && state.session.user && state.session.user.email === ADMIN_EMAIL);
+  }
+  // Excluir música do acervo: SOMENTE o administrador, identificado pelo e-mail
+  // da sessão (não pelo papel do perfil). O banco também bloqueia (RLS), mas a
+  // interface nem oferece o botão para mais ninguém.
+  function canDeleteSongs(){
+    const email = state.session && state.session.user && state.session.user.email;
+    return !!email && String(email).toLowerCase() === ADMIN_EMAIL.toLowerCase();
   }
   function isEditor(){
     return isAdmin() || !!(state.profile && (state.profile.role === 'editor' || state.profile.role === 'admin'));
@@ -2880,28 +3051,98 @@
     }
   }
 
-  async function requestEditorAccess(){
+  // Antes exigia aprovação do admin. Agora é aberto: a pessoa lê um convite
+  // curto sobre a ideia do acervo e já vira colaboradora na hora. A revisão
+  // de qualidade continua existindo — mas na etapa de aprovar cada cifra
+  // enviada, não mais na de "poder contribuir".
+  function openBecomeContributorModal(){
     if(!state.session) return;
+    if(isEditor()) return; // já é colaborador
+    const overlay = document.createElement('div');
+    overlay.className = 'confirm-overlay';
+    // A carta é o texto de boas-vindas do Acervo, na voz da Equipe Rumëyart.
+    // Única adaptação ao texto original: "bem-vindo" -> "bem-vindo(a)", porque
+    // quem lê aqui dentro do app pode ser homem ou mulher.
+    overlay.innerHTML = `
+      <div class="confirm-box contributor-invite" role="dialog" aria-modal="true" aria-labelledby="inviteTitle">
+        <div class="invite-scroll">
+          <div class="invite-head">
+            <img src="${LOGO_ICON}" class="brand-logo invite-logo" alt="">
+            <div class="invite-kicker">Carta de boas-vindas</div>
+          </div>
+          <h3 id="inviteTitle" class="invite-title">Seja muito <span class="nowrap">bem-vindo(a)</span> à comunidade do Acervo dos Rezos!!!</h3>
+          <div class="invite-rule" aria-hidden="true"><span></span></div>
+          <p class="invite-p">Essa é uma iniciativa para fortalecer o compartilhamento dos rezos pelas casas e egrégoras, através dos rezadores e irmãos que encontrarem essa comunidade que se forma aqui.</p>
+          <p class="invite-p">O intuito do nosso projeto é que todos que quiserem e puderem, possam contribuir com o nosso acervo, ajudando a se tornar uma gigantesca biblioteca de rezos, mantras, orações, cantigos, louvores, hinos e o que mais couber no amplo aspecto de música medicina.</p>
+          <p class="invite-p">Somos gratos pela oportunidade de abrir esse espaço que é digital, mas é feito pra ser compartilhado e ajudar quando nos reunimos, seja num encontro de amigos, numa cerimônia ou onde quer que esteja!</p>
+          <ul class="invite-list">
+            <li>Acesse Offline</li>
+            <li>Crie sua playlist</li>
+            <li>Adicione uma nova cifra facilmente por Texto, PDF ou Foto</li>
+            <li>Acesse o link da música nas plataformas digitais</li>
+          </ul>
+          <div class="invite-beta"><strong>Obs:</strong> Ainda estamos numa versão beta. Nosso acervo será cada vez melhor!</div>
+          <p class="invite-sign">Com imenso prazer,<br> <strong>Equipe Rumëyart.</strong></p>
+          <p class="invite-note">Cada cifra enviada passa por uma conferência antes de entrar no acervo, e o Exp de Rezo é creditado quando ela é aprovada.</p>
+        </div>
+        <div class="confirm-actions invite-actions">
+          <button class="btn-secondary" data-choice="cancel" style="color:var(--ink);border-color:var(--border);">Agora não</button>
+          <button class="btn-primary" data-choice="ok">Quero contribuir!</button>
+        </div>
+      </div>`;
+    document.body.appendChild(overlay);
+    const onKey = e => { if(e.key === 'Escape') close(); };
+    function close(){ document.removeEventListener('keydown', onKey); overlay.remove(); }
+    document.addEventListener('keydown', onKey);
+    overlay.addEventListener('click', async e=>{
+      const btn = e.target.closest('[data-choice]');
+      if(!btn){ if(e.target===overlay) close(); return; }
+      if(btn.dataset.choice === 'cancel'){ close(); return; }
+      if(btn.dataset.choice === 'ok'){
+        btn.disabled = true; btn.textContent = 'Entrando...';
+        await becomeContributor();
+        close();
+      }
+    });
+  }
+
+  async function becomeContributor(){
+    if(!state.session || isEditor()) return;
     try {
-      await authFetch(`${SUPABASE_URL}/rest/v1/cifrario_editor_requests`, {
-        method: 'POST',
-        headers: { 'Prefer': 'return=minimal' },
-        body: JSON.stringify([{ id: uid(), user_id: state.session.user.id, email: state.session.user.email, status: 'pending' }])
+      // "return=representation" devolve a linha DEPOIS dos gatilhos do banco.
+      // Isso importa: o banco pode aceitar o pedido (status 200) e mesmo assim
+      // ignorar a mudança de papel — então só vale como sucesso se a linha
+      // devolvida realmente vier com role = editor.
+      const res = await authFetch(`${SUPABASE_URL}/rest/v1/cifrario_profiles?id=eq.${state.session.user.id}`, {
+        method: 'PATCH',
+        headers: { 'Prefer': 'return=representation' },
+        body: JSON.stringify({ role: 'editor' })
       });
-      state.editorRequestStatus = 'pending';
-      showToast('Solicitação enviada! Aguarde a aprovação do administrador.');
+      let rows = [];
+      if(res.ok){ try { rows = await res.json(); } catch(e){ rows = []; } }
+      if(!res.ok || !rows.length || rows[0].role !== 'editor'){
+        console.error('Servidor não confirmou o papel de colaborador:', res.status, rows);
+        showToast('Ainda não foi possível ativar seu acesso de colaborador. Tente de novo em instantes.');
+        return;
+      }
+      state.profile.role = 'editor';
+      try { salvarPerfilLocal(state.session.user.id, state.profile); } catch(e){}
+      showToast('Tudo pronto! Agora você já pode enviar cifras para o acervo. 🎉');
       render();
     } catch (e) {
-      console.error('Erro ao solicitar acesso de editor:', e);
-      showToast('Não foi possível enviar a solicitação.');
+      console.error('Erro ao virar colaborador:', e);
+      showToast('Sem conexão com o servidor. Tente novamente.');
     }
   }
 
   /* ================= ÁREA DE ADMINISTRAÇÃO ================= */
-  function goAdmin(){
+  function goAdmin(tab){
     if(!isAdmin()) return;
     state.view = 'admin';
-    state.adminTab = 'requests';
+    // Abre na aba que importa no dia a dia. (Antes forçava "requests", a aba
+    // das solicitações antigas, mesmo com a tela já pensada para abrir em
+    // contribuições.) Quem chama pode pedir uma aba: goAdmin('newusers').
+    state.adminTab = tab || 'contributions';
     render();
     loadAdminData();
   }
@@ -2983,7 +3224,9 @@
       ]);
       state.pendingEditorRequests = reqRes.ok ? await reqRes.json() : [];
       state.pendingContributions = contribRes.ok ? await contribRes.json() : [];
-      state.adminPendingCount = state.pendingEditorRequests.length + state.pendingContributions.length;
+      state.adminNewUsers = await fetchNewUsers();
+      state.adminPendingContribs = state.pendingContributions.length;
+      state.adminPendingCount = state.adminPendingContribs + state.adminNewUsers.length;
     } catch (e) {
       console.error('Erro ao carregar dados de administração:', e);
       state.pendingEditorRequests = [];
@@ -2992,28 +3235,129 @@
     render();
   }
 
-  // Conta rápida de pendências (sem baixar o conteúdo inteiro), para o aviso
-  // no botão de Administração. É o "sininho" do app: assim que o admin abre,
-  // já vê quantas solicitações de acesso e cifras aguardam revisão. Não é
-  // notificação com o app fechado — para isso, ver a nota de e-mail abaixo.
+  /* ================= AVISOS PARA O ADMINISTRADOR ================= */
+  // Marca de "já vi": guarda neste aparelho até que data o admin já conferiu
+  // os novos usuários. Na primeira vez (nada guardado), considera "novos" os
+  // dos últimos 7 dias, para não mostrar o acervo inteiro como novidade.
+  const ADMIN_USERS_SEEN_KEY = 'cifrario_admin_users_seen';
+  function getUsersSeenMark(){
+    try { const v = localStorage.getItem(ADMIN_USERS_SEEN_KEY); if(v) return v; } catch(e){}
+    return new Date(Date.now() - 7 * 24 * 3600 * 1000).toISOString();
+  }
+  function setUsersSeenMark(iso){
+    try { localStorage.setItem(ADMIN_USERS_SEEN_KEY, iso); } catch(e){}
+  }
+
+  // O perfil de cada pessoa é criado no primeiro acesso dela ao app (é aí que
+  // ela passa a "ter login"). Quem cria a conta e nunca entra não aparece aqui.
+  async function fetchNewUsers(){
+    if(!isAdmin() || !state.session) return [];
+    const seen = encodeURIComponent(getUsersSeenMark());
+    const me = state.session.user.id;
+    const res = await authFetch(`${SUPABASE_URL}/rest/v1/cifrario_profiles?select=id,email,display_name,role,created_at&created_at=gt.${seen}&id=neq.${me}&order=created_at.desc&limit=100`);
+    return res.ok ? await res.json() : [];
+  }
+
+  function userLabel(u){ return (u.display_name && u.display_name.trim()) || u.email || 'Alguém'; }
+
   async function loadAdminPendingCount(){
     if(!isAdmin()) return;
     try {
-      const [reqRes, contribRes] = await Promise.all([
-        authFetch(`${SUPABASE_URL}/rest/v1/cifrario_editor_requests?select=id&status=eq.pending`),
-        authFetch(`${SUPABASE_URL}/rest/v1/cifrario_contributions?select=id&status=eq.pending`)
+      const [contribRes, users] = await Promise.all([
+        authFetch(`${SUPABASE_URL}/rest/v1/cifrario_contributions?select=id&status=eq.pending`),
+        fetchNewUsers()
       ]);
-      const reqs = reqRes.ok ? await reqRes.json() : [];
       const contribs = contribRes.ok ? await contribRes.json() : [];
-      state.adminPendingCount = reqs.length + contribs.length;
-      const btn = document.querySelector('[data-action="goAdmin"]');
-      if(btn) renderAdminBadge(btn);
+      const before = (state.adminNewUsers || []).length;
+      const firstLoad = !state._adminNoticeLoadedOnce;
+      state._adminNoticeLoadedOnce = true;
+      state.adminNewUsers = users;
+      state.adminPendingContribs = contribs.length;
+      state.adminPendingCount = contribs.length + users.length;
+      if(users.length > before){
+        state.adminNoticeDismissed = false; // chegou gente nova: a faixa volta a aparecer
+        // Aviso na hora só quando a pessoa entrou com o app já aberto; na
+        // abertura, a faixa da tela inicial já mostra o que está pendente.
+        if(!firstLoad){
+          showToast(users.length - before === 1
+            ? `🌿 ${userLabel(users[0])} acabou de entrar no Acervo!`
+            : `🌿 ${users.length - before} novas pessoas entraram no Acervo!`);
+        }
+      }
+      updateAdminNoticeUI();
     } catch(e){ /* silencioso: é só um aviso */ }
   }
 
   function renderAdminBadge(btn){
     const n = state.adminPendingCount || 0;
     btn.innerHTML = 'Administração' + (n > 0 ? ` <span class="admin-badge">${n}</span>` : '');
+  }
+
+  // Faixa de aviso no topo da tela inicial (só para o admin).
+  function adminNoticeHtml(){
+    if(!isAdmin() || state.adminNoticeDismissed) return '';
+    const nu = (state.adminNewUsers || []).length;
+    const nc = state.adminPendingContribs || 0;
+    if(!nu && !nc) return '';
+    const partes = [];
+    if(nu) partes.push(`<strong>${nu}</strong> ${nu===1 ? 'novo usuário' : 'novos usuários'}`);
+    if(nc) partes.push(`<strong>${nc}</strong> ${nc===1 ? 'contribuição' : 'contribuições'} para revisar`);
+    return `<div class="admin-notice">
+      <span class="admin-notice-text">🌿 ${partes.join(' · ')}</span>
+      <span class="admin-notice-actions">
+        <button class="btn-primary" data-action="openAdminNotice">Ver</button>
+        <button class="admin-notice-close" data-action="dismissAdminNotice" title="Fechar aviso" aria-label="Fechar aviso">&times;</button>
+      </span>
+    </div>`;
+  }
+
+  // Atualiza selo e faixa no próprio lugar, sem refazer a tela inteira (não
+  // atrapalha quem está digitando na busca ou com um menu aberto).
+  function updateAdminNoticeUI(){
+    const btn = document.querySelector('[data-action="goAdmin"]');
+    if(btn) renderAdminBadge(btn);
+    const box = document.getElementById('adminNotice');
+    if(box) box.innerHTML = adminNoticeHtml();
+  }
+
+  function markUsersSeen(){
+    const users = state.adminNewUsers || [];
+    if(users.length) setUsersSeenMark(users[0].created_at); // a lista vem do mais novo para o mais antigo
+    state.adminNewUsers = [];
+    state.adminPendingCount = state.adminPendingContribs || 0;
+    showToast('Novos usuários marcados como vistos.');
+    render();
+  }
+
+  // Confere de tempos em tempos (e ao voltar para o app) se chegou alguém novo.
+  let adminPollTimer = null;
+  function startAdminPolling(){
+    if(adminPollTimer || !isAdmin()) return;
+    adminPollTimer = setInterval(()=>{
+      if(document.visibilityState === 'visible' && navigator.onLine && state.session && isAdmin()) loadAdminPendingCount();
+    }, 120000);
+  }
+
+  function renderAdminNewUsers(){
+    const users = state.adminNewUsers || [];
+    const roleLabel = r => r === 'admin' ? 'Administrador' : r === 'editor' ? 'Colaborador' : 'Leitor';
+    const aviso = `<div class="admin-note">Pessoas que entraram no Acervo desde a última vez que você marcou como visto. Cada pessoa aparece aqui no primeiro acesso dela. Este aviso só é atualizado com o app aberto.</div>`;
+    if(!users.length) return aviso + `<div class="empty-state"><div class="big">Nenhum usuário novo desde sua última visita.</div></div>`;
+    return aviso + `<div class="admin-users-bar"><button class="btn-secondary" data-action="markUsersSeen" style="color:var(--ink);border-color:var(--border);">Marcar todos como vistos</button></div>
+      <div class="admin-list">` + users.map(u => {
+        const d = new Date(u.created_at);
+        const quando = d.toLocaleDateString('pt-BR') + ' às ' + d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+        const nome = (u.display_name && u.display_name.trim()) ? escapeHtml(u.display_name) : escapeHtml(u.email || '');
+        const sub = (u.display_name && u.display_name.trim()) ? `${escapeHtml(u.email || '')} · ` : '';
+        return `
+      <div class="admin-row">
+        <div class="admin-row-info">
+          <div class="admin-row-title">${nome}</div>
+          <div class="admin-row-sub">${sub}entrou em ${quando}</div>
+        </div>
+        <span class="contrib-kind-tag small">${roleLabel(u.role)}</span>
+      </div>`;
+      }).join('') + `</div>`;
   }
 
   async function approveEditorRequest(requestId, userId){
@@ -3310,17 +3654,11 @@
   // Ajusta a contagem pública de curtidas de uma música (coluna like_count em
   // cifrario_songs). Atualiza o estado local na hora para resposta imediata.
   async function adjustLikeCount(songId, delta){
+    // Só atualiza o número na tela, na hora. O contador de verdade é mantido
+    // pelo banco (gatilho em cifrario_favorites) — por isso o app não grava
+    // mais like_count: isso exigia permissão pública de escrita nas músicas.
     const song = state.songs.find(s=>s.id===songId);
-    const current = song ? (song.like_count || 0) : 0;
-    const newCount = Math.max(0, current + delta);
-    if(song) song.like_count = newCount;
-    try {
-      await authFetch(`${SUPABASE_URL}/rest/v1/${SUPABASE_SONGS_TABLE}?id=eq.${encodeURIComponent(songId)}`, {
-        method: 'PATCH', body: JSON.stringify({ like_count: newCount })
-      });
-    } catch (e) {
-      console.error('Erro ao atualizar contagem de curtidas:', e);
-    }
+    if(song) song.like_count = Math.max(0, (song.like_count || 0) + delta);
   }
 
   async function addFavorite(songId){
@@ -3622,8 +3960,9 @@
 
   function renderAdminRequests(){
     const pending = state.pendingEditorRequests || [];
-    if(!pending.length) return `<div class="empty-state"><div class="big">Nenhuma solicitação pendente.</div></div>`;
-    return `<div class="admin-list">` + pending.map(r => `
+    const aviso = `<div class="admin-note">A entrada de colaboradores agora é automática: quem clica em "Quero contribuir" já vira colaborador na hora, sem precisar de aprovação. Esta aba serve apenas para resolver solicitações antigas que ficaram pendentes da versão anterior.</div>`;
+    if(!pending.length) return aviso + `<div class="empty-state"><div class="big">Nenhuma solicitação antiga pendente.</div></div>`;
+    return aviso + `<div class="admin-list">` + pending.map(r => `
       <div class="admin-row">
         <div class="admin-row-info">
           <div class="admin-row-title">${escapeHtml(r.email)}</div>
@@ -3744,7 +4083,7 @@
   }
 
   function renderAdmin(){
-    const tab = state.adminTab || 'requests';
+    const tab = state.adminTab || 'contributions';
     return `
       <header class="topbar">
         <button class="topbar-back" data-action="back">&#8592; Acervo</button>
@@ -3752,11 +4091,12 @@
       </header>
       <main class="container">
         <div class="admin-tabs">
-          <button class="admin-tab ${tab==='requests'?'active':''}" data-action="adminTabRequests">Solicitações de acesso</button>
           <button class="admin-tab ${tab==='contributions'?'active':''}" data-action="adminTabContributions">Contribuições pendentes</button>
+          <button class="admin-tab ${tab==='newusers'?'active':''}" data-action="adminTabNewUsers">Novos usuários${(state.adminNewUsers||[]).length ? ` <span class="admin-badge">${state.adminNewUsers.length}</span>` : ''}</button>
           <button class="admin-tab ${tab==='photos'?'active':''}" data-action="adminTabPhotos">Fotos de artistas</button>
+          <button class="admin-tab ${tab==='requests'?'active':''}" data-action="adminTabRequests">Solicitações antigas</button>
         </div>
-        ${tab==='requests' ? renderAdminRequests() : tab==='contributions' ? renderAdminContributions() : renderAdminPhotos()}
+        ${tab==='requests' ? renderAdminRequests() : tab==='photos' ? renderAdminPhotos() : tab==='newusers' ? renderAdminNewUsers() : renderAdminContributions()}
       </main>
       ${brandWatermark()}
     `;
@@ -3764,9 +4104,9 @@
 
   // Lista, na área de admin, os artistas que ainda não têm foto cadastrada
   // em ARTIST_PHOTO_OVERRIDES (comparando por normalizeText, igual ao
-  // lookup usado no card). Clicar num nome só seleciona/realça ele na
-  // tela — não existe upload aqui, a foto é enviada direto pro Claude
-  // no chat, que depois entra no código e no repositório.
+  // lookup usado no card). Cada linha tem um botão "Enviar foto" que abre o
+  // seletor de imagem e envia direto para o bucket "artist-photos" do
+  // Supabase Storage (ver uploadArtistPhoto) — sem passar por código/GitHub.
   function renderAdminPhotos(){
     const seen = {};
     (state.songs || []).forEach(s => {
@@ -3783,17 +4123,17 @@
     const selected = state.selectedArtistForPhoto || '';
     const uploading = !!state.uploadingArtistPhoto;
     return `
-      <p class="admin-photos-hint">${missing.length} artista${missing.length===1?'':'s'} sem foto cadastrada. Clique num nome pra selecionar e envie a foto direto por aqui.</p>
-      ${selected ? `<div class="admin-photos-selected">
-        <span>Selecionado: <strong>${escapeHtml(selected)}</strong></span>
-        <button class="btn-primary admin-photo-upload-btn" data-action="triggerArtistPhotoUpload" ${uploading?'disabled':''}>${uploading?'Enviando...':'Enviar foto'}</button>
-      </div>` : ''}
-      ${missing.length ? `<div class="admin-list">` + missing.map(name => `
-        <div class="admin-row admin-row-photo ${name===selected?'active':''}" data-action="selectArtistForPhoto" data-artist="${escapeHtml(name)}">
+      <p class="admin-photos-hint">${missing.length} artista${missing.length===1?'':'s'} sem foto cadastrada. Toque em <strong>Enviar foto</strong> ao lado do nome e escolha a imagem na galeria ou tire na hora.</p>
+      ${missing.length ? `<div class="admin-list">` + missing.map(name => {
+        const isThis = uploading && name === selected;
+        return `
+        <div class="admin-row admin-row-photo ${isThis?'active':''}">
           <div class="admin-row-info">
             <div class="admin-row-title">${escapeHtml(name)}</div>
           </div>
-        </div>`).join('') + `</div>` : `<div class="empty-state"><div class="big">Todos os artistas já têm foto cadastrada!</div></div>`}
+          <button class="btn-secondary admin-row-photo-btn" data-action="uploadPhotoForArtist" data-artist="${escapeHtml(name)}" ${uploading?'disabled':''}>${isThis ? 'Enviando...' : '&#128247; Enviar foto'}</button>
+        </div>`;
+      }).join('') + `</div>` : `<div class="empty-state"><div class="big">Todos os artistas já têm foto cadastrada!</div></div>`}
     `;
   }
 
@@ -5025,7 +5365,7 @@
             <div class="card-menu">
               ${canEdit ? `<button data-action="editSong" data-id="${s.id}">Editar</button>` : ''}
               <button data-action="openAddToList" data-id="${s.id}">Adicionar a uma lista</button>
-              ${canEdit ? `<button class="danger" data-action="deleteSong" data-id="${s.id}">Excluir</button>` : ''}
+              ${canDeleteSongs() ? `<button class="danger" data-action="deleteSong" data-id="${s.id}">Excluir</button>` : ''}
             </div>` : ''}
           </div>
         </div>
@@ -5040,9 +5380,7 @@
   }
 
   function editorRequestButtonHtml(){
-    if(state.editorRequestStatus === 'pending') return `<span class="request-status-chip">Solicitação em análise</span>`;
-    if(state.editorRequestStatus === 'rejected') return `<button class="btn-secondary" data-action="requestEditor">Solicitação recusada — tentar de novo</button>`;
-    return `<button class="btn-secondary" data-action="requestEditor">Quero contribuir com as cifras!</button>`;
+    return `<button class="btn-secondary" data-action="becomeContributor">Quero contribuir com as cifras!</button>`;
   }
 
   function renderList(){
@@ -5097,6 +5435,7 @@
           <div class="app-hero-title"><span class="brand-green">Acervo</span> <span class="dot">dos</span> <span class="brand-green">Rezos</span></div>
           <div class="app-hero-sub">Cifras, letras e listas de rezos para tocar e cantar</div>
         </div>
+        ${isAdmin() ? `<div id="adminNotice">${adminNoticeHtml()}</div>` : ''}
         <div class="list-head">
           <input id="searchInput" class="search" placeholder="Buscar por título, artista ou tema" value="${escapeHtml(state.search)}">
           <div class="list-head-actions">
@@ -5429,7 +5768,7 @@
         </div>
         <div class="topbar-actions">
           <button class="icon-btn like-icon-btn ${isFav?'fav-on':''}" data-action="toggleFavorite" data-id="${song.id}" title="${isFav?'Descurtir':'Curtir'}">${heartIconHtml(isFav)} <span>${song.like_count||0}</span></button>
-          ${isEditor() ? `
+          ${canDeleteSongs() ? `
           <button class="icon-btn danger" data-action="deleteSong" data-id="${song.id}">Excluir</button>
           ` : ''}
         </div>
@@ -5674,7 +6013,12 @@
             <input id="themeInput" value="${escapeHtml(ed.theme||'')}" placeholder="Ex.: louvor">
           </label>
           <label>Letra
-            <textarea id="lyricsTextarea" rows="16" placeholder="Cole ou digite a letra aqui, uma linha da música por linha de texto...">${escapeHtml(rawText)}</textarea>
+            <!-- A quebra de linha logo após a abertura do textarea é descartada pelo
+                 navegador (regra do HTML). Sem esta linha extra, uma música que começa
+                 com linhas vazias (introdução só de acordes) perdia uma linha a cada
+                 ida e volta entre "Letra" e "Cifra", e todas as cifras escorregavam. -->
+            <textarea id="lyricsTextarea" rows="16" placeholder="Cole ou digite a letra aqui, uma linha da música por linha de texto...">
+${escapeHtml(rawText)}</textarea>
           </label>
           <label class="checkbox-row">
             <input type="checkbox" id="pasteModeCheckbox" ${ed.pasteMode ? 'checked' : ''}>
@@ -5716,7 +6060,7 @@
           <input id="artistInline" value="${escapeHtml(ed.artist)}" placeholder="Artista">
         </div>
         <div class="topbar-actions">
-          ${ed.id ? `<button class="icon-btn danger" data-action="deleteSong" data-id="${ed.id}">Excluir</button>` : ''}
+          ${ed.id && canDeleteSongs() ? `<button class="icon-btn danger" data-action="deleteSong" data-id="${ed.id}">Excluir</button>` : ''}
           <button class="btn-primary" data-action="finishEdit">Salvar música</button>
         </div>
       </header>
@@ -5782,6 +6126,272 @@
   }
 
   /* ================= EDITOR ACTIONS ================= */
+  // Dentro de um trecho que mudou, decide qual linha antiga corresponde a cada
+  // linha nova. Mesmo número de linhas: em ordem (substituição). Número diferente:
+  // por semelhança de palavras, para que uma linha inserida não "roube" as cifras
+  // da vizinha. Retorna, para cada linha nova do trecho, o índice antigo (ou -1).
+  function pairGapBySimilarity(oldLines, oStart, oCount, newTexts, nStart, nCount){
+    const res = new Array(nCount).fill(-1);
+    if(!oCount || !nCount) return res;
+    if(oCount === nCount){ for(let t = 0; t < nCount; t++) res[t] = oStart + t; return res; }
+    const bag = t => new Set((t.toLowerCase().match(/\S+/g)) || []);
+    const sim = (a, b) => {
+      if(!a.length && !b.length) return 0.5;
+      const A = bag(a), B = bag(b);
+      if(!A.size || !B.size) return 0;
+      let inter = 0; A.forEach(w => { if(B.has(w)) inter++; });
+      return inter / (A.size + B.size - inter);
+    };
+    const TH = 0.34;
+    const dp = Array.from({ length: oCount + 1 }, () => new Array(nCount + 1).fill(0));
+    const sc = (i, j) => { const v = sim(oldLines[oStart + i].text, newTexts[nStart + j]); return v >= TH ? v : -1; };
+    for(let i = oCount - 1; i >= 0; i--) for(let j = nCount - 1; j >= 0; j--){
+      const v = sc(i, j);
+      dp[i][j] = Math.max(dp[i + 1][j], dp[i][j + 1], v >= 0 ? dp[i + 1][j + 1] + v : -1);
+    }
+    let i = 0, j = 0;
+    while(i < oCount && j < nCount){
+      const v = sc(i, j);
+      if(v >= 0 && dp[i][j] === dp[i + 1][j + 1] + v){ res[j] = oStart + i; i++; j++; }
+      else if(dp[i][j] === dp[i + 1][j]) i++;
+      else j++;
+    }
+    return res;
+  }
+
+  // ---- Rastreio exato de edição da letra -------------------------------------
+  // Cada acorde fica "preso" ao caractere sobre o qual foi colocado. Quando o
+  // texto muda (digitar, apagar, colar, apertar Enter), calculamos EXATAMENTE
+  // o que mudou (posição inicial, posição final e texto inserido) e movemos os
+  // acordes junto com o texto. Assim:
+  //  - Enter no começo da primeira linha: tudo (letra e cifra) desce uma linha;
+  //  - Enter no meio do texto: o que está depois do cursor desce com suas cifras;
+  //  - digitar antes de uma palavra empurra a cifra dela para a direita;
+  //  - juntar duas linhas (Backspace) junta também as cifras das duas.
+  function detectTextEdit(oldVal, newVal, caret){
+    let start, end, ins;
+    const c = (typeof caret === 'number' && caret >= 0 && caret <= newVal.length) ? caret : -1;
+    if(c >= 0){
+      const e = oldVal.length - (newVal.length - c);
+      if(e >= 0 && e <= oldVal.length && oldVal.slice(e) === newVal.slice(c)){
+        let pre = 0;
+        const lim = Math.min(e, c);
+        while(pre < lim && oldVal.charCodeAt(pre) === newVal.charCodeAt(pre)) pre++;
+        return { start: pre, end: e, ins: newVal.slice(pre, c) };
+      }
+    }
+    // Sem cursor confiável (desfazer, arrastar, IME): diferença por prefixo/sufixo.
+    let pre = 0;
+    const maxPre = Math.min(oldVal.length, newVal.length);
+    while(pre < maxPre && oldVal.charCodeAt(pre) === newVal.charCodeAt(pre)) pre++;
+    let suf = 0;
+    const maxSuf = Math.min(oldVal.length, newVal.length) - pre;
+    while(suf < maxSuf && oldVal.charCodeAt(oldVal.length - 1 - suf) === newVal.charCodeAt(newVal.length - 1 - suf)) suf++;
+    start = pre; end = oldVal.length - suf; ins = newVal.slice(pre, newVal.length - suf);
+    return { start, end, ins };
+  }
+
+  // Aplica uma edição de texto [start,end) -> ins sobre as linhas (com cifras).
+  // Devolve { lines, dropped } sem alterar as linhas originais.
+  function applyTextEditToLines(oldLines, start, end, ins){
+    const src = (oldLines && oldLines.length) ? oldLines : [{ text: '', chords: [] }];
+    const clone = cs => (cs || []).map(c => ({ ...c }));
+    const locate = off => {
+      let acc = 0;
+      for(let i = 0; i < src.length; i++){
+        const len = src[i].text.length;
+        if(off <= acc + len) return { line: i, col: off - acc };
+        acc += len + 1;
+      }
+      const last = src.length - 1;
+      return { line: last, col: src[last].text.length };
+    };
+    const A = locate(start), B = locate(end);
+    const sl = A.line, sc = A.col, el = B.line, ec = B.col;
+    const head = src[sl].text.slice(0, sc);
+    const tail = src[el].text.slice(ec);
+    const pieces = ins.split('\n');
+    const lastPiece = pieces[pieces.length - 1];
+    const elLen = src[el].text.length;
+    const slLen = src[sl].text.length;
+    let dropped = 0;
+
+    const firstChords = [];  // ficam na primeira linha resultante
+    const lastChords = [];   // vão para a última linha resultante
+
+    // acordes da linha inicial
+    clone(src[sl].chords).forEach(ch => {
+      if(ch.pos < sc){ firstChords.push(ch); return; }
+      if(sl === el){
+        if(ch.pos < ec){ // estava sobre o trecho substituído/apagado: fica no ponto da edição
+          firstChords.push({ ...ch, pos: sc });
+        } else {
+          // acorde depois do trecho editado
+          const overhang = ch.pos >= elLen;           // passa do fim do texto
+          const editAtEnd = sc >= slLen;               // edição no fim da linha
+          const splitEmpty = slLen === 0 && pieces.length > 1; // Enter numa linha só de acordes
+          if(overhang && editAtEnd && !splitEmpty){
+            firstChords.push(ch);                      // acorde de fim de linha fica onde está
+          } else if(pieces.length === 1){
+            firstChords.push({ ...ch, pos: ch.pos - ec + head.length + lastPiece.length });
+          } else {
+            lastChords.push({ ...ch, pos: ch.pos - ec + lastPiece.length });
+          }
+        }
+      } else {
+        dropped++;                                     // texto dele foi apagado junto
+      }
+    });
+    // acordes de linhas intermediárias apagadas
+    for(let i = sl + 1; i < el; i++) dropped += (src[i].chords || []).length;
+    // acordes da linha final (quando a edição junta linhas)
+    if(el !== sl){
+      clone(src[el].chords).forEach(ch => {
+        if(ch.pos < ec){ dropped++; return; }
+        const pos = ch.pos - ec + lastPiece.length + (pieces.length === 1 ? head.length : 0);
+        if(pieces.length === 1) firstChords.push({ ...ch, pos });
+        else lastChords.push({ ...ch, pos });
+      });
+    }
+
+    const mid = [];
+    if(pieces.length === 1){
+      mid.push({ text: head + pieces[0] + tail, chords: firstChords });
+    } else {
+      mid.push({ text: head + pieces[0], chords: firstChords });
+      for(let k = 1; k < pieces.length - 1; k++) mid.push({ text: pieces[k], chords: [] });
+      mid.push({ text: lastPiece + tail, chords: lastChords });
+    }
+    const out = [];
+    for(let i = 0; i < sl; i++) out.push({ text: src[i].text, chords: clone(src[i].chords) });
+    mid.forEach(l => {
+      l.chords.sort((a, b) => a.pos - b.pos);
+      // duas notas iguais no mesmo ponto (sobra de uma edição) viram uma só
+      l.chords = l.chords.filter((c, i, arr) => i === 0 || !(c.pos === arr[i - 1].pos && c.chord === arr[i - 1].chord));
+      out.push(l);
+    });
+    for(let i = el + 1; i < src.length; i++) out.push({ text: src[i].text, chords: clone(src[i].chords) });
+    return { lines: out, dropped };
+  }
+
+  // Reposiciona os acordes de UMA linha cujo texto foi reescrito, mantendo cada
+  // nota sobre a mesma PALAVRA (e o mesmo ponto dentro dela). Usado quando não
+  // temos o rastreio exato da edição (ex.: texto colado por cima de tudo).
+  function reanchorChordsToWords(oldText, newText, chords){
+    const words = t => { const r = []; const re = /\S+/g; let m; while((m = re.exec(t))) r.push({ s: m.index, e: m.index + m[0].length, w: m[0] }); return r; };
+    const ow = words(oldText), nw = words(newText);
+    const n = ow.length, m = nw.length;
+    if(!chords || !chords.length) return [];
+    if(!n || !m) return chords.map(c => ({ ...c }));
+    const dp = Array.from({ length: n + 1 }, () => new Array(m + 1).fill(0));
+    for(let i = n - 1; i >= 0; i--) for(let j = m - 1; j >= 0; j--){
+      dp[i][j] = ow[i].w === nw[j].w ? dp[i + 1][j + 1] + 1 : Math.max(dp[i + 1][j], dp[i][j + 1]);
+    }
+    const map = new Array(n).fill(-1);
+    let i = 0, j = 0;
+    while(i < n && j < m){
+      if(ow[i].w === nw[j].w){ map[i] = j; i++; j++; }
+      else if(dp[i + 1][j] >= dp[i][j + 1]) i++;
+      else j++;
+    }
+    // palavra alterada (ex.: erro de digitação corrigido): casa com a palavra
+    // nova que ocupa o mesmo lugar entre as vizinhas que não mudaram
+    for(let k = 0; k < n; k++){
+      if(map[k] !== -1) continue;
+      let pk = k - 1; while(pk >= 0 && map[pk] === -1) pk--;
+      let nk = k + 1; while(nk < n && map[nk] === -1) nk++;
+      const lo = pk >= 0 ? map[pk] + 1 : 0;
+      const hi = nk < n ? map[nk] - 1 : m - 1;
+      if(lo <= hi){
+        const cand = Math.min(hi, lo + (k - (pk + 1)));
+        map[k] = cand;
+      }
+    }
+    return chords.map(c => {
+      let wi = ow.findIndex(w => c.pos >= w.s && c.pos < w.e);
+      if(wi === -1){
+        wi = ow.findIndex(w => w.s >= c.pos);
+        if(wi === -1) return { ...c, pos: Math.max(0, newText.length + (c.pos - oldText.length)) }; // depois do fim
+        const tw = map[wi] >= 0 ? nw[map[wi]] : null;
+        return tw ? { ...c, pos: Math.max(0, tw.s - (ow[wi].s - c.pos)) } : { ...c };
+      }
+      const tw = map[wi] >= 0 ? nw[map[wi]] : null;
+      if(!tw) return { ...c };
+      const off = Math.min(c.pos - ow[wi].s, tw.e - tw.s - 1);
+      return { ...c, pos: tw.s + Math.max(0, off) };
+    });
+  }
+
+  // Leva os acordes das linhas antigas para as linhas do texto novo, seguindo
+  // o CONTEÚDO da linha em vez do número dela:
+  //  1) texto idêntico  -> tudo fica exatamente como estava (inclusive acordes
+  //     de introdução, que ficam em linhas vazias e podem passar do fim do texto);
+  //  2) linha preservada -> mantém os acordes onde estavam, mesmo que alguém
+  //     tenha inserido ou apagado linhas antes dela;
+  //  3) linha corrigida (ex.: typo) -> os acordes ficam na linha corrigida; a
+  //     posição só é encurtada se passar do fim da nova letra;
+  //  4) linha apagada -> os acordes dela saem junto (retorna a contagem).
+  function remapChordsToNewText(oldLines, newTexts){
+    const cloneChords = cs => (cs || []).map(c => ({ ...c }));
+    const n = oldLines.length, m = newTexts.length;
+
+    if(n === m && oldLines.every((l, i) => l.text === newTexts[i])){
+      return { lines: oldLines.map(l => ({ text: l.text, chords: cloneChords(l.chords) })), dropped: 0 };
+    }
+
+    // Maior subsequência comum entre as linhas (igualdade exata de texto).
+    const dp = Array.from({ length: n + 1 }, () => new Array(m + 1).fill(0));
+    for(let i = n - 1; i >= 0; i--){
+      for(let j = m - 1; j >= 0; j--){
+        dp[i][j] = oldLines[i].text === newTexts[j]
+          ? dp[i + 1][j + 1] + 1
+          : Math.max(dp[i + 1][j], dp[i][j + 1]);
+      }
+    }
+    const pairs = []; // [indiceAntigo, indiceNovo] das linhas que se mantiveram
+    let a = 0, b = 0;
+    while(a < n && b < m){
+      if(oldLines[a].text === newTexts[b]){ pairs.push([a, b]); a++; b++; }
+      else if(dp[a + 1][b] >= dp[a][b + 1]) a++;
+      else b++;
+    }
+    pairs.push([n, m]); // sentinela para fechar o último trecho
+
+    const out = new Array(m);
+    let dropped = 0;
+    let prevA = 0, prevB = 0;
+    pairs.forEach(([pa, pb]) => {
+      // Trecho entre duas linhas mantidas: linhas antigas [prevA, pa) viraram
+      // as novas [prevB, pb). Emparelha em ordem (cobre correção de typo).
+      const oldCount = pa - prevA, newCount = pb - prevB;
+      const gapPairs = pairGapBySimilarity(oldLines, prevA, oldCount, newTexts, prevB, newCount);
+      const usedOld = new Set();
+      for(let t = 0; t < newCount; t++){
+        const text = newTexts[prevB + t];
+        const oi = gapPairs[t];
+        let chords = [];
+        if(oi !== -1){
+          usedOld.add(oi);
+          const old = oldLines[oi];
+          chords = text.length > 0 || old.text.length > 0
+            ? reanchorChordsToWords(old.text, text, cloneChords(old.chords))
+            : cloneChords(old.chords);
+          chords = chords.map(c => ({ ...c, pos: text.length > 0 ? Math.min(c.pos, text.length) : c.pos }));
+        }
+        out[prevB + t] = { text, chords };
+      }
+      for(let t = 0; t < oldCount; t++){
+        if(!usedOld.has(prevA + t)) dropped += (oldLines[prevA + t].chords || []).length;
+      }
+      if(pa < n){
+        out[pb] = { text: newTexts[pb], chords: cloneChords(oldLines[pa].chords) };
+      }
+      prevA = pa + 1;
+      prevB = pb + 1;
+    });
+    return { lines: out, dropped };
+  }
+
   function goToChords(){
     const ed = state.editor;
     const title = document.getElementById('titleInput').value.trim();
@@ -5815,19 +6425,24 @@
 
     const newLinesText = raw.split('\n');
     const oldLines = ed.lines || [];
-    const newLines = newLinesText.map((text,i) => {
-      const old = oldLines[i];
-      if(old && old.chords && old.chords.length){
-        // Mantém as cifras da mesma linha mesmo que o texto tenha mudado
-        // (ex.: corrigir um typo), só ajustando a posição ao novo tamanho.
-        const chords = old.chords.map(c => ({
-          ...c,
-          pos: Math.max(0, Math.min(text.length, c.pos))
-        }));
-        return { text, chords };
-      }
-      return { text, chords: [] };
-    });
+    // 1º caminho (exato): o rastreio da digitação moveu cada acorde junto com
+    // o caractere. Só vale se o texto da sombra bate com o da caixa; se não bater
+    // (ex.: desfazer estranho), cai no 2º caminho.
+    // 2º caminho: compara por conteúdo (LCS) e reancora por palavra.
+    let remap;
+    const sh = ed._shadow;
+    if(sh && sh.length === newLinesText.length && sh.every((l, i) => l.text === newLinesText[i])){
+      remap = { lines: sh.map(l => ({ text: l.text, chords: l.chords.map(c => ({ ...c })) })), dropped: ed._shadowDropped || 0 };
+    } else {
+      remap = remapChordsToNewText(oldLines, newLinesText);
+    }
+    ed._shadow = null; ed._shadowVal = null; ed._shadowDropped = 0;
+    const newLines = remap.lines;
+    if(remap.dropped > 0){
+      showToast(remap.dropped === 1
+        ? '1 acorde saiu junto com a linha de letra que você apagou.'
+        : `${remap.dropped} acordes saíram junto com as linhas de letra que você apagou.`);
+    }
     ed.title = title;
     ed.artist = artist;
     ed.lines = newLines;
@@ -5899,7 +6514,7 @@
   async function reeditText(){
     const ed = state.editor;
     if(ed.lines.some(l=>l.chords.length>0)){
-      const ok = await showConfirm('As cifras ficam vinculadas à posição de cada linha. Se você adicionar ou remover linhas de texto, as cifras podem acabar na linha errada — mas só editar o texto (corrigir palavras, por exemplo) não afeta as cifras. Deseja continuar?');
+      const ok = await showConfirm('Os acordes acompanham a linha de letra onde foram registrados. Corrigir palavras ou incluir linhas novas não tira nenhum acorde do lugar; se você apagar uma linha de letra, os acordes dela saem junto. Deseja continuar?');
       if(!ok) return;
     }
     state.view = 'editMeta';
@@ -5979,7 +6594,9 @@
   }
 
   async function deleteSong(id){
-    if(!isEditor()){ showToast('Você precisa ser um editor aprovado para excluir músicas.'); return; }
+    // Excluir é só do administrador: uma música apagada some para todo mundo.
+    // Colaboradores corrigem e enviam; quem remove do acervo é o admin.
+    if(!canDeleteSongs()){ showToast('Só o administrador pode excluir músicas do acervo.'); return; }
     if(!requireConfirmedEmail()) return;
     const song = state.songs.find(s=>s.id===id);
     if(!song) return;
@@ -6722,6 +7339,7 @@
   }
   // Ao voltar de outro app, o navegador solta o wake lock sozinho: repede.
   document.addEventListener('visibilitychange', function(){
+    if(document.visibilityState === 'visible' && state.session && isAdmin()) loadAdminPendingCount();
     if(document.visibilityState === 'visible' && state.autoScroll.active && !wakeLockSentinel){
       requestWakeLock();
     }
@@ -6843,6 +7461,31 @@
       });
     }
     if(state.view==='editMeta'){
+      const lyr = document.getElementById('lyricsTextarea');
+      const edm = state.editor;
+      if(lyr && edm){
+        // "Sombra" da letra: linhas + cifras acompanhando cada digitação.
+        const base = (edm.lines && edm.lines.length)
+          ? edm.lines.map(l => ({ text: l.text, chords: (l.chords||[]).map(c => ({ ...c })) }))
+          : null;
+        if(base && base.map(l => l.text).join('\n') === lyr.value){
+          edm._shadow = base; edm._shadowDropped = 0;
+        } else {
+          edm._shadow = null;
+        }
+        edm._shadowVal = lyr.value;
+        lyr.addEventListener('input', () => {
+          const prev = edm._shadowVal, cur = lyr.value;
+          edm._shadowVal = cur;
+          if(!edm._shadow || prev === cur) return;
+          try {
+            const d = detectTextEdit(prev, cur, lyr.selectionStart);
+            const r = applyTextEditToLines(edm._shadow, d.start, d.end, d.ins);
+            edm._shadow = r.lines;
+            edm._shadowDropped = (edm._shadowDropped || 0) + r.dropped;
+          } catch(err){ console.warn('Rastreio de edição falhou, usando comparação por conteúdo:', err); edm._shadow = null; }
+        });
+      }
       const themeEl = document.getElementById('themeInput');
       if(themeEl) themeEl.addEventListener('input', e=>{ e.target.value = e.target.value.replace(/\s/g,''); });
     }
@@ -7027,8 +7670,12 @@
     else if(action==='signOut') await signOut();
     else if(action==='resendConfirmation') await resendConfirmationEmail();
 
-    else if(action==='requestEditor') await requestEditorAccess();
+    else if(action==='becomeContributor') openBecomeContributorModal();
     else if(action==='goAdmin') goAdmin();
+    else if(action==='openAdminNotice') goAdmin((state.adminNewUsers || []).length ? 'newusers' : 'contributions');
+    else if(action==='dismissAdminNotice'){ state.adminNoticeDismissed = true; updateAdminNoticeUI(); }
+    else if(action==='adminTabNewUsers'){ state.adminTab='newusers'; render(); }
+    else if(action==='markUsersSeen') markUsersSeen();
     else if(action==='openProfileInfo') goProfileInfo();
     else if(action==='goChordLibrary') goChordLibrary();
     else if(action==='setChordFilter'){ state.chordFilter = el.dataset.filter; render(); }
@@ -7046,6 +7693,15 @@
     else if(action==='adminTabPhotos'){ state.adminTab='photos'; render(); if(!uploadedArtistPhotosLoaded){ uploadedArtistPhotosLoaded = true; loadUploadedArtistPhotos(); } }
     else if(action==='selectArtistForPhoto'){ state.selectedArtistForPhoto = (state.selectedArtistForPhoto === el.dataset.artist) ? '' : el.dataset.artist; render(); }
     else if(action==='triggerArtistPhotoUpload'){ if(state.selectedArtistForPhoto && !state.uploadingArtistPhoto) document.getElementById('artistPhotoFileInput').click(); }
+    else if(action==='uploadPhotoForArtist'){
+      // Botão ao lado de cada artista sem foto: marca o artista e já abre o
+      // seletor de imagem no mesmo toque (o .click() precisa acontecer
+      // direto no gesto do usuário, por isso não há nenhum await antes).
+      if(!state.uploadingArtistPhoto){
+        state.selectedArtistForPhoto = el.dataset.artist;
+        document.getElementById('artistPhotoFileInput').click();
+      }
+    }
     else if(action==='approveEditorRequest') await approveEditorRequest(id, el.dataset.user);
     else if(action==='rejectEditorRequest') await rejectEditorRequest(id);
     else if(action==='approveContribution') await approveContribution(id);
