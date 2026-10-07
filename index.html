@@ -954,6 +954,24 @@
   .checkbox-row input{width:auto;margin:2px 0 0;flex:none;}
 
   /* ---------- EDITOR: CHORD PLACEMENT ---------- */
+  .capo-edit-bar{
+    display:flex; align-items:center; gap:12px; flex-wrap:wrap;
+    padding:10px 24px; border-bottom:1px solid var(--border-on-dark);
+    background:var(--bg-glass); position:relative; z-index:1;
+    font-size:13px; color:var(--muted-on-dark);
+  }
+  .capo-edit-title{font-weight:600; color:var(--text-on-dark, inherit);}
+  .capo-edit-stepper{display:inline-flex; align-items:center; gap:6px;}
+  .capo-edit-btn{
+    width:36px; height:36px; border-radius:10px; cursor:pointer;
+    border:1px solid var(--border-on-dark); background:transparent;
+    color:inherit; font-size:18px; line-height:1;
+  }
+  .capo-edit-btn:hover{border-color:var(--gold-light); color:var(--gold-light);}
+  .capo-edit-btn:disabled{opacity:0.35; cursor:default;}
+  .capo-edit-value{min-width:92px; text-align:center; font-weight:600; color:var(--gold-light);}
+  .capo-edit-hint{font-size:12px;}
+  @media (max-width:600px){ .capo-edit-bar{padding:10px 14px;} .capo-edit-hint{flex-basis:100%;} }
   .help-bar{
     display:flex;
     gap:16px;
@@ -2965,7 +2983,9 @@
         method: 'PATCH',
         body: JSON.stringify({
           title: song.title || '', artist: song.artist || '', tone: song.tone || '',
-          theme: song.theme || '', lines: song.lines || [], updated_at: new Date().toISOString()
+          theme: song.theme || '', lines: song.lines || [], updated_at: new Date().toISOString(),
+          // capo padrão: mescla com os links que a música já tem (youtube, etc.)
+          ...(song.capo === undefined ? {} : { links: { ...(((state.songs.find(x=>x.id===songId)||{}).links) || {}), capo: Math.max(0, Math.min(12, parseInt(song.capo,10) || 0)) } })
         })
       });
     } else if(kind === 'link'){
@@ -3422,8 +3442,9 @@
       theme: r.theme || '',
       links: r.links && typeof r.links==='object' ? {
         youtube: r.links.youtube||'', spotify: r.links.spotify||'',
-        deezer: r.links.deezer||'', other: r.links.other||''
-      } : { youtube:'', spotify:'', deezer:'', other:'' },
+        deezer: r.links.deezer||'', other: r.links.other||'',
+        capo: Math.max(0, Math.min(12, parseInt(r.links.capo,10) || 0))
+      } : { youtube:'', spotify:'', deezer:'', other:'', capo: 0 },
       lines: Array.isArray(r.lines) ? r.lines : [],
       like_count: r.like_count || 0
     };
@@ -3726,13 +3747,21 @@
   function goLists(){ stopAutoScroll(); state.view='lists'; closeAllMenus(); render(); }
   function goListDetail(listId){ stopAutoScroll(); state.view='listDetail'; state.currentListId=listId; closeAllMenus(); render(); }
 
+  // Capotraste padrão da cifra: guardado dentro de "links" (campo que já existe
+  // no banco) como links.capo, número de 0 (sem capo) a 12.
+  function songCapo(song){
+    const n = parseInt(song && song.links && song.links.capo, 10);
+    return Number.isFinite(n) ? Math.max(0, Math.min(12, n)) : 0;
+  }
+
   function goView(id, contextIds, fromListId){
     stopAutoScroll();
     if(contextIds !== undefined) state.navContext = contextIds;
     if(fromListId !== undefined) state.cameFromListId = fromListId;
     state.view='view'; state.currentId=id; state.autoScroll.active=false;
     state.transposeSteps = 0; // cada cifra abre sempre no tom original
-    state.capo = 0;           // cada cifra abre sempre sem capotraste marcado
+    // a cifra abre no capotraste padrão definido em "Corrigir" (0 = sem capo)
+    state.capo = songCapo(state.songs.find(s=>s.id===id));
     closeAllMenus(); render();
   }
 
@@ -3775,6 +3804,7 @@
       tone: song.tone || '',
       theme: song.theme || '',
       links: { ...(song.links || {youtube:'',spotify:'',deezer:'',other:''}) },
+      capo: songCapo(song),
       lines: song.lines.map(l => ({ text: l.text, chords: l.chords.map(c=>({...c})) })),
       activeLine: 0,
       cursorPos: 0,
@@ -3915,7 +3945,8 @@
           youtube: overlay.querySelector('#linkYoutube').value.trim(),
           spotify: overlay.querySelector('#linkSpotify').value.trim(),
           deezer: overlay.querySelector('#linkDeezer').value.trim(),
-          other: overlay.querySelector('#linkOther').value.trim()
+          other: overlay.querySelector('#linkOther').value.trim(),
+          capo: songCapo(song)   // o capo padrão não é editado aqui: só preserva
         };
         let newlyAdded = 0;
         ['youtube','spotify','deezer','other'].forEach(k=>{
@@ -6068,6 +6099,15 @@ ${escapeHtml(rawText)}</textarea>
         <button class="editor-mode-btn" data-action="reeditText">Letra</button>
         <button class="editor-mode-btn active" disabled>Cifra</button>
       </div>
+      <div class="capo-edit-bar">
+        <span class="capo-edit-title">Capotraste padrão</span>
+        <div class="capo-edit-stepper">
+          <button class="capo-edit-btn" data-action="editCapoDown" id="editCapoDown" title="Diminuir capotraste" ${(ed.capo||0)<=CAPO_MIN?'disabled':''}>&#8722;</button>
+          <span class="capo-edit-value" id="editCapoValue">${capoLabel(ed.capo||0)}</span>
+          <button class="capo-edit-btn" data-action="editCapoUp" id="editCapoUp" title="Aumentar capotraste" ${(ed.capo||0)>=CAPO_MAX?'disabled':''}>&#43;</button>
+        </div>
+        <span class="capo-edit-hint">A cifra vai abrir sempre nessa casa.</span>
+      </div>
       <div class="help-bar">
         <span>clique na cifra ou na letra pra posicionar</span>
         <span><kbd>&#8592;</kbd><kbd>&#8594;</kbd> ajustar</span>
@@ -6536,20 +6576,20 @@ ${escapeHtml(rawText)}</textarea>
     const oldSong = !isNewSong ? state.songs.find(s=>s.id===ed.id) : null;
     const oldSnapshot = oldSong ? {
       title: oldSong.title, artist: oldSong.artist, tone: oldSong.tone,
-      theme: oldSong.theme, lines: JSON.parse(JSON.stringify(oldSong.lines))
+      theme: oldSong.theme, capo: songCapo(oldSong), lines: JSON.parse(JSON.stringify(oldSong.lines))
     } : null;
     const song = {
       id: ed.id || uid(),
       title, artist,
       tone: (ed.tone||'').trim(),
       theme: (ed.theme||'').trim(),
-      links: ed.links || {youtube:'',spotify:'',deezer:'',other:''},
+      links: { ...(ed.links || {youtube:'',spotify:'',deezer:'',other:''}), capo: Math.max(0, Math.min(12, parseInt(ed.capo,10) || 0)) },
       lines: ed.lines.map(l => ({ text: l.text, chords: [...l.chords].sort((a,b)=>a.pos-b.pos) }))
     };
     // A alteração só é publicada no acervo quando aprovada (na hora, se for o
     // admin; senão, quando o admin aprovar depois) — por isso não mexemos em
     // state.songs nem persistimos a música aqui: quem faz isso é recordContribution.
-    const newSnapshot = { title: song.title, artist: song.artist, tone: song.tone, theme: song.theme, lines: song.lines };
+    const newSnapshot = { title: song.title, artist: song.artist, tone: song.tone, theme: song.theme, capo: song.links.capo, lines: song.lines };
     // Uma música é "completa" (letra + cifra) se tiver ao menos um acorde em
     // qualquer linha; senão, é "só letra". Isso define a pontuação.
     const temCifra = (song.lines || []).some(l => (l.chords || []).length > 0);
@@ -7654,6 +7694,14 @@ ${escapeHtml(rawText)}</textarea>
     else if(action==='openReadingControls') openReadingControlsModal();
     else if(action==='transposeUp'){ state.transposeSteps = (state.transposeSteps||0) + 1; render(); }
     else if(action==='transposeDown'){ state.transposeSteps = (state.transposeSteps||0) - 1; render(); }
+    else if(action==='editCapoUp' || action==='editCapoDown'){
+      const ed = state.editor; if(!ed) return;
+      ed.capo = Math.max(CAPO_MIN, Math.min(CAPO_MAX, (ed.capo||0) + (action==='editCapoUp' ? 1 : -1)));
+      // atualiza só o controle (sem redesenhar a tela, para não perder o que foi digitado)
+      const v = document.getElementById('editCapoValue'); if(v) v.textContent = capoLabel(ed.capo);
+      const d = document.getElementById('editCapoDown'); if(d) d.disabled = ed.capo <= CAPO_MIN;
+      const u = document.getElementById('editCapoUp'); if(u) u.disabled = ed.capo >= CAPO_MAX;
+    }
     else if(action==='capoUp'){ state.capo = Math.min(CAPO_MAX, (state.capo||0) + 1); render(); }
     else if(action==='capoDown'){ state.capo = Math.max(CAPO_MIN, (state.capo||0) - 1); render(); }
     else if(action==='toggleCifraSidebar') toggleCifraSidebar();
