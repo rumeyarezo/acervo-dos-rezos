@@ -1,0 +1,12 @@
+[project]
+name = "acervo-fila-acordes"
+version = "1.0.0"
+description = "Fila de análise de acordes do Acervo dos Rezos (roda no computador do admin)"
+requires-python = ">=3.12,<3.14"
+dependencies = [
+  # Motor de acordes (lv-chordia + Beat This!). Versão fixa: só atualize depois de testar.
+  "chordotomy[model]==0.3.1",
+]
+
+[tool.uv]
+package = false

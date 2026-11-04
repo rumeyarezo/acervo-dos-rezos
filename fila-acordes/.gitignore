@@ -1,0 +1,4 @@
+config.env
+fila.log
+.venv/
+__pycache__/

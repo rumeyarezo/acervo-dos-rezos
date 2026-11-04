@@ -1130,6 +1130,80 @@
   .mobile-controls button:active{background:rgba(255,255,255,0.16);}
   .editor-chords{padding-bottom:90px;}
 
+  /* ---- Acordes por áudio (fila de análise) ---- */
+  .prog-launch-bar{
+    display:flex; align-items:center; gap:12px; flex-wrap:wrap;
+    padding:10px 24px; border-bottom:1px solid var(--border-on-dark);
+    background:var(--bg-glass); position:relative; z-index:1;
+    font-size:13px; color:var(--muted-on-dark);
+  }
+  .prog-launch-bar .btn-secondary{padding:8px 14px;}
+  .prog-panel{
+    position:fixed; left:0; right:0; bottom:var(--mc-h, 62px); z-index:11;
+    background:var(--bg-glass); backdrop-filter:blur(8px);
+    border-top:1px solid var(--border-on-dark); color:var(--on-dark);
+    padding:10px 16px 12px; display:flex; flex-direction:column; gap:8px;
+    box-shadow:0 -8px 24px rgba(0,0,0,0.25);
+  }
+  .prog-head{display:flex; align-items:center; gap:10px; font-size:13px;}
+  .prog-head strong{color:var(--gold-light);}
+  .prog-head .prog-meta{color:var(--muted-on-dark); flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+  .prog-close{background:none; border:1px solid var(--border-on-dark); color:inherit; border-radius:8px; width:34px; height:34px; font-size:16px; cursor:pointer; flex:none;}
+  .prog-hint{font-size:12.5px; color:var(--muted-on-dark);}
+  .prog-chips{display:flex; gap:6px; overflow-x:auto; padding-bottom:4px; scroll-behavior:smooth;}
+  .prog-chip{
+    flex:none; display:flex; flex-direction:column; align-items:center; gap:1px;
+    min-width:52px; padding:6px 10px; border-radius:10px; cursor:pointer;
+    border:1px solid var(--border-on-dark); background:rgba(255,255,255,0.06); color:inherit;
+    font-weight:700; font-size:15px; line-height:1.15;
+  }
+  .prog-chip small{font-weight:400; font-size:10.5px; opacity:.75;}
+  .prog-chip.done{opacity:.45;}
+  .prog-chip.current{background:var(--gold); border-color:var(--gold); color:#241505;}
+  .prog-actions{display:flex; gap:6px; flex-wrap:wrap; align-items:center;}
+  .prog-actions button{padding:8px 14px; font-size:13px; min-height:40px;}
+  .prog-toggles{display:flex; gap:14px; flex-wrap:wrap; font-size:12.5px; color:var(--muted-on-dark);}
+  .prog-toggles label{display:flex; align-items:center; gap:6px; cursor:pointer;}
+  body.prog-open .editor-chords{padding-bottom:300px;}
+  body.prog-open #editorSheet .line{scroll-margin-bottom:280px;}
+  body.prog-open .toast{bottom:auto; top:calc(84px + env(safe-area-inset-top));}
+  .prog-linkbtn{background:none; border:none; color:var(--gold-light); text-decoration:underline; font-size:12.5px; cursor:pointer; padding:4px; white-space:nowrap; flex:none;}
+  .prog-panel{padding-left:max(16px, calc((100vw - 1040px) / 2)); padding-right:max(16px, calc((100vw - 1040px) / 2));}
+
+  .prog-modal{max-width:470px;}
+  .prog-modal .prog-status{display:flex; align-items:center; gap:8px; font-size:13px; color:var(--ink-soft); margin:-4px 0 12px;}
+  .prog-dot{width:10px; height:10px; border-radius:50%; background:#9aa59b; flex:none;}
+  .prog-dot.on{background:#3aa85a; box-shadow:0 0 0 3px rgba(58,168,90,0.18);}
+  .prog-modal .prog-note{font-size:12.5px; color:var(--muted); line-height:1.45; margin:0 0 14px;}
+  .prog-modal .prog-upload{display:flex; gap:8px; flex-wrap:wrap; margin-bottom:14px;}
+  .prog-modal .prog-upload .btn-primary, .prog-modal .prog-upload .btn-ghost{min-height:42px;}
+  .prog-modal .btn-ghost{background:transparent; border:1px solid var(--border); color:var(--ink); border-radius:var(--radius-control); padding:10px 14px; cursor:pointer;}
+  .prog-modal h4{margin:6px 0 8px; font-size:13px; color:var(--ink-soft); font-weight:600;}
+  .prog-jobs{display:flex; flex-direction:column; gap:6px; margin-bottom:12px;}
+  .prog-job{display:flex; align-items:center; gap:10px; padding:8px 10px; border:1px solid var(--border); border-radius:10px; font-size:13px; color:var(--ink);}
+  .prog-job .prog-job-name{flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+  .prog-job .prog-job-status{font-size:12px; color:var(--muted); white-space:nowrap;}
+  .prog-job .prog-job-status.err{color:#b3412f;}
+  .prog-job .prog-job-status.ok{color:#2f7d46;}
+  .prog-job button{padding:6px 10px; font-size:12.5px; border-radius:8px; cursor:pointer;}
+  .prog-job .prog-use{background:var(--gold); color:#241505; border:none; font-weight:600;}
+  .prog-job .prog-del{background:none; border:1px solid var(--border); color:var(--muted);}
+  .prog-progress{height:6px; border-radius:4px; background:var(--border); overflow:hidden; margin:-6px 0 12px;}
+  .prog-progress > span{display:block; height:100%; background:var(--gold); width:0; transition:width .2s;}
+  @media (max-width:600px){
+    .prog-launch-bar{padding:8px 14px;}
+    .prog-launch-hint{display:none;}
+    .prog-panel{padding:8px 12px 10px; gap:6px;}
+    .prog-head strong{font-size:12.5px;}
+    .prog-hint{font-size:12px;}
+    .prog-chip{min-width:46px; padding:5px 8px; font-size:14px;}
+    .prog-actions{flex-wrap:nowrap;}
+    .prog-actions button{flex:1; padding:8px 6px; min-height:40px;}
+    .prog-actions .btn-primary{flex:1.6;}
+    .prog-toggles{gap:10px; font-size:12px;}
+    body.prog-open .editor-chords{padding-bottom:250px;}
+  }
+
   .toast{
     position:fixed;
     bottom:24px;
@@ -4285,7 +4359,7 @@
     'm7b5','m7','min7','m6','m9','m11','m13','madd9','min','m',
     'dim7','dim','°',
     'aug','+',
-    'sus2','sus4',
+    '7sus4','sus2','sus4',
     'add9','add11',
     '6/9','69',
     '13','11','9','7','6'
@@ -4297,7 +4371,7 @@
     'm7b5':'m7b5','m7':'m7','min7':'m7','m6':'m6','m9':'m9','m11':'m11','m13':'m13','madd9':'madd9','min':'m','m':'m',
     'dim7':'dim7','dim':'dim','°':'dim',
     'aug':'aug','+':'aug',
-    'sus2':'sus2','sus4':'sus4',
+    '7sus4':'7sus4','sus2':'sus2','sus4':'sus4',
     'add9':'add9','add11':'add11',
     '6/9':'6/9','69':'6/9',
     '13':'13','11':'11','9':'9','7':'7','6':'6'
@@ -4307,7 +4381,7 @@
   const QUALITY_INTERVALS = {
     'maj':[0,4,7], 'm':[0,3,7], '7':[0,4,7,10], 'm7':[0,3,7,10], 'maj7':[0,4,7,11],
     'dim':[0,3,6], 'dim7':[0,3,6,9], 'aug':[0,4,8],
-    'sus2':[0,2,7], 'sus4':[0,5,7], 'add9':[0,4,7,2], 'madd9':[0,3,7,2],
+    'sus2':[0,2,7], 'sus4':[0,5,7], '7sus4':[0,5,7,10], 'add9':[0,4,7,2], 'madd9':[0,3,7,2],
     '6':[0,4,7,9], 'm6':[0,3,7,9], '9':[0,4,7,10,2], 'm9':[0,3,7,10,2],
     'maj9':[0,4,7,11,2], '11':[0,4,7,10,2,5], '13':[0,4,7,10,2,9],
     '6/9':[0,4,7,9,2], 'm7b5':[0,3,6,10], 'm11':[0,3,7,10,2,5], 'm13':[0,3,7,10,2,9]
@@ -6062,6 +6136,550 @@ ${escapeHtml(rawText)}</textarea>
     `;
   }
 
+
+  /* ================= ACORDES POR ÁUDIO (fila no computador do admin) =================
+     Fluxo: o colaborador envia uma gravação -> ela vai para a pasta PRIVADA
+     "chord-audio" do Supabase -> um pedido entra em cifrario_chord_jobs -> o
+     programa da fila (fila-acordes/, no computador do Caio) analisa com o
+     chordotomy, grava a progressão e apaga o áudio -> aqui no editor a pessoa
+     toca na palavra e o próximo acorde da progressão é colocado ali.
+     Também aceita importar o JSON direto (chordotomy, lv-chordia ou o nosso). */
+  const PROG_BUCKET = 'chord-audio';
+  const PROG_MAX_BYTES = 30 * 1024 * 1024;
+  const PROG_AUDIO_TYPES = {
+    mp3:'audio/mpeg', wav:'audio/wav', m4a:'audio/mp4', mp4:'audio/mp4', aac:'audio/aac',
+    ogg:'audio/ogg', oga:'audio/ogg', opus:'audio/ogg', flac:'audio/flac', webm:'audio/webm'
+  };
+  // Qualidades que o motor devolve (formato Harte) -> como o app escreve a cifra.
+  const HARTE_TO_CIFRA = {
+    'maj':'', 'min':'m', '7':'7', 'maj7':'7M', 'min7':'m7', 'min6':'m6', 'maj6':'6',
+    'hdim7':'m7b5', 'dim7':'dim7', 'dim':'dim', 'aug':'aug', 'sus4':'sus4', 'sus2':'sus2',
+    'sus4(b7)':'7sus4', 'maj(9)':'add9', 'min(9)':'madd9', '9':'9', 'min9':'m9', 'maj9':'maj9',
+    '11':'11', '13':'13', 'min11':'m11', 'min13':'m13'
+  };
+  const HARTE_DEGREE = { '1':0,'b2':1,'2':2,'#2':3,'b3':3,'3':4,'4':5,'#4':6,'b5':6,'5':7,'#5':8,'b6':8,'6':9,'bb7':9,'b7':10,'7':11,'b9':1,'9':2,'#9':3,'11':5,'#11':6,'b13':8,'13':9 };
+
+  function harteToCifra(label, bassNote){
+    if(!label) return null;
+    const raw = String(label).trim();
+    if(!raw || raw === 'N' || raw === 'X') return null;
+    let main = raw, degree = null;
+    const sl = raw.indexOf('/');
+    if(sl > 0){ main = raw.slice(0, sl); degree = raw.slice(sl + 1); }
+    let root, qual;
+    if(main.indexOf(':') > 0){ [root, qual] = main.split(':'); }
+    else {
+      // Já está em formato de cifra (ex.: "Am7")? Só confere e devolve.
+      const parsed = parseChordName(raw);
+      return parsed ? parsed.original : null;
+    }
+    const m = /^([A-G])(#|b)?$/.exec(root || '');
+    if(!m) return null;
+    root = m[1] + (m[2] || '');
+    let suf = HARTE_TO_CIFRA[qual];
+    if(suf === undefined){
+      // Qualidade que o app não conhece: guarda o essencial (menor/maior/7).
+      const q = (qual || '').toLowerCase();
+      suf = q.indexOf('hdim') === 0 ? 'm7b5' : q.indexOf('dim') === 0 ? 'dim' : q.indexOf('aug') === 0 ? 'aug'
+          : q.indexOf('min') === 0 ? (q.indexOf('7') >= 0 ? 'm7' : 'm') : q.indexOf('sus') === 0 ? 'sus4'
+          : (q.indexOf('7') >= 0 ? '7' : '');
+    }
+    let bass = bassNote || null;
+    if(!bass && degree && HARTE_DEGREE[degree] !== undefined && NOTE_TO_SEMITONE[root] !== undefined){
+      const pc = (NOTE_TO_SEMITONE[root] + HARTE_DEGREE[degree]) % 12;
+      bass = (root.length > 1 && root[1] === 'b') ? NOTE_NAMES_FLAT[pc] : NOTE_NAMES_SHARP[pc];
+    }
+    if(bass){
+      const bm = /^([A-G])(#|b)?$/.exec(bass);
+      bass = bm ? bm[1] + (bm[2] || '') : null;
+    }
+    const sameAsRoot = bass && NOTE_TO_SEMITONE[bass] === NOTE_TO_SEMITONE[root];
+    return root + suf + (bass && !sameAsRoot ? '/' + bass : '');
+  }
+
+  // "Simplificar": só maior, menor, 7, diminuto e aumentado, sem baixo invertido.
+  function simplifyCifra(name){
+    const p = parseChordName(name);
+    if(!p) return name;
+    const q = p.quality;
+    const simple = ['m','m7','m6','m9','m11','m13','madd9'].includes(q) ? 'm'
+      : ['7','9','11','13','7sus4'].includes(q) ? '7'
+      : q === 'm7b5' || q === 'dim7' || q === 'dim' ? 'dim'
+      : q === 'aug' ? 'aug' : '';
+    return p.root + simple;
+  }
+
+  function progFmtTime(sec){
+    sec = Math.max(0, Math.round(Number(sec) || 0));
+    return Math.floor(sec / 60) + ':' + String(sec % 60).padStart(2, '0');
+  }
+
+  // Aceita: nosso formato (acervo-progressao-1), o JSON do chordotomy
+  // (segments com start_time) e a lista do lv-chordia (start_time/end_time/chord).
+  function progressionFromJson(data){
+    let segs = [], key = null, keyCands = [], bpm = null, engine = '', name = '';
+    if(Array.isArray(data)){
+      segs = data.map(s => ({ start: s.start_time, end: s.end_time, chord: s.chord }));
+      engine = 'lv-chordia';
+    } else if(data && data.format === 'acervo-progressao-1'){
+      segs = (data.segments || []).map(s => ({ start: s.start, end: s.end, chord: s.chord, bass: s.bass, candidates: s.candidates }));
+      key = data.key; keyCands = data.key_candidates || []; bpm = data.bpm; engine = data.engine || ''; name = data.file_name || '';
+    } else if(data && Array.isArray(data.segments)){
+      segs = data.segments.map(s => ({ start: s.start_time, end: s.end_time, chord: s.chord, bass: s.bass, candidates: s.candidates }));
+      key = data.global_key && data.global_key.label; keyCands = (data.global_key && data.global_key.candidates) || [];
+      const beats = Array.isArray(data.beats) ? data.beats : [];
+      if(beats.length >= 8){
+        const iv = beats.slice(1).map((b, i) => b - beats[i]).filter(x => x > 0).sort((a, b) => a - b);
+        if(iv.length) bpm = Math.round(600 / iv[Math.floor(iv.length / 2)]) / 10;
+      }
+      engine = 'chordotomy'; name = (data.source && data.source.path) || '';
+    } else {
+      throw new Error('formato');
+    }
+    const items = [];
+    segs.forEach(s => {
+      const chord = harteToCifra(s.chord, s.bass);
+      if(!chord) return;
+      const alts = (s.candidates || []).slice(1).map(c => harteToCifra(c)).filter(Boolean);
+      items.push({ start: Number(s.start) || 0, end: Number(s.end) || 0, chord, alts });
+    });
+    if(!items.length) throw new Error('vazio');
+    const keyCifra = key ? harteToCifra(key) : null;
+    return { items, key: keyCifra, keyCandidates: keyCands.map(k => harteToCifra(k)).filter(Boolean), bpm, engine, name };
+  }
+
+  // Lista que aparece no painel: aplica "simplificar" e junta acordes iguais seguidos.
+  function progDisplayItems(prog){
+    const out = [];
+    prog.items.forEach(it => {
+      const chord = prog.simplify ? simplifyCifra(it.chord) : it.chord;
+      const last = out[out.length - 1];
+      if(last && last.chord === chord){ last.end = it.end; return; }
+      out.push({ start: it.start, end: it.end, chord });
+    });
+    return out;
+  }
+
+  function startProgression(parsed, jobId){
+    const ed = state.editor;
+    if(!ed) return;
+    ed.prog = Object.assign({}, parsed, { index: 0, tapPlace: true, simplify: false, placed: [], jobId: jobId || null });
+    refreshProgressionPanel();
+    const n = progDisplayItems(ed.prog).length;
+    showToast(`${n} acordes prontos. Toque na palavra onde entra o acorde destacado.`);
+  }
+
+  function progressionPanelHtml(ed){
+    if(!ed || !ed.prog) return '';
+    const p = ed.prog;
+    const items = progDisplayItems(p);
+    if(p.index > items.length) p.index = items.length;
+    const atual = items[p.index];
+    const meta = [p.key ? 'Tom ' + p.key : '', p.bpm ? Math.round(p.bpm) + ' BPM' : '', p.name || ''].filter(Boolean).join(' · ');
+    const chips = items.map((it, i) =>
+      `<button class="prog-chip ${i < p.index ? 'done' : ''} ${i === p.index ? 'current' : ''}" data-action="progJump" data-index="${i}" title="${progFmtTime(it.start)}">${escapeHtml(it.chord)}<small>${progFmtTime(it.start)}</small></button>`
+    ).join('');
+    const sugereTom = p.key && !(ed.tone || '').trim();
+    return `
+      <div class="prog-panel" id="progPanel">
+        <div class="prog-head">
+          <strong>Progressão sugerida</strong>
+          <span class="prog-meta">${escapeHtml(meta)}</span>
+          ${sugereTom ? `<button class="prog-linkbtn" data-action="progUseKey">Usar tom ${escapeHtml(p.key)}</button>` : ''}
+          <button class="prog-close" data-action="progClose" title="Fechar a progressão">&#10005;</button>
+        </div>
+        <div class="prog-hint">${atual
+          ? `Próximo: <strong>${escapeHtml(atual.chord)}</strong> (${progFmtTime(atual.start)}). ${p.tapPlace ? 'Toque na palavra onde ele entra.' : 'Posicione o cursor e toque em “Colocar aqui”.'}`
+          : 'Todos os acordes foram colocados. Confira e salve a música.'}</div>
+        <div class="prog-chips" id="progChips">${chips}</div>
+        <div class="prog-actions">
+          <button class="btn-primary" data-action="progPlace" ${atual ? '' : 'disabled'}>Colocar ${atual ? escapeHtml(atual.chord) : ''} aqui</button>
+          <button class="btn-secondary" data-action="progSkip" ${atual ? '' : 'disabled'}>Pular</button>
+          <button class="btn-secondary" data-action="progUndo" ${p.placed.length ? '' : 'disabled'}>Desfazer</button>
+        </div>
+        <div class="prog-toggles">
+          <label><input type="checkbox" data-action="progToggleTap" ${p.tapPlace ? 'checked' : ''}> Tocar na letra coloca o acorde</label>
+          <label><input type="checkbox" data-action="progToggleSimplify" ${p.simplify ? 'checked' : ''}> Simplificar acordes</label>
+        </div>
+      </div>`;
+  }
+
+  function refreshProgressionPanel(){
+    const ed = state.editor;
+    const old = document.getElementById('progPanel');
+    const html = progressionPanelHtml(ed);
+    if(old){
+      if(html) old.outerHTML = html; else old.remove();
+    } else if(html){
+      const wm = document.querySelector('#app .mobile-controls');
+      if(wm) wm.insertAdjacentHTML('afterend', html);
+    }
+    syncProgressionLayout();
+  }
+
+  function syncProgressionLayout(){
+    const mc = document.querySelector('#app .mobile-controls');
+    if(mc) document.documentElement.style.setProperty('--mc-h', mc.offsetHeight + 'px');
+    const open = !!(state.editor && state.editor.prog && state.view === 'editChords');
+    document.body.classList.toggle('prog-open', open);
+    const chips = document.getElementById('progChips');
+    const cur = chips && chips.querySelector('.prog-chip.current');
+    if(cur) chips.scrollLeft = Math.max(0, cur.offsetLeft - chips.clientWidth / 2 + cur.offsetWidth / 2);
+  }
+
+  function progPlaceAtCursor(){
+    const ed = state.editor;
+    if(!ed || !ed.prog) return;
+    const items = progDisplayItems(ed.prog);
+    const atual = items[ed.prog.index];
+    if(!atual){ showToast('A progressão acabou. Feche o painel ou desfaça um acorde.'); return; }
+    const dest = placeChordAt(ed.activeLine, ed.cursorPos, atual.chord);
+    ed.prog.placed.push({ lineIndex: dest.lineIndex, pos: dest.pos, chord: atual.chord, index: ed.prog.index });
+    ed.prog.index += 1;
+    ed.activeLine = dest.lineIndex;
+    ed.cursorPos = dest.pos;
+    renderEditorSheetOnly();
+    refreshProgressionPanel();
+    focusSheet();
+  }
+
+  function handleProgressionAction(action, el){
+    const ed = state.editor;
+    if(!ed || !ed.prog) return false;
+    const p = ed.prog;
+    if(action === 'progPlace'){ progPlaceAtCursor(); return true; }
+    if(action === 'progSkip'){ p.index = Math.min(progDisplayItems(p).length, p.index + 1); refreshProgressionPanel(); return true; }
+    if(action === 'progJump'){ p.index = parseInt(el.dataset.index, 10) || 0; refreshProgressionPanel(); return true; }
+    if(action === 'progUndo'){
+      const last = p.placed.pop();
+      if(last){
+        const line = ed.lines[last.lineIndex];
+        if(line){
+          const i = line.chords.findIndex(c => c.pos === last.pos && c.chord === last.chord);
+          if(i >= 0) line.chords.splice(i, 1);
+        }
+        p.index = last.index;
+        ed.activeLine = Math.min(last.lineIndex, ed.lines.length - 1);
+        ed.cursorPos = last.pos;
+        renderEditorSheetOnly();
+      }
+      refreshProgressionPanel();
+      return true;
+    }
+    if(action === 'progToggleTap'){ p.tapPlace = !!el.checked; refreshProgressionPanel(); return true; }
+    if(action === 'progToggleSimplify'){
+      const before = progDisplayItems(p)[p.index];
+      p.simplify = !!el.checked;
+      const after = progDisplayItems(p);
+      const t = before ? before.start : Infinity;
+      const ni = after.findIndex(it => it.end > t);
+      p.index = ni < 0 ? after.length : ni;
+      refreshProgressionPanel();
+      return true;
+    }
+    if(action === 'progUseKey'){
+      if(p.key){ ed.tone = p.key; showToast(`Tom definido como ${p.key}. Ele é salvo junto com a música.`); }
+      refreshProgressionPanel();
+      return true;
+    }
+    if(action === 'progClose'){
+      ed.prog = null;
+      refreshProgressionPanel();
+      showToast('Progressão fechada. Os acordes já colocados continuam na cifra.');
+      return true;
+    }
+    return false;
+  }
+
+  /* ---- Fila no Supabase ---- */
+  function progNotActive(err){
+    const t = String((err && err.message) || err || '');
+    return /PGRST20[25]|42P01|42883|does not exist|Could not find|Bucket not found|bucket_not_found/i.test(t);
+  }
+
+  async function progApi(path, options){
+    const res = await authFetch(`${SUPABASE_URL}${path}`, options || {});
+    const txt = await res.text();
+    let data = null;
+    try{ data = txt ? JSON.parse(txt) : null; }catch(e){ data = txt; }
+    if(!res.ok){
+      const msg = (data && (data.message || data.error || data.msg)) || txt || ('HTTP ' + res.status);
+      const err = new Error(typeof msg === 'string' ? msg : JSON.stringify(msg));
+      err.status = res.status; err.body = txt;
+      throw err;
+    }
+    return data;
+  }
+
+  async function progQueueInfo(jobId){
+    const rows = await progApi('/rest/v1/rpc/cifrario_chord_queue_info', {
+      method: 'POST', body: JSON.stringify({ p_job: jobId || null })
+    });
+    return Array.isArray(rows) ? (rows[0] || null) : rows;
+  }
+
+  async function progLoadJobs(){
+    const uidUser = state.session && state.session.user && state.session.user.id;
+    if(!uidUser) return [];
+    return await progApi(`/rest/v1/cifrario_chord_jobs?select=id,file_name,status,error,created_at,finished_at,result,audio_path&user_id=eq.${uidUser}&order=created_at.desc&limit=8`);
+  }
+
+  function progWorkerOnline(info){
+    if(!info || !info.worker_last_seen) return false;
+    return (Date.now() - new Date(info.worker_last_seen).getTime()) < 3 * 60 * 1000;
+  }
+
+  async function progUpload(file, onProgressText){
+    if(!state.session){ showToast('Entre na sua conta para enviar áudio.'); return null; }
+    if(!isEditor()){ showToast('Só colaboradores podem enviar áudio para análise.'); return null; }
+    if(!navigator.onLine){ showToast('Sem internet agora. Envie o áudio quando tiver sinal.'); return null; }
+    const ext = ((file.name || '').split('.').pop() || '').toLowerCase();
+    const type = PROG_AUDIO_TYPES[ext];
+    if(!type){ showToast('Formato não aceito. Envie MP3, WAV, M4A, OGG, OPUS, FLAC ou AAC.'); return null; }
+    if(file.size > PROG_MAX_BYTES){ showToast('Arquivo grande demais (máximo 30 MB).'); return null; }
+    if(file.size < 2000){ showToast('Esse arquivo parece vazio.'); return null; }
+    const info = await progQueueInfo(null);
+    if(!isAdmin() && info){
+      if((info.my_today || 0) >= 10){ showToast('Você já usou as 10 análises de hoje. Amanhã libera de novo.'); return null; }
+      if((info.my_waiting || 0) >= 3){ showToast('Você já tem 3 análises esperando. Aguarde uma terminar.'); return null; }
+    }
+    const userId = state.session.user.id;
+    const slug = normalizeText(file.name.replace(/\.[^.]+$/, '')).replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 40) || 'audio';
+    const path = `${userId}/${Date.now().toString(36)}-${slug}.${ext}`;
+    onProgressText && onProgressText('Enviando o áudio...');
+    const up = await authFetch(`${SUPABASE_URL}/storage/v1/object/${PROG_BUCKET}/${path.split('/').map(encodeURIComponent).join('/')}`, {
+      method: 'POST', headers: { 'Content-Type': type }, body: file
+    });
+    if(!up.ok){
+      const t = await up.text().catch(() => '');
+      const err = new Error(t || ('HTTP ' + up.status)); err.status = up.status;
+      throw err;
+    }
+    onProgressText && onProgressText('Entrando na fila...');
+    try{
+      const rows = await progApi('/rest/v1/cifrario_chord_jobs', {
+        method: 'POST',
+        headers: { 'Prefer': 'return=representation' },
+        body: JSON.stringify([{ user_id: userId, file_name: file.name.slice(0, 120), audio_path: path,
+                                song_id: (state.editor && state.editor.id) || null }])
+      });
+      return Array.isArray(rows) ? rows[0] : rows;
+    }catch(e){
+      // Pedido recusado (ex.: limite): apaga o áudio que acabou de subir.
+      authFetch(`${SUPABASE_URL}/storage/v1/object/${PROG_BUCKET}`, {
+        method: 'DELETE', body: JSON.stringify({ prefixes: [path] })
+      }).catch(() => {});
+      throw e;
+    }
+  }
+
+  async function progDeleteJob(job){
+    if(job.audio_path){
+      await authFetch(`${SUPABASE_URL}/storage/v1/object/${PROG_BUCKET}`, {
+        method: 'DELETE', body: JSON.stringify({ prefixes: [job.audio_path] })
+      }).catch(() => {});
+    }
+    await progApi(`/rest/v1/cifrario_chord_jobs?id=eq.${job.id}`, { method: 'DELETE' });
+  }
+
+  function progFriendlyError(e){
+    const t = String((e && e.message) || e || '');
+    if(progNotActive(e)) return 'A análise por áudio ainda não foi ativada no servidor. Avise o administrador.';
+    if(/LIMITE_DIA/.test(t)) return 'Você já usou as 10 análises de hoje. Amanhã libera de novo.';
+    if(/LIMITE_FILA/.test(t)) return 'Você já tem 3 análises esperando. Aguarde uma terminar.';
+    if(/row-level security|violates|42501|Unauthorized|403/i.test(t)) return 'Sua conta ainda não pode enviar áudio. Só colaboradores podem usar a análise.';
+    if(/mime|content type|invalid_mime/i.test(t)) return 'Esse tipo de arquivo não foi aceito. Tente em MP3 ou WAV.';
+    if(/too large|Payload|413|exceeded/i.test(t)) return 'Arquivo grande demais (máximo 30 MB).';
+    if(/conex|network|Failed to fetch/i.test(t)) return 'Sem conexão com o servidor. Tente de novo quando tiver sinal.';
+    return 'Não consegui completar agora. Tente de novo em instantes.';
+  }
+
+  function progJobStatusHtml(job, info){
+    if(job.status === 'done') return `<span class="prog-job-status ok">Pronto · ${(job.result && job.result.segments || []).length} acordes</span>`;
+    if(job.status === 'error') return `<span class="prog-job-status err" title="${escapeHtml(job.error || '')}">${escapeHtml(job.error || 'Não deu certo')}</span>`;
+    if(job.status === 'processing') return '<span class="prog-job-status">Analisando agora...</span>';
+    const online = progWorkerOnline(info);
+    return `<span class="prog-job-status">${online ? 'Na fila' : 'Na fila · computador desligado'}</span>`;
+  }
+
+  let progModalTimer = null;
+  let progBgTimer = null;
+  let progKnownWaiting = new Set();
+
+  function ensureProgressionPolling(){
+    if(progBgTimer || !progKnownWaiting.size) return;
+    progBgTimer = setInterval(async ()=>{
+      if(state.view !== 'editChords' || !state.session || !progKnownWaiting.size){
+        clearInterval(progBgTimer); progBgTimer = null; return;
+      }
+      if(document.querySelector('.prog-modal')) return; // o modal já atualiza
+      try{
+        const jobs = await progLoadJobs();
+        jobs.forEach(j => {
+          if(progKnownWaiting.has(j.id) && (j.status === 'done' || j.status === 'error')){
+            progKnownWaiting.delete(j.id);
+            showToast(j.status === 'done'
+              ? `Análise de "${j.file_name}" pronta! Abra "Acordes por áudio" para usar.`
+              : `A análise de "${j.file_name}" não deu certo.`);
+          }
+        });
+      }catch(e){ /* sem sinal: tenta no próximo ciclo */ }
+    }, 20000);
+  }
+
+  function openProgressionModal(){
+    if(document.querySelector('.prog-modal')) return;
+    const overlay = document.createElement('div');
+    overlay.className = 'confirm-overlay';
+    overlay.innerHTML = `
+      <div class="confirm-box prog-modal" role="dialog" aria-modal="true" aria-labelledby="progTitle">
+        <h3 id="progTitle">&#127911; Acordes por áudio</h3>
+        <div class="prog-status" id="progStatus"><span class="prog-dot"></span><span>Verificando a fila...</span></div>
+        <p class="prog-note">Envie uma gravação desta música. Um computador analisa os acordes e devolve a progressão aqui no editor, para você posicionar tocando na letra.
+        <br>Envie só gravações que você tem direito de usar (sua, da sua roda ou autorizada). O áudio é apagado assim que a análise termina.</p>
+        <div class="prog-upload">
+          <button class="btn-primary" data-pchoice="pick">Escolher áudio</button>
+          <button class="btn-ghost" data-pchoice="json">Importar arquivo .json</button>
+          <input type="file" id="progAudioInput" accept="audio/*,.mp3,.wav,.m4a,.aac,.ogg,.oga,.opus,.flac,.webm" hidden>
+          <input type="file" id="progJsonInput" accept=".json,application/json" hidden>
+        </div>
+        <div class="prog-progress" id="progBar" hidden><span></span></div>
+        <h4>Suas análises</h4>
+        <div class="prog-jobs" id="progJobs"><p class="prog-note">Carregando...</p></div>
+        <div class="confirm-actions"><button class="btn-ghost" data-pchoice="close">Fechar</button></div>
+      </div>`;
+    document.body.appendChild(overlay);
+    let jobsCache = [];
+    let lastInfo = null;
+
+    const close = () => {
+      clearInterval(progModalTimer); progModalTimer = null;
+      overlay.remove();
+      document.removeEventListener('keydown', onKey);
+      ensureProgressionPolling();
+    };
+    const onKey = e => { if(e.key === 'Escape') close(); };
+    document.addEventListener('keydown', onKey);
+
+    const setBar = (txt, pct) => {
+      const bar = overlay.querySelector('#progBar');
+      const st = overlay.querySelector('#progStatus span:last-child');
+      if(txt === null){ bar.hidden = true; return; }
+      bar.hidden = false;
+      bar.firstElementChild.style.width = (pct || 30) + '%';
+      if(st) st.textContent = txt;
+    };
+
+    async function refresh(){
+      try{
+        const [info, jobs] = await Promise.all([progQueueInfo(null), progLoadJobs()]);
+        lastInfo = info; jobsCache = jobs || [];
+        const online = progWorkerOnline(info);
+        const st = overlay.querySelector('#progStatus');
+        if(st){
+          const fila = info ? (info.ahead || 0) : 0;
+          const usados = info && !isAdmin() ? ` · você usou ${info.my_today || 0} de 10 hoje` : '';
+          st.innerHTML = `<span class="prog-dot ${online ? 'on' : ''}"></span><span>${online
+            ? 'Computador de análise ligado'
+            : 'Computador de análise desligado: seu áudio espera na fila'}${fila ? ` · ${fila} na fila` : ''}${usados}</span>`;
+        }
+        const box = overlay.querySelector('#progJobs');
+        if(box){
+          box.innerHTML = jobsCache.length ? jobsCache.map(j => `
+            <div class="prog-job">
+              <span class="prog-job-name" title="${escapeHtml(j.file_name)}">${escapeHtml(j.file_name)}</span>
+              ${progJobStatusHtml(j, info)}
+              ${j.status === 'done' ? `<button class="prog-use" data-pjob="use" data-id="${j.id}">Usar</button>` : ''}
+              ${j.status !== 'processing' ? `<button class="prog-del" data-pjob="del" data-id="${j.id}" title="Excluir">&#10005;</button>` : ''}
+            </div>`).join('') : '<p class="prog-note">Nenhuma análise ainda.</p>';
+        }
+        jobsCache.forEach(j => { if(j.status === 'pending' || j.status === 'processing') progKnownWaiting.add(j.id); else progKnownWaiting.delete(j.id); });
+        const waiting = jobsCache.some(j => j.status === 'pending' || j.status === 'processing');
+        if(waiting && !progModalTimer) progModalTimer = setInterval(refresh, 5000);
+        if(!waiting && progModalTimer){ clearInterval(progModalTimer); progModalTimer = null; }
+      }catch(e){
+        console.error('Fila de acordes:', e);
+        const st = overlay.querySelector('#progStatus');
+        if(st) st.innerHTML = `<span class="prog-dot"></span><span>${escapeHtml(progFriendlyError(e))}</span>`;
+        const box = overlay.querySelector('#progJobs');
+        if(box && /Carregando/.test(box.textContent)) box.innerHTML = '<p class="prog-note">Ainda dá para importar um arquivo .json.</p>';
+      }
+    }
+
+    overlay.addEventListener('click', async e => {
+      if(e.target === overlay){ close(); return; }
+      const ch = e.target.closest('[data-pchoice]');
+      if(ch){
+        const c = ch.dataset.pchoice;
+        if(c === 'close') close();
+        else if(c === 'pick') overlay.querySelector('#progAudioInput').click();
+        else if(c === 'json') overlay.querySelector('#progJsonInput').click();
+        return;
+      }
+      const jb = e.target.closest('[data-pjob]');
+      if(jb){
+        const job = jobsCache.find(j => j.id === jb.dataset.id);
+        if(!job) return;
+        if(jb.dataset.pjob === 'use'){
+          try{
+            const parsed = progressionFromJson(job.result);
+            close();
+            startProgression(parsed, job.id);
+          }catch(err){ showToast('Esse resultado não tem acordes para usar.'); }
+        } else if(jb.dataset.pjob === 'del'){
+          jb.disabled = true;
+          try{ await progDeleteJob(job); }catch(err){ showToast(progFriendlyError(err)); }
+          refresh();
+        }
+      }
+    });
+
+    overlay.querySelector('#progAudioInput').addEventListener('change', async e => {
+      const file = e.target.files && e.target.files[0];
+      e.target.value = '';
+      if(!file) return;
+      const btns = overlay.querySelectorAll('.prog-upload button');
+      btns.forEach(b => b.disabled = true);
+      try{
+        setBar('Preparando...', 15);
+        const job = await progUpload(file, txt => setBar(txt, txt.indexOf('fila') >= 0 ? 85 : 50));
+        if(job){
+          progKnownWaiting.add(job.id);
+          setBar('Na fila!', 100);
+          showToast('Áudio enviado! A análise leva alguns minutos; pode continuar editando.');
+        }
+      }catch(err){
+        console.error('Envio de áudio:', err);
+        showToast(progFriendlyError(err));
+      }
+      btns.forEach(b => b.disabled = false);
+      setTimeout(() => setBar(null), 900);
+      refresh();
+    });
+
+    overlay.querySelector('#progJsonInput').addEventListener('change', async e => {
+      const file = e.target.files && e.target.files[0];
+      e.target.value = '';
+      if(!file) return;
+      try{
+        const parsed = progressionFromJson(JSON.parse(await file.text()));
+        if(!parsed.name) parsed.name = file.name;
+        close();
+        startProgression(parsed, null);
+      }catch(err){
+        showToast('Não reconheci esse arquivo. Use o .json gerado pelo chordotomy, pelo lv-chordia ou pela fila do Acervo.');
+      }
+    });
+
+    if(state.session && isEditor()) refresh();
+    else {
+      overlay.querySelector('[data-pchoice="pick"]').disabled = true;
+      const st = overlay.querySelector('#progStatus');
+      st.innerHTML = '<span class="prog-dot"></span><span>Envio de áudio só para colaboradores. Ainda dá para importar um .json.</span>';
+      overlay.querySelector('#progJobs').innerHTML = '';
+    }
+  }
+
   /* ================= EDITOR: CHORD PLACEMENT ================= */
   function editorLineHtml(line, i, ed){
     const isActive = i === ed.activeLine;
@@ -6108,6 +6726,10 @@ ${escapeHtml(rawText)}</textarea>
         </div>
         <span class="capo-edit-hint">A cifra vai abrir sempre nessa casa.</span>
       </div>
+      <div class="prog-launch-bar">
+        <button class="btn-secondary" data-action="openProgression">&#127911; Acordes por áudio</button>
+        <span class="prog-launch-hint">Envie uma gravação e posicione os acordes tocando na letra.</span>
+      </div>
       <div class="help-bar">
         <span>clique na cifra ou na letra pra posicionar</span>
         <span><kbd>&#8592;</kbd><kbd>&#8594;</kbd> ajustar</span>
@@ -6129,6 +6751,7 @@ ${escapeHtml(rawText)}</textarea>
         <button data-action="lineUp">&#8593; Linha</button>
         <button data-action="lineDown">&#8595; Linha</button>
       </div>
+      ${progressionPanelHtml(ed)}
       ${brandWatermark()}
     `;
   }
@@ -7563,6 +8186,10 @@ ${escapeHtml(rawText)}</textarea>
     if(state.view==='editChords'){
       focusSheet();
       wireChordHoverDuplicate();
+      syncProgressionLayout();
+      ensureProgressionPolling();
+    } else {
+      document.body.classList.remove('prog-open');
     }
   }
 
@@ -7694,6 +8321,8 @@ ${escapeHtml(rawText)}</textarea>
     else if(action==='openReadingControls') openReadingControlsModal();
     else if(action==='transposeUp'){ state.transposeSteps = (state.transposeSteps||0) + 1; render(); }
     else if(action==='transposeDown'){ state.transposeSteps = (state.transposeSteps||0) - 1; render(); }
+    else if(action==='openProgression'){ openProgressionModal(); }
+    else if(action && action.indexOf('prog') === 0 && handleProgressionAction(action, el)){ /* tratado */ }
     else if(action==='editCapoUp' || action==='editCapoDown'){
       const ed = state.editor; if(!ed) return;
       ed.capo = Math.max(CAPO_MIN, Math.min(CAPO_MAX, (ed.capo||0) + (action==='editCapoUp' ? 1 : -1)));
@@ -7788,6 +8417,12 @@ ${escapeHtml(rawText)}</textarea>
     ed.activeLine = idx;
     ed.cursorPos = Math.max(0, Math.min(maxCursorPosForLine(ed.lines[idx]), pos));
     ed.popupOpen = false;
+    // Com a progressão aberta, tocar na letra já coloca o próximo acorde ali
+    // (tocar num acorde existente continua só selecionando).
+    if(ed.prog && ed.prog.tapPlace && !e.target.closest('.chord')){
+      progPlaceAtCursor();
+      return;
+    }
     renderEditorSheetOnly();
     focusSheet();
   });
