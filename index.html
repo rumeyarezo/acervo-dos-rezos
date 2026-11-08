@@ -5,6 +5,16 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="description" content="Acervo dos Rezos — cifras, letras e listas de rezos para tocar e cantar.">
 <meta name="theme-color" content="#26432f">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Acervo dos Rezos">
+<meta property="og:title" content="Acervo dos Rezos">
+<meta property="og:description" content="Cifras e letras de rezos para tocar e cantar, no celular e no computador. Funciona até sem internet.">
+<meta property="og:url" content="https://rumeyarezo.github.io/acervo-dos-rezos/">
+<meta property="og:image" content="https://rumeyarezo.github.io/acervo-dos-rezos/compartilhar.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:locale" content="pt_BR">
+<meta name="twitter:card" content="summary_large_image">
 <meta name="color-scheme" content="light dark">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -1171,6 +1181,32 @@
   }
 
 
+
+
+  /* ---- Compartilhar o app ---- */
+  .share-app-btn{
+    margin:14px auto 0; display:inline-flex; align-items:center; gap:8px;
+    padding:10px 20px; min-height:44px; border-radius:999px; border:none; cursor:pointer;
+    background:var(--gold); color:#241505; font-size:15px; font-weight:700;
+    box-shadow:0 6px 18px rgba(0,0,0,.25); transition:transform .15s, box-shadow .15s;
+  }
+  .share-app-btn:hover{transform:translateY(-1px); box-shadow:0 10px 24px rgba(0,0,0,.3);}
+  .share-modal{max-width:440px; text-align:center;}
+  .share-modal h3{margin:0 0 4px;}
+  .share-sub{margin:0 0 16px; color:var(--muted); font-size:14px;}
+  .share-grid{display:grid; grid-template-columns:repeat(4, 1fr); gap:10px 6px; margin-bottom:16px;}
+  .share-target{display:flex; flex-direction:column; align-items:center; gap:6px; padding:6px 2px; border:none; background:transparent; cursor:pointer; color:var(--ink); border-radius:12px; -webkit-tap-highlight-color:transparent;}
+  .share-target:hover{background:rgba(0,0,0,.05);}
+  .share-ico{width:52px; height:52px; border-radius:50%; display:flex; align-items:center; justify-content:center; color:#fff; font-size:22px; font-weight:800; font-family:Arial, sans-serif; box-shadow:0 4px 12px rgba(0,0,0,.18); transition:transform .12s;}
+  .share-target:active .share-ico{transform:scale(.92);}
+  .share-ico-more{background:var(--leaf-soft); color:var(--leaf); font-size:26px;}
+  .share-name{font-size:12px; line-height:1.2; font-weight:600;}
+  .share-link-row{display:flex; gap:8px; margin-bottom:10px;}
+  .share-link{flex:1; min-width:0; padding:10px 12px; border-radius:10px; border:1px solid var(--border); background:rgba(0,0,0,.03); color:var(--ink); font-size:13px;}
+  .share-qr-wrap{margin:4px 0 6px; font-size:14px; color:var(--muted);}
+  .share-qr-wrap summary{cursor:pointer; padding:6px; list-style-position:inside;}
+  .share-qr{margin:8px auto 0;}
+  @media (max-width:400px){ .share-grid{grid-template-columns:repeat(3, 1fr);} }
 
   /* ---- Abas da tela inicial ---- */
   .home-tabs{
@@ -6567,6 +6603,113 @@
   }
 
 
+  /* ================= COMPARTILHAR O APP =================
+     Janela com as principais plataformas. Instagram não tem link oficial para
+     mandar no Direct a partir de um site: lá o convite é copiado e abrimos o
+     compartilhamento do próprio celular (onde a pessoa escolhe Instagram > Direct). */
+  function shareAppUrl(){ return location.origin + location.pathname; }
+  function shareAppText(){ return 'Conheça o Acervo dos Rezos 🌿 Cifras e letras de rezos para tocar e cantar, no celular e no computador. Funciona até sem internet:'; }
+  const SHARE_TARGETS = [
+    { id: 'whatsapp',  nome: 'WhatsApp',  cor: '#25D366', icone: '&#128172;' },
+    { id: 'instagram', nome: 'Instagram Direct', cor: 'linear-gradient(45deg,#f9a03f,#e1306c 55%,#833ab4)', icone: '&#9993;' },
+    { id: 'telegram',  nome: 'Telegram',  cor: '#2AABEE', icone: '&#10148;' },
+    { id: 'facebook',  nome: 'Facebook',  cor: '#1877F2', icone: 'f' },
+    { id: 'x',         nome: 'X',         cor: '#111111', icone: '&#120143;' },
+    { id: 'email',     nome: 'E-mail',    cor: '#8a6a3b', icone: '&#64;' }
+  ];
+  function shareLinkFor(id){
+    const url = shareAppUrl(), txt = shareAppText();
+    const e = encodeURIComponent;
+    if(id === 'whatsapp') return 'https://wa.me/?text=' + e(txt + ' ' + url);
+    if(id === 'telegram') return 'https://t.me/share/url?url=' + e(url) + '&text=' + e(txt);
+    if(id === 'facebook') return 'https://www.facebook.com/sharer/sharer.php?u=' + e(url);
+    if(id === 'x') return 'https://x.com/intent/tweet?text=' + e(txt) + '&url=' + e(url);
+    if(id === 'email') return 'mailto:?subject=' + e('Acervo dos Rezos') + '&body=' + e(txt + '\n\n' + url);
+    return '';
+  }
+  async function shareCopy(texto){
+    try{ await navigator.clipboard.writeText(texto); return true; }
+    catch(e){
+      try{
+        const ta = document.createElement('textarea');
+        ta.value = texto; ta.style.position = 'fixed'; ta.style.opacity = '0';
+        document.body.appendChild(ta); ta.select();
+        const ok = document.execCommand('copy'); ta.remove(); return ok;
+      }catch(e2){ return false; }
+    }
+  }
+  async function shareNative(){
+    if(!navigator.share) return false;
+    try{ await navigator.share({ title: 'Acervo dos Rezos', text: shareAppText(), url: shareAppUrl() }); return true; }
+    catch(e){ return e && e.name === 'AbortError'; } // fechar a janela do celular não é erro
+  }
+  function openShareAppModal(){
+    if(document.querySelector('.share-modal')) return;
+    const overlay = document.createElement('div');
+    overlay.className = 'confirm-overlay';
+    overlay.innerHTML = `
+      <div class="confirm-box share-modal" role="dialog" aria-modal="true" aria-labelledby="shareTitle">
+        <h3 id="shareTitle">Compartilhar o Acervo</h3>
+        <p class="share-sub">Convide quem toca e canta com você.</p>
+        <div class="share-grid">
+          ${SHARE_TARGETS.map(t => `
+            <button class="share-target" data-share="${t.id}">
+              <span class="share-ico" style="background:${t.cor}">${t.icone}</span>
+              <span class="share-name">${t.nome}</span>
+            </button>`).join('')}
+          ${navigator.share ? `
+            <button class="share-target" data-share="mais">
+              <span class="share-ico share-ico-more">&#8943;</span>
+              <span class="share-name">Mais opções</span>
+            </button>` : ''}
+        </div>
+        <div class="share-link-row">
+          <input class="share-link" id="shareLink" value="${escapeHtml(shareAppUrl())}" readonly aria-label="Link do app">
+          <button class="btn-ghost" data-share="copiar">Copiar link</button>
+        </div>
+        <details class="share-qr-wrap">
+          <summary>Mostrar QR Code (para quem está perto)</summary>
+          <div class="live-qr share-qr" id="shareQr"></div>
+        </details>
+        <div class="confirm-actions"><button class="btn-primary" data-share="fechar">Fechar</button></div>
+      </div>`;
+    document.body.appendChild(overlay);
+    const close = () => { overlay.remove(); document.removeEventListener('keydown', onKey); };
+    const onKey = e => { if(e.key === 'Escape') close(); };
+    document.addEventListener('keydown', onKey);
+    const qr = overlay.querySelector('.share-qr-wrap');
+    qr.addEventListener('toggle', () => { if(qr.open && !qr.dataset.feito){ qr.dataset.feito = '1'; liveDrawQr(overlay.querySelector('#shareQr'), shareAppUrl()); } });
+    overlay.querySelector('#shareLink').addEventListener('focus', e => e.target.select());
+    overlay.addEventListener('click', async e => {
+      if(e.target === overlay){ close(); return; }
+      const b = e.target.closest('[data-share]');
+      if(!b) return;
+      const id = b.dataset.share;
+      if(id === 'fechar'){ close(); return; }
+      if(id === 'copiar'){
+        showToast(await shareCopy(shareAppUrl()) ? 'Link copiado.' : 'Não deu para copiar. Segure o link para copiar.');
+        return;
+      }
+      if(id === 'mais'){ await shareNative(); return; }
+      if(id === 'instagram'){
+        const copiou = await shareCopy(shareAppText() + ' ' + shareAppUrl());
+        const toque = window.matchMedia && window.matchMedia('(pointer: coarse)').matches;
+        if(toque && navigator.share){
+          showToast((copiou ? 'Convite copiado. ' : '') + 'Escolha Instagram e depois Direct.');
+          await shareNative();
+        } else {
+          window.open('https://www.instagram.com/direct/inbox/', '_blank', 'noopener');
+          showToast(copiou ? 'Convite copiado: abra a conversa no Direct e cole.' : 'Abra a conversa no Direct e cole o link: ' + shareAppUrl());
+        }
+        return;
+      }
+      const link = shareLinkFor(id);
+      if(!link) return;
+      if(id === 'email') location.href = link;
+      else window.open(link, '_blank', 'noopener');
+    });
+  }
+
   /* ================= RENDER ROOT ================= */
   function render(){
     const app = document.getElementById('app');
@@ -6994,6 +7137,10 @@
         <div class="app-hero">
           <div class="app-hero-title"><span class="brand-green">Acervo</span> <span class="dot">dos</span> <span class="brand-green">Rezos</span></div>
           <div class="app-hero-sub">Cifras, letras e listas de rezos para tocar e cantar</div>
+          <button class="share-app-btn" data-action="shareApp" title="Mandar o Acervo para amigos no WhatsApp, Instagram, Telegram...">
+            <svg viewBox="0 0 24 24" width="17" height="17" aria-hidden="true"><circle cx="18" cy="5" r="2.6" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="6" cy="12" r="2.6" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="18" cy="19" r="2.6" fill="none" stroke="currentColor" stroke-width="2"/><path d="M8.3 10.8l7.4-4.4M8.3 13.2l7.4 4.4" stroke="currentColor" stroke-width="2" fill="none"/></svg>
+            Compartilhar o app
+          </button>
         </div>
         ${isAdmin() ? `<div id="adminNotice">${adminNoticeHtml()}</div>` : ''}
         ${homeTabsHtml()}
@@ -9917,6 +10064,7 @@ ${escapeHtml(rawText)}</textarea>
       render();
     }
     else if(action==='setHomeTab') setHomeTab(el.dataset.tab);
+    else if(action==='shareApp') openShareAppModal();
     else if(action==='openArtistTab'){ state.filterArtist = el.dataset.artist; state.search = ''; render(); window.scrollTo(0, 0); }
     else if(action==='openThemeTab'){ state.filterTheme = el.dataset.theme; state.search = ''; render(); window.scrollTo(0, 0); }
     else if(action==='closeArtistTab'){ state.filterArtist = ''; render(); }
