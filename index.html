@@ -1130,6 +1130,43 @@
   .mobile-controls button:active{background:rgba(255,255,255,0.16);}
   .editor-chords{padding-bottom:90px;}
 
+  /* ---- Modo regente / sala ao vivo ---- */
+  .live-btn.on{background:#b3412f; border-color:#b3412f; color:#fff;}
+  .live-btn.on::before{content:''; display:inline-block; width:8px; height:8px; border-radius:50%; background:#fff; margin-right:6px; vertical-align:middle; animation:livePulse 1.4s infinite;}
+  @keyframes livePulse{0%,100%{opacity:1} 50%{opacity:.3}}
+  .live-bar{
+    position:fixed; left:50%; transform:translateX(-50%); bottom:calc(max(18px, env(safe-area-inset-bottom)) + 62px); z-index:60;
+    display:flex; align-items:center; gap:10px; max-width:calc(100vw - 24px);
+    background:rgba(28,51,35,0.94); color:#f7f4e8; border:1px solid rgba(255,255,255,0.15);
+    border-radius:999px; padding:7px 8px 7px 14px; font-size:13px; box-shadow:0 6px 20px rgba(0,0,0,.3);
+    backdrop-filter:blur(6px);
+  }
+  .live-bar .live-dot{width:9px; height:9px; border-radius:50%; background:#e0533d; flex:none; animation:livePulse 1.4s infinite;}
+  .live-bar .live-dot.off{background:#9aa59b; animation:none;}
+  .live-bar .live-txt{overflow:hidden; text-overflow:ellipsis; white-space:nowrap; min-width:0;}
+  .live-bar button{flex:none; border:none; border-radius:999px; padding:6px 12px; font-size:12.5px; font-weight:600; cursor:pointer; background:rgba(255,255,255,0.14); color:inherit;}
+  .live-bar button.gold{background:var(--gold); color:#241505;}
+  body.live-on .scroll-container{padding-bottom:70px;}
+  body.live-on .toast{bottom:calc(max(18px, env(safe-area-inset-bottom)) + 116px);}
+  .live-modal{max-width:420px; text-align:center;}
+  .live-modal .live-code{font-family:ui-monospace,Menlo,Consolas,monospace; font-size:34px; font-weight:700; letter-spacing:4px; color:var(--ink); margin:4px 0 2px;}
+  .live-modal .live-qr{display:flex; justify-content:center; margin:10px auto 6px; width:220px; height:220px; background:#fff; border-radius:12px; padding:8px; box-sizing:border-box;}
+  .live-modal .live-qr svg{width:100%; height:100%;}
+  .live-modal .live-hint{font-size:13px; color:var(--muted); line-height:1.45; margin:6px 0 12px;}
+  .live-modal .live-people{font-size:13px; color:var(--ink-soft); margin:4px 0 12px; min-height:18px;}
+  .live-modal .live-row{display:flex; gap:8px; justify-content:center; flex-wrap:wrap; margin-bottom:10px;}
+  .live-modal .btn-ghost{background:transparent; border:1px solid var(--border); color:var(--ink); border-radius:var(--radius-control); padding:10px 14px; cursor:pointer;}
+  .live-modal input.live-input{font-family:ui-monospace,Menlo,Consolas,monospace; font-size:28px; letter-spacing:6px; text-align:center; text-transform:uppercase; width:100%; box-sizing:border-box; padding:12px; border:1px solid var(--border); border-radius:12px; margin:8px 0 14px;}
+  .live-wait{min-height:70vh; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; gap:14px; padding:24px; color:var(--on-dark, #f7f4e8);}
+  .live-wait .live-wait-icon{font-size:44px; animation:livePulse 2s infinite;}
+  .live-wait h2{margin:0; font-size:22px;}
+  .live-wait p{margin:0; opacity:.8; max-width:360px; line-height:1.5;}
+  @media (max-width:600px){
+    .live-bar{font-size:12px; padding:6px 6px 6px 12px; gap:8px;}
+    .live-btn .live-label{display:none;}
+    .live-btn{padding-left:10px; padding-right:10px;}
+  }
+
   /* ---- Acordes por áudio (fila de análise) ---- */
   .prog-launch-bar{
     display:flex; align-items:center; gap:12px; flex-wrap:wrap;
@@ -2830,6 +2867,7 @@
     if(state._pendingConfirmType === 'signup'){
       state._pendingConfirmType = null;
     }
+    liveCheckPendingJoin(); // abriu pelo link/QR de uma sala? entra nela
   }
 
   async function init(){
@@ -5238,6 +5276,520 @@
     goChordLibrary();
   }
 
+
+  /* ================= MODO REGENTE: SALA AO VIVO =================
+     O regente toca em "Transmitir" na cifra -> nasce uma sala com código (e QR).
+     Quem entra na sala fica com a tela espelhada: abre a mesma música, no mesmo
+     tom e capo, e acompanha a rolagem do regente.
+     Transporte: Supabase Realtime (WebSocket, canal público "broadcast"), sem
+     tabela nem banco. O que trafega é mínimo (id da música, tom, capo, linha da
+     rolagem), então funciona até com sinal fraco; mas precisa de internet.
+     A rolagem é sincronizada por LINHA da cifra (não por pixel), porque cada
+     aparelho ajusta o tamanho da letra à própria tela. */
+  const LIVE_CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  const LIVE_QR_LIB = 'https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js';
+  const live = {
+    role: null, code: null, ws: null, ref: 0, connected: false, closing: false,
+    clientId: 'c' + Math.random().toString(36).slice(2, 10),
+    peers: {}, hb: null, retry: 0, retryTimer: null, lastSend: 0, sendTimer: null, keepTimer: null,
+    // músico
+    following: true, pauseUntil: 0, hostState: null, applying: false, targetY: null, anim: null, lastSeq: 0
+  };
+
+  function liveFmtCode(c){ return c ? c.slice(0, 3) + '-' + c.slice(3) : ''; }
+  function liveCleanCode(c){ return String(c || '').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 6); }
+  function liveNewCode(){
+    const a = new Uint32Array(6);
+    (window.crypto || window.msCrypto).getRandomValues(a);
+    return Array.from(a, n => LIVE_CHARS[n % LIVE_CHARS.length]).join('');
+  }
+  function liveLink(code){ return location.origin + location.pathname + '?sala=' + code; }
+  function liveMyName(){
+    return (state.profile && state.profile.display_name) ||
+      ((state.session && state.session.user && state.session.user.email) || 'Músico').split('@')[0];
+  }
+
+  /* ---- conexão ---- */
+  function liveSend(event, payload, topic){
+    if(!live.ws || live.ws.readyState !== 1) return false;
+    live.ws.send(JSON.stringify({ topic: topic || ('realtime:acervo-sala-' + live.code), event, payload, ref: String(++live.ref), join_ref: '1' }));
+    return true;
+  }
+  function liveBroadcast(event, payload){
+    return liveSend('broadcast', { type: 'broadcast', event, payload });
+  }
+  function liveConnect(){
+    clearTimeout(live.retryTimer);
+    if(live.ws){ try{ live.closing = true; live.ws.close(); }catch(e){} }
+    live.closing = false; live.connected = false; live.ref = 0;
+    const url = SUPABASE_URL.replace(/^http/, 'ws') + '/realtime/v1/websocket?apikey=' + encodeURIComponent(SUPABASE_ANON_KEY) + '&vsn=1.0.0';
+    let ws;
+    try{ ws = new WebSocket(url); }catch(e){ liveScheduleRetry(); return; }
+    live.ws = ws;
+    ws.onopen = () => {
+      liveSend('phx_join', {
+        config: { broadcast: { ack: false, self: false }, presence: { key: live.clientId, enabled: true }, private: false },
+        access_token: SUPABASE_ANON_KEY
+      });
+    };
+    ws.onmessage = ev => {
+      let m; try{ m = JSON.parse(ev.data); }catch(e){ return; }
+      if(m.event === 'phx_reply' && m.ref === '1'){
+        if(m.payload && m.payload.status === 'ok'){
+          live.connected = true; live.retry = 0;
+          liveSend('presence', { type: 'presence', event: 'track', payload: { role: live.role, name: liveMyName() } });
+          clearInterval(live.hb);
+          live.hb = setInterval(() => liveSend('heartbeat', {}, 'phoenix'), 25000);
+          if(live.role === 'host') liveHostSendState(true);
+          else liveBroadcast('pedir', { from: live.clientId });
+        } else {
+          liveScheduleRetry();
+        }
+        liveRenderBar();
+        return;
+      }
+      if(m.event === 'presence_state'){ live.peers = {}; liveApplyPresence(m.payload, null); return; }
+      if(m.event === 'presence_diff'){ liveApplyPresence(m.payload.joins, m.payload.leaves); return; }
+      if(m.event === 'broadcast' && m.payload){
+        const ev2 = m.payload.event, data = m.payload.payload || {};
+        if(live.role === 'host' && ev2 === 'pedir') liveHostSendState(true);
+        if(live.role === 'guest' && ev2 === 'estado') liveGuestOnState(data);
+        if(live.role === 'guest' && ev2 === 'fim') liveGuestOnEnd();
+      }
+    };
+    ws.onclose = () => {
+      clearInterval(live.hb);
+      const eraEsta = live.ws === ws;
+      if(eraEsta){ live.connected = false; liveRenderBar(); }
+      if(eraEsta && live.role && !live.closing) liveScheduleRetry();
+    };
+    ws.onerror = () => { /* onclose cuida da reconexão */ };
+  }
+  function liveScheduleRetry(){
+    clearTimeout(live.retryTimer);
+    if(!live.role) return;
+    const espera = [1000, 2000, 4000, 8000, 15000][Math.min(live.retry, 4)];
+    live.retry++;
+    live.retryTimer = setTimeout(() => { if(live.role) liveConnect(); }, espera);
+  }
+  function liveApplyPresence(joins, leaves){
+    Object.entries(joins || {}).forEach(([k, v]) => { const meta = (v.metas || [])[0]; if(meta) live.peers[k] = meta; });
+    Object.keys(leaves || {}).forEach(k => { delete live.peers[k]; });
+    liveRenderBar();
+    liveRenderPeopleInModal();
+    const cnt = document.querySelector('#app .live-btn.on .live-count');
+    if(cnt) cnt.textContent = liveMusicians().length;
+  }
+  function liveMusicians(){
+    return Object.entries(live.peers).filter(([k, m]) => k !== live.clientId && m.role === 'guest');
+  }
+  function liveHostOnline(){
+    return Object.values(live.peers).some(m => m.role === 'host');
+  }
+
+  /* ---- regente ---- */
+  function liveSongButtonHtml(){
+    if(live.role === 'host'){
+      const n = liveMusicians().length;
+      return `<button class="icon-btn live-btn on" data-action="liveOpen" title="Transmissão ao vivo: ${n} ${n === 1 ? 'músico' : 'músicos'}"><span class="live-label">Ao vivo · </span><span class="live-count">${n}</span></button>`;
+    }
+    if(live.role === 'guest') return '';
+    return `<button class="icon-btn live-btn" data-action="liveStart" title="Transmitir esta cifra para a banda" aria-label="Transmitir para a banda">&#128225;<span class="live-label"> Transmitir</span></button>`;
+  }
+
+  function liveStartHosting(){
+    if(!navigator.onLine){ showToast('Sem internet agora: a transmissão precisa de conexão (até 3G serve).'); return; }
+    if(live.role === 'guest') liveStop(false);
+    live.role = 'host';
+    live.code = liveNewCode();
+    live.peers = {};
+    liveConnect();
+    requestWakeLock();
+    clearInterval(live.keepTimer);
+    // reenvia o estado de tempos em tempos (quem entrar depois já pega a música certa)
+    live.keepTimer = setInterval(() => liveHostSendState(true), 3000);
+    render();
+    liveOpenHostModal();
+  }
+
+  // Linha da cifra que está no topo da tela (logo abaixo do cabeçalho) e quanto dela já passou.
+  function liveScrollAnchor(){
+    const lines = document.querySelectorAll('#scrollContainer .sheet .line');
+    if(!lines.length) return { line: 0, frac: 0, end: false };
+    const topo = liveTopOffset();
+    for(let i = 0; i < lines.length; i++){
+      const r = lines[i].getBoundingClientRect();
+      if(r.bottom > topo){
+        const frac = r.height ? Math.max(0, Math.min(1, (topo - r.top) / r.height)) : 0;
+        return { line: i, frac: Math.round(frac * 1000) / 1000, end: (window.innerHeight + window.scrollY) >= document.documentElement.scrollHeight - 4 };
+      }
+    }
+    return { line: lines.length - 1, frac: 1, end: true };
+  }
+  function liveTopOffset(){
+    const tb = document.querySelector('#app .topbar');
+    return tb ? Math.max(0, tb.getBoundingClientRect().bottom) : 0;
+  }
+
+  function liveHostState(){
+    if(state.view !== 'view' || !state.currentId) return { songId: null };
+    const song = state.songs.find(s => s.id === state.currentId);
+    const a = liveScrollAnchor();
+    return {
+      songId: state.currentId, title: song ? song.title : '',
+      transpose: state.transposeSteps || 0, capo: state.capo || 0,
+      line: a.line, frac: a.frac, end: a.end,
+      auto: !!state.autoScroll.active
+    };
+  }
+  function liveHostSendState(force){
+    if(live.role !== 'host' || !live.connected) return;
+    const agora = Date.now();
+    const intervalo = 120; // até ~8 mensagens por segundo enquanto rola
+    if(!force && agora - live.lastSend < intervalo){
+      clearTimeout(live.sendTimer);
+      live.sendTimer = setTimeout(() => liveHostSendState(true), intervalo - (agora - live.lastSend));
+      return;
+    }
+    live.lastSend = agora;
+    live.lastSeq = (live.lastSeq || 0) + 1;
+    liveBroadcast('estado', Object.assign(liveHostState(), { seq: live.lastSeq, t: agora }));
+  }
+
+  function liveOpenHostModal(){
+    if(live.role !== 'host' || document.querySelector('.live-modal')) return;
+    const overlay = document.createElement('div');
+    overlay.className = 'confirm-overlay';
+    overlay.innerHTML = `
+      <div class="confirm-box live-modal" role="dialog" aria-modal="true" aria-labelledby="liveTitle">
+        <h3 id="liveTitle">&#128225; Transmitindo para a banda</h3>
+        <div class="live-qr" id="liveQr"><span style="align-self:center;color:#888;font-size:13px">Gerando QR Code...</span></div>
+        <div class="live-code" id="liveCode">${liveFmtCode(live.code)}</div>
+        <p class="live-hint">Os músicos apontam a câmera para o QR Code, ou tocam em <strong>&#128225; Entrar numa sala</strong> no acervo e digitam o código. A tela deles segue a sua: música, tom, capo e rolagem.</p>
+        <div class="live-people" id="livePeople"></div>
+        <div class="live-row">
+          <button class="btn-ghost" data-lchoice="copy">Copiar link</button>
+          ${navigator.share ? '<button class="btn-ghost" data-lchoice="share">Compartilhar</button>' : ''}
+        </div>
+        <div class="confirm-actions">
+          <button class="btn-ghost" data-lchoice="stop">Encerrar transmissão</button>
+          <button class="btn-primary" data-lchoice="close">Continuar</button>
+        </div>
+      </div>`;
+    document.body.appendChild(overlay);
+    liveRenderPeopleInModal();
+    liveDrawQr(overlay.querySelector('#liveQr'), liveLink(live.code));
+    const close = () => { overlay.remove(); document.removeEventListener('keydown', onKey); };
+    const onKey = e => { if(e.key === 'Escape') close(); };
+    document.addEventListener('keydown', onKey);
+    overlay.addEventListener('click', async e => {
+      if(e.target === overlay){ close(); return; }
+      const b = e.target.closest('[data-lchoice]');
+      if(!b) return;
+      const c = b.dataset.lchoice;
+      if(c === 'close') close();
+      else if(c === 'stop'){ close(); liveStop(true); }
+      else if(c === 'copy'){
+        try{ await navigator.clipboard.writeText(liveLink(live.code)); showToast('Link da sala copiado.'); }
+        catch(err){ showToast('Código da sala: ' + liveFmtCode(live.code)); }
+      } else if(c === 'share'){
+        try{ await navigator.share({ title: 'Acervo dos Rezos · sala ao vivo', text: 'Entre na sala ' + liveFmtCode(live.code) + ' para acompanhar a cifra:', url: liveLink(live.code) }); }catch(err){}
+      }
+    });
+  }
+  function liveRenderPeopleInModal(){
+    const el = document.getElementById('livePeople');
+    if(!el) return;
+    const ms = liveMusicians();
+    if(!live.connected){ el.textContent = 'Conectando...'; return; }
+    el.textContent = ms.length
+      ? `${ms.length} ${ms.length === 1 ? 'músico conectado' : 'músicos conectados'}: ${ms.map(([k, m]) => m.name || 'Músico').slice(0, 8).join(', ')}${ms.length > 8 ? '...' : ''}`
+      : 'Aguardando os músicos entrarem...';
+  }
+  let liveQrLoading = null;
+  function liveDrawQr(box, texto){
+    const desenhar = () => {
+      try{
+        const q = window.qrcode(0, 'M');
+        q.addData(texto); q.make();
+        box.innerHTML = q.createSvgTag({ cellSize: 6, margin: 2, scalable: true });
+      }catch(e){ box.innerHTML = '<span style="align-self:center;color:#888;font-size:13px">Use o código abaixo.</span>'; }
+    };
+    if(window.qrcode) return desenhar();
+    if(!liveQrLoading){
+      liveQrLoading = new Promise((ok, falha) => {
+        const sc = document.createElement('script');
+        sc.src = LIVE_QR_LIB; sc.onload = ok; sc.onerror = falha;
+        document.head.appendChild(sc);
+      });
+    }
+    liveQrLoading.then(desenhar).catch(() => {
+      liveQrLoading = null;
+      box.innerHTML = '<span style="align-self:center;color:#888;font-size:13px">Sem QR agora. Use o código abaixo.</span>';
+    });
+  }
+
+  function liveStop(avisar){
+    const eraHost = live.role === 'host';
+    if(eraHost) liveBroadcast('fim', {});
+    live.role = null; live.closing = true;
+    clearInterval(live.hb); clearInterval(live.keepTimer); clearTimeout(live.retryTimer); clearTimeout(live.sendTimer);
+    if(live.anim){ cancelAnimationFrame(live.anim); live.anim = null; }
+    const ws = live.ws; live.ws = null; live.connected = false; live.peers = {}; live.hostState = null;
+    if(ws) setTimeout(() => { try{ ws.close(); }catch(e){} }, eraHost ? 250 : 0);
+    if(!state.autoScroll.active) releaseWakeLock();
+    document.body.classList.remove('live-on');
+    const bar = document.getElementById('liveBar'); if(bar) bar.remove();
+    if(state.view === 'liveWait') state.view = 'list';
+    if(avisar) showToast(eraHost ? 'Transmissão encerrada.' : 'Você saiu da sala.');
+    render();
+  }
+
+  /* ---- músico ---- */
+  function liveOpenJoinModal(){
+    if(document.querySelector('.live-modal')) return;
+    if(live.role === 'host'){ liveOpenHostModal(); return; }
+    const overlay = document.createElement('div');
+    overlay.className = 'confirm-overlay';
+    overlay.innerHTML = `
+      <div class="confirm-box live-modal" role="dialog" aria-modal="true" aria-labelledby="liveJoinTitle">
+        <h3 id="liveJoinTitle">&#128225; Entrar numa sala</h3>
+        <p class="live-hint">Digite o código que aparece na tela do regente. Sua tela vai seguir a dele: a música, o tom, o capo e a rolagem.</p>
+        <input class="live-input" id="liveCodeInput" maxlength="7" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="ABC-123" inputmode="text">
+        <div class="confirm-actions">
+          <button class="btn-ghost" data-lchoice="cancel">Cancelar</button>
+          <button class="btn-primary" data-lchoice="join">Entrar</button>
+        </div>
+      </div>`;
+    document.body.appendChild(overlay);
+    const input = overlay.querySelector('#liveCodeInput');
+    setTimeout(() => input.focus(), 50);
+    input.addEventListener('input', () => {
+      const c = liveCleanCode(input.value);
+      input.value = c.length > 3 ? c.slice(0, 3) + '-' + c.slice(3) : c;
+    });
+    const close = () => { overlay.remove(); document.removeEventListener('keydown', onKey); };
+    const entrar = () => {
+      const c = liveCleanCode(input.value);
+      if(c.length !== 6){ showToast('O código tem 6 letras e números.'); input.focus(); return; }
+      close(); liveJoin(c);
+    };
+    const onKey = e => { if(e.key === 'Escape') close(); if(e.key === 'Enter') entrar(); };
+    document.addEventListener('keydown', onKey);
+    overlay.addEventListener('click', e => {
+      if(e.target === overlay){ close(); return; }
+      const b = e.target.closest('[data-lchoice]');
+      if(!b) return;
+      if(b.dataset.lchoice === 'join') entrar(); else close();
+    });
+  }
+
+  function liveJoin(code){
+    code = liveCleanCode(code);
+    if(code.length !== 6) return;
+    if(live.role) liveStop(false);
+    stopAutoScroll();
+    live.role = 'guest'; live.code = code; live.peers = {};
+    live.following = true; live.pauseUntil = 0; live.hostState = null; live.lastSeq = 0;
+    // no celular, recolhe o painel lateral: quem controla tom, capo e rolagem é o regente
+    if(window.innerWidth < 900) state.sidebarOpen = false;
+    liveConnect();
+    requestWakeLock();
+    state.view = 'liveWait';
+    render();
+  }
+
+  function renderLiveWait(){
+    const conectado = live.connected;
+    const temRegente = liveHostOnline();
+    const msg = !conectado ? 'Conectando à sala...'
+      : !temRegente ? 'O regente ainda não está transmitindo nesta sala.'
+      : 'O regente ainda não abriu nenhuma música.';
+    return `
+      <header class="topbar">
+        <button class="topbar-back" data-action="liveLeave">&#8592; Sair da sala</button>
+        <div class="song-title-block"><h1>Sala ${liveFmtCode(live.code)}</h1><span>Tela espelhada do regente</span></div>
+      </header>
+      <main class="container">
+        <div class="live-wait">
+          <div class="live-wait-icon">&#128225;</div>
+          <h2>Aguardando o regente...</h2>
+          <p id="liveWaitMsg">${msg} Assim que ele abrir uma cifra, ela aparece aqui sozinha.</p>
+        </div>
+      </main>`;
+  }
+
+  function liveGuestOnState(st){
+    if(st.seq && st.t && live.hostState && live.hostState.t > st.t) return; // mensagem velha
+    live.hostState = st;
+    liveRenderBar();
+    if(!live.following) return;
+    liveGuestApply();
+  }
+
+  function liveGuestApply(){
+    const st = live.hostState;
+    if(!st || live.role !== 'guest') return;
+    if(!st.songId){
+      // regente voltou para o acervo / está escolhendo: mantém a música atual na tela
+      if(state.view === 'liveWait'){ const el = document.getElementById('liveWaitMsg'); if(el) el.textContent = 'O regente está escolhendo a próxima música...'; }
+      return;
+    }
+    const song = state.songs.find(s => s.id === st.songId);
+    if(!song){
+      if(state.view !== 'liveWait'){ live.applying = true; state.view = 'liveWait'; render(); live.applying = false; }
+      const el = document.getElementById('liveWaitMsg');
+      if(el) el.textContent = `O regente abriu "${st.title || 'uma música'}", que ainda não está no seu aparelho. Feche e abra o app com internet para atualizar o acervo.`;
+      return;
+    }
+    live.applying = true;
+    let precisaRender = false;
+    if(state.view !== 'view' || state.currentId !== st.songId){
+      stopAutoScroll();
+      state.view = 'view'; state.currentId = st.songId; state.navContext = null; state.cameFromListId = null;
+      precisaRender = true;
+    }
+    if((state.transposeSteps || 0) !== (st.transpose || 0)){ state.transposeSteps = st.transpose || 0; precisaRender = true; }
+    if((state.capo || 0) !== (st.capo || 0)){ state.capo = st.capo || 0; precisaRender = true; }
+    if(precisaRender){ closeAllMenus(); render(); }
+    live.applying = false;
+    liveGuestScrollTo(st, precisaRender);
+  }
+
+  function liveGuestScrollTo(st, pular){
+    const lines = document.querySelectorAll('#scrollContainer .sheet .line');
+    if(!lines.length) return;
+    let y;
+    if(st.end){
+      y = document.documentElement.scrollHeight - window.innerHeight;
+    } else {
+      const el = lines[Math.min(st.line || 0, lines.length - 1)];
+      const r = el.getBoundingClientRect();
+      y = window.scrollY + r.top + (st.frac || 0) * r.height - liveTopOffset();
+    }
+    y = Math.max(0, Math.min(y, document.documentElement.scrollHeight - window.innerHeight));
+    if(pular || Math.abs(y - window.scrollY) > window.innerHeight * 1.5){
+      live.targetY = null;
+      live.applying = true; window.scrollTo(0, y); live.applying = false;
+      return;
+    }
+    live.targetY = y;
+    if(!live.anim){
+      const passo = () => {
+        if(live.role !== 'guest' || live.targetY === null || !live.following){ live.anim = null; return; }
+        const d = live.targetY - window.scrollY;
+        if(Math.abs(d) < 0.6){ live.anim = null; return; }
+        live.applying = true;
+        window.scrollTo(0, window.scrollY + d * 0.22); // aproxima suave, sem trancos
+        live.applying = false;
+        live.anim = requestAnimationFrame(passo);
+      };
+      live.anim = requestAnimationFrame(passo);
+    }
+  }
+
+  function liveGuestOnEnd(){
+    showToast('O regente encerrou a transmissão.');
+    liveStop(false);
+  }
+
+  // Se o músico mexer na tela, para de seguir por uns segundos (ou até ele pedir).
+  function liveGuestPause(motivo){
+    if(live.role !== 'guest' || live.applying) return;
+    if(motivo === 'nav'){ live.following = false; live.pauseUntil = Infinity; }
+    else if(live.pauseUntil !== Infinity){
+      live.following = false; live.pauseUntil = Date.now() + 6000;
+      clearTimeout(live._resumeTimer);
+      live._resumeTimer = setTimeout(() => { if(live.role === 'guest' && live.pauseUntil !== Infinity && Date.now() >= live.pauseUntil) liveGuestResume(); }, 6100);
+    }
+    liveRenderBar();
+  }
+  function liveGuestResume(){
+    live.following = true; live.pauseUntil = 0;
+    liveRenderBar();
+    liveGuestApply();
+  }
+  ['wheel', 'touchmove'].forEach(evName => window.addEventListener(evName, () => {
+    if(live.role === 'guest' && live.following && state.view === 'view') liveGuestPause('scroll');
+  }, { passive: true }));
+  window.addEventListener('keydown', e => {
+    if(live.role === 'guest' && live.following && state.view === 'view' && ['ArrowDown','ArrowUp','PageDown','PageUp','Home','End',' '].includes(e.key)) liveGuestPause('scroll');
+  });
+  // Regente: cada rolagem vira uma mensagem (com limite de frequência).
+  window.addEventListener('scroll', () => {
+    if(live.role === 'host' && state.view === 'view') liveHostSendState(false);
+  }, { passive: true });
+  document.addEventListener('visibilitychange', () => {
+    if(document.visibilityState === 'visible' && live.role && (!live.ws || live.ws.readyState > 1)){ live.retry = 0; liveConnect(); }
+  });
+  window.addEventListener('online', () => { if(live.role && !live.connected){ live.retry = 0; liveConnect(); } });
+
+  /* ---- barra "ao vivo" (fica por cima de qualquer tela) ---- */
+  function liveRenderBar(){
+    let bar = document.getElementById('liveBar');
+    if(!live.role){ if(bar) bar.remove(); document.body.classList.remove('live-on'); return; }
+    if(!bar){
+      bar = document.createElement('div');
+      bar.id = 'liveBar'; bar.className = 'live-bar';
+      document.body.appendChild(bar);
+      bar.addEventListener('click', e => {
+        const b = e.target.closest('[data-lbar]');
+        if(!b) return;
+        if(b.dataset.lbar === 'open') liveOpenHostModal();
+        else if(b.dataset.lbar === 'resume') liveGuestResume();
+        else if(b.dataset.lbar === 'leave') liveStop(true);
+      });
+    }
+    document.body.classList.add('live-on');
+    const code = liveFmtCode(live.code);
+    let txt, botoes;
+    if(live.role === 'host'){
+      const n = liveMusicians().length;
+      txt = live.connected ? `Ao vivo · sala ${code} · ${n} ${n === 1 ? 'músico' : 'músicos'}` : `Reconectando a sala ${code}...`;
+      botoes = `<button data-lbar="open">Sala</button>`;
+    } else {
+      const st = live.hostState;
+      if(!live.connected) txt = `Reconectando à sala ${code}...`;
+      else if(!live.following) txt = 'Navegando sozinho';
+      else if(st && !st.songId) txt = `Regente escolhendo a música · ${code}`;
+      else txt = `Seguindo o regente · ${code}`;
+      botoes = (!live.following ? `<button class="gold" data-lbar="resume">Voltar a seguir</button>` : '') + `<button data-lbar="leave">Sair</button>`;
+    }
+    bar.innerHTML = `<span class="live-dot ${live.connected ? '' : 'off'}"></span><span class="live-txt">${escapeHtml(txt)}</span>${botoes}`;
+  }
+
+  function liveAfterRender(){
+    if(!live.role){ liveRenderBar(); return; }
+    if(live.role === 'host'){
+      liveHostSendState(true);
+    } else if(!live.applying){
+      // o músico navegou por conta própria (voltou ao acervo, abriu outra música...)
+      const st = live.hostState;
+      const noLugar = state.view === 'liveWait' || (state.view === 'view' && (!st || !st.songId || st.songId === state.currentId));
+      if(!noLugar && live.following) liveGuestPause('nav');
+    }
+    liveRenderBar();
+  }
+
+  /* ---- entrar pelo link/QR (?sala=CODIGO) ---- */
+  (function(){
+    try{
+      const sp = new URLSearchParams(location.search);
+      const c = liveCleanCode(sp.get('sala'));
+      if(c.length === 6){
+        sessionStorage.setItem('acervo_sala_pendente', c);
+        sp.delete('sala');
+        const q = sp.toString();
+        history.replaceState(null, '', location.pathname + (q ? '?' + q : '') + location.hash);
+      }
+    }catch(e){}
+  })();
+  function liveCheckPendingJoin(){
+    let c = null;
+    try{ c = sessionStorage.getItem('acervo_sala_pendente'); sessionStorage.removeItem('acervo_sala_pendente'); }catch(e){}
+    if(c && c.length === 6 && !live.role) liveJoin(c);
+  }
+
   /* ================= RENDER ROOT ================= */
   function render(){
     const app = document.getElementById('app');
@@ -5258,7 +5810,9 @@
     else if(state.view==='profileInfo') app.innerHTML = renderProfileInfo();
     else if(state.view==='chordLibrary') app.innerHTML = renderChordLibrary();
     else if(state.view==='chordBuilder') app.innerHTML = renderChordBuilder();
+    else if(state.view==='liveWait') app.innerHTML = renderLiveWait();
     afterRender();
+    liveAfterRender();
   }
 
   /* ================= FOTO DO ARTISTA (busca automática, por nome, com cache) =================
@@ -5528,6 +6082,7 @@
             <span class="level-chip" title="Exp de Rezo">Nv. ${level} · ${progress}/${target}</span>
             <button class="user-email" data-action="openProfileInfo" title="Ver minhas informações">${escapeHtml((state.profile && state.profile.display_name) || state.session.user.email)}</button>
             ${isAdmin() ? `<button class="icon-btn" data-action="goAdmin">Administração${state.adminPendingCount > 0 ? ` <span class="admin-badge">${state.adminPendingCount}</span>` : ''}</button>` : ''}
+            <button class="icon-btn" data-action="liveJoinPrompt" title="Seguir a tela do regente">&#128225; Entrar numa sala</button>
             <button class="icon-btn" data-action="goChordLibrary">🎸 Acervo de Acordes</button>
             <button class="icon-btn" data-action="goLists">Minhas listas</button>
             <button class="icon-btn" data-action="signOut">Sair</button>
@@ -5872,6 +6427,7 @@
           <span>${metaBits.join(' · ')}</span>
         </div>
         <div class="topbar-actions">
+          ${liveSongButtonHtml()}
           <button class="icon-btn like-icon-btn ${isFav?'fav-on':''}" data-action="toggleFavorite" data-id="${song.id}" title="${isFav?'Descurtir':'Curtir'}">${heartIconHtml(isFav)} <span>${song.like_count||0}</span></button>
           ${canDeleteSongs() ? `
           <button class="icon-btn danger" data-action="deleteSong" data-id="${song.id}">Excluir</button>
@@ -7995,6 +8551,7 @@ ${escapeHtml(rawText)}</textarea>
     } catch(e){ wakeLockSentinel = null; }
   }
   function releaseWakeLock(){
+    if(live.role) return; // na sala ao vivo a tela fica sempre acesa
     if(wakeLockSentinel){
       try { wakeLockSentinel.release(); } catch(e){ /* já liberado */ }
       wakeLockSentinel = null;
@@ -8003,7 +8560,7 @@ ${escapeHtml(rawText)}</textarea>
   // Ao voltar de outro app, o navegador solta o wake lock sozinho: repede.
   document.addEventListener('visibilitychange', function(){
     if(document.visibilityState === 'visible' && state.session && isAdmin()) loadAdminPendingCount();
-    if(document.visibilityState === 'visible' && state.autoScroll.active && !wakeLockSentinel){
+    if(document.visibilityState === 'visible' && (state.autoScroll.active || live.role) && !wakeLockSentinel){
       requestWakeLock();
     }
   });
@@ -8321,6 +8878,10 @@ ${escapeHtml(rawText)}</textarea>
     else if(action==='openReadingControls') openReadingControlsModal();
     else if(action==='transposeUp'){ state.transposeSteps = (state.transposeSteps||0) + 1; render(); }
     else if(action==='transposeDown'){ state.transposeSteps = (state.transposeSteps||0) - 1; render(); }
+    else if(action==='liveStart'){ liveStartHosting(); }
+    else if(action==='liveOpen'){ liveOpenHostModal(); }
+    else if(action==='liveJoinPrompt'){ liveOpenJoinModal(); }
+    else if(action==='liveLeave'){ liveStop(true); }
     else if(action==='openProgression'){ openProgressionModal(); }
     else if(action && action.indexOf('prog') === 0 && handleProgressionAction(action, el)){ /* tratado */ }
     else if(action==='editCapoUp' || action==='editCapoDown'){
