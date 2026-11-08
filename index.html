@@ -48,7 +48,10 @@
     --font-mono:'JetBrains Mono', ui-monospace, Menlo, Consolas, monospace;
   }
   *{box-sizing:border-box;}
-  html,body{margin:0;padding:0;overflow-x:hidden;overscroll-behavior-y:none;}
+  html,body{margin:0;padding:0;overflow-x:hidden;}
+  /* Desliga o "puxar para atualizar". Fica SÓ no html (o Chrome lê do elemento raiz):
+     no body, ele travava a rolagem pela rodinha do mouse/dedo. */
+  html{overscroll-behavior-y:none;}
   body{
     background:
       radial-gradient(1100px 620px at 12% -8%, rgba(255,255,255,0.05), transparent 55%),
@@ -5673,26 +5676,43 @@
     }
     return Math.max(0, Math.min(y, document.documentElement.scrollHeight - window.innerHeight));
   }
+  function liveGuestJump(y){
+    if(live.anim){ cancelAnimationFrame(live.anim); live.anim = null; }
+    live.targetY = null;
+    live.applying = true; window.scrollTo(0, y); live.applying = false;
+  }
   function liveGuestScrollTo(st, pular){
     const y = liveAnchorY(st);
     if(y === null) return;
-    if(pular || Math.abs(y - window.scrollY) > window.innerHeight * 1.5){
-      live.targetY = null;
-      live.applying = true; window.scrollTo(0, y); live.applying = false;
+    // Tela fora de primeiro plano (outra aba, janela coberta, celular bloqueando):
+    // o navegador congela as animações, então vai direto para a linha certa.
+    const semAnimacao = document.visibilityState !== 'visible' ||
+      (live.anim && performance.now() - (live.lastFrame || 0) > 250);
+    if(pular || semAnimacao || Math.abs(y - window.scrollY) > window.innerHeight * 1.5){
+      liveGuestJump(y);
       return;
     }
     live.targetY = y;
     if(!live.anim){
+      live.lastFrame = performance.now();
       const passo = () => {
+        live.lastFrame = performance.now();
         if(live.role !== 'guest' || live.targetY === null || !live.following){ live.anim = null; return; }
         const d = live.targetY - window.scrollY;
-        if(Math.abs(d) < 0.6){ live.anim = null; return; }
+        if(Math.abs(d) < 1){ live.anim = null; return; }
+        let delta = d * 0.22;                             // aproxima suave, sem trancos
+        if(Math.abs(delta) < 1) delta = Math.sign(d);     // e sem ficar parado a 1-2 px
         live.applying = true;
-        window.scrollTo(0, window.scrollY + d * 0.22); // aproxima suave, sem trancos
+        window.scrollTo(0, window.scrollY + delta);
         live.applying = false;
         live.anim = requestAnimationFrame(passo);
       };
       live.anim = requestAnimationFrame(passo);
+      // segurança: se a animação não rodar em 300 ms, posiciona direto
+      clearTimeout(live.animWatch);
+      live.animWatch = setTimeout(() => {
+        if(live.role === 'guest' && live.following && live.targetY !== null && performance.now() - (live.lastFrame || 0) > 250) liveGuestJump(live.targetY);
+      }, 300);
     }
   }
 
@@ -5728,7 +5748,13 @@
     if(live.role === 'host' && state.view === 'view') liveHostSendState(false);
   }, { passive: true });
   document.addEventListener('visibilitychange', () => {
-    if(document.visibilityState === 'visible' && live.role && (!live.ws || live.ws.readyState > 1)){ live.retry = 0; liveConnect(); }
+    if(document.visibilityState !== 'visible' || !live.role) return;
+    if(!live.ws || live.ws.readyState > 1){ live.retry = 0; liveConnect(); }
+    // músico voltou a olhar a tela: alinha na hora com o regente
+    if(live.role === 'guest' && live.following && live.hostState && state.view === 'view'){
+      const y = liveAnchorY(live.hostState);
+      if(y !== null) liveGuestJump(y);
+    }
   });
   window.addEventListener('online', () => { if(live.role && !live.connected){ live.retry = 0; liveConnect(); } });
 
