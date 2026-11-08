@@ -1170,6 +1170,78 @@
     .live-btn{padding-left:10px; padding-right:10px;}
   }
 
+
+  /* ---- Duas colunas (aparelho deitado) ---- */
+  .cols-btn{display:inline-flex;align-items:center;gap:6px;}
+  .cols-btn svg{flex:none;}
+  .cols-btn.on{color:var(--gold-light);border-color:var(--gold-light);}
+  @media (orientation: portrait), (max-width: 559px){ .cols-btn{display:none;} }
+  @media (max-width: 900px){ .cols-btn .cols-label{display:none;} }
+  body.cols-mode{overflow:hidden;}
+  /* deslizar para virar a página não pode virar "voltar" do navegador */
+  html.cols-mode{overscroll-behavior:none;}
+  body.cols-mode .scroll-container{padding-bottom:0 !important;}
+  body.cols-mode .cols-container{max-width:none;padding:10px max(14px, env(safe-area-inset-right)) 0 max(30px, env(safe-area-inset-left));}
+  body.cols-mode.cols-sidebar .cols-container{padding-left:262px;}
+  .cols-sheet{
+    position:relative; display:grid; grid-template-columns:1fr 1fr; column-gap:28px;
+    overflow:hidden; padding:16px 22px; box-sizing:border-box;
+    touch-action:pinch-zoom; -webkit-user-select:none; user-select:none;
+  }
+  .cols-sheet::before{ /* linha fina separando as colunas */
+    content:""; position:absolute; top:16px; bottom:16px; left:50%; width:1px;
+    background:currentColor; opacity:.08; pointer-events:none;
+  }
+  .cols-sheet .col{min-width:0; overflow:hidden;}
+  .cols-sheet .col .line{min-width:0;}
+  .cols-sheet .chords-row{height:1.25em;}
+  .cols-sheet .chord{line-height:1.2em; padding:0 .3em;}
+  .cols-sheet .lyrics-row{line-height:1.45;}
+  .cols-sheet .cols-measure{position:absolute; left:-10000px; top:0; visibility:hidden; overflow:visible; height:auto;}
+  .cols-sheet.cols-vira-prox .col:not(.cols-measure){animation:colsViraProx .22s ease-out;}
+  .cols-sheet.cols-vira-ant .col:not(.cols-measure){animation:colsViraAnt .22s ease-out;}
+  @keyframes colsViraProx{ from{opacity:.25; transform:translateX(18px);} to{opacity:1; transform:none;} }
+  @keyframes colsViraAnt{ from{opacity:.25; transform:translateX(-18px);} to{opacity:1; transform:none;} }
+  .cols-auto-bar{
+    position:absolute; left:0; right:0; bottom:0; height:3px; background:var(--gold);
+    transform:scaleX(0); transform-origin:left; opacity:0; transition:opacity .2s;
+  }
+  body.cols-auto-on .cols-auto-bar{opacity:.9;}
+  .cols-pager{
+    position:fixed; left:50%; transform:translateX(-50%); z-index:47;
+    bottom:max(10px, env(safe-area-inset-bottom));
+    display:flex; align-items:center; gap:4px; padding:3px;
+    background:rgba(20,35,24,0.72); backdrop-filter:blur(6px);
+    border:1px solid rgba(255,255,255,0.14); border-radius:999px; color:var(--on-dark);
+    box-shadow:0 6px 18px rgba(0,0,0,.3);
+  }
+  .cols-pg-btn{
+    width:44px; height:40px; border:none; border-radius:999px; background:transparent;
+    color:var(--gold-light); font-size:24px; line-height:1; cursor:pointer;
+    -webkit-tap-highlight-color:transparent;
+  }
+  .cols-pg-btn:hover:not(:disabled){background:rgba(255,255,255,0.1);}
+  .cols-pg-btn:disabled{opacity:.3; cursor:default;}
+  .cols-pg-num{min-width:44px; text-align:center; font-size:13px; font-weight:700; font-variant-numeric:tabular-nums;}
+  body.cols-mode .cifra-float-nav{bottom:max(10px, env(safe-area-inset-bottom)); gap:8px;}
+  body.cols-mode .cifra-float-back{bottom:max(10px, env(safe-area-inset-bottom));}
+  body.cols-mode .cifra-float-btn{width:44px; height:44px; font-size:16px;}
+  body.cols-mode .cifra-float-btn.cifra-float-btn-main{width:48px; height:48px;}
+  body.cols-mode .live-bar{
+    left:calc(max(14px, env(safe-area-inset-left)) + 56px); transform:none;
+    bottom:max(12px, env(safe-area-inset-bottom)); max-width:calc(50vw - 150px);
+  }
+  @media (orientation: portrait){
+    body.cols-mode .live-bar{left:50%; transform:translateX(-50%); bottom:calc(max(10px, env(safe-area-inset-bottom)) + 54px); max-width:calc(100vw - 24px);}
+  }
+  @media (max-height: 520px){
+    body.cols-mode .topbar{padding-top:calc(6px + env(safe-area-inset-top)); padding-bottom:6px;}
+    body.cols-mode .topbar .song-title-block span{display:none;}
+    body.cols-mode .topbar .song-title-block h1{font-size:16px;}
+    body.cols-mode .topbar .icon-btn, body.cols-mode .topbar .topbar-back{padding-top:5px; padding-bottom:5px;}
+    body.cols-mode .cifra-sidebar-wrap{top:56px;}
+  }
+
   /* ---- Acordes por áudio (fila de análise) ---- */
   .prog-launch-bar{
     display:flex; align-items:center; gap:12px; flex-wrap:wrap;
@@ -5341,7 +5413,7 @@
       if(m.event === 'phx_reply' && m.ref === '1'){
         if(m.payload && m.payload.status === 'ok'){
           live.connected = true; live.retry = 0;
-          liveSend('presence', { type: 'presence', event: 'track', payload: { role: live.role, name: liveMyName() } });
+          liveSend('presence', { type: 'presence', event: 'track', payload: { role: live.role, name: liveMyName(), lines: live.role === 'guest' ? colsLinhasQueCabem() : undefined, chars: live.role === 'guest' ? colsLetrasQueCabem() : undefined } });
           clearInterval(live.hb);
           live.hb = setInterval(() => liveSend('heartbeat', {}, 'phoenix'), 25000);
           if(live.role === 'host') liveHostSendState(true);
@@ -5381,6 +5453,8 @@
     Object.keys(leaves || {}).forEach(k => { delete live.peers[k]; });
     liveRenderBar();
     liveRenderPeopleInModal();
+    // regente em duas colunas: se entrou/saiu alguém com tela menor, redivide as páginas
+    if(live.role === 'host' && cols.shown && colsLimiteBanda() !== cols.limiteUsado) colsLayout(true);
     const cnt = document.querySelector('#app .live-btn.on .live-count');
     if(cnt) cnt.textContent = liveMusicians().length;
   }
@@ -5419,6 +5493,9 @@
 
   // Linha da cifra que está no topo da tela (logo abaixo do cabeçalho) e quanto dela já passou.
   function liveScrollAnchor(){
+    if(cols.shown && state.view === 'view'){
+      return { line: colsInicioSrc(cols.pages[cols.page]), frac: 0, end: false };
+    }
     const lines = document.querySelectorAll('#scrollContainer .sheet .line');
     if(!lines.length) return { line: 0, frac: 0, end: false };
     const topo = liveTopOffset();
@@ -5444,7 +5521,8 @@
       songId: state.currentId, title: song ? song.title : '',
       transpose: state.transposeSteps || 0, capo: state.capo || 0,
       line: a.line, frac: a.frac, end: a.end,
-      auto: !!state.autoScroll.active
+      auto: !!state.autoScroll.active,
+      cols: cols.shown, pages: cols.shown ? cols.pages : null, page: cols.shown ? cols.page : 0, wrap: cols.shown ? (cols.wrap || 0) : 0
     };
   }
   function liveHostSendState(force){
@@ -5657,13 +5735,27 @@
     }
     if((state.transposeSteps || 0) !== (st.transpose || 0)){ state.transposeSteps = st.transpose || 0; precisaRender = true; }
     if((state.capo || 0) !== (st.capo || 0)){ state.capo = st.capo || 0; precisaRender = true; }
+    if(colsOn() !== cols.shown) precisaRender = true;
     if(precisaRender){ closeAllMenus(); render(); }
+    if(cols.shown){
+      // regente em duas colunas: mesmas páginas, mesma página
+      const chave = JSON.stringify(st.pages || []) + '|' + (Number(st.wrap) || 0);
+      if(precisaRender || chave !== cols.hostPagesKey){ cols.hostPagesKey = chave; if(!precisaRender) colsLayout(false); }
+      else if((st.page || 0) !== cols.page && cols.pages[st.page || 0]){
+        const d = (st.page || 0) - cols.page;
+        cols.page = st.page || 0;
+        colsDraw(song, state.transposeSteps || 0, d);
+      }
+      live.applying = false;
+      return;
+    }
     live.applying = false;
     liveGuestScrollTo(st, precisaRender);
   }
 
   // Posição (em px) da página que deixa a linha "line" (+ fração) logo abaixo do cabeçalho.
   function liveAnchorY(st){
+    if(cols.shown) return null; // em colunas não há rolagem: quem manda é a página
     const lines = document.querySelectorAll('#scrollContainer .sheet .line');
     if(!lines.length) return null;
     let y;
@@ -5868,6 +5960,7 @@
       state.view = 'view'; state.currentId = d.currentId;
       state.navContext = d.nav || null; state.cameFromListId = d.fromList || null;
       state.transposeSteps = d.transpose || 0; state.capo = d.capo || 0;
+      cols.songId = d.currentId; cols.anchorLine = d.line || 0;
       closeAllMenus();
       // Durante ~2 s o app "segura" a linha: o carregamento ainda redesenha a tela
       // (listas, favoritos, ajuste da letra) e isso pode jogar a rolagem para o topo.
@@ -5896,6 +5989,478 @@
   window.addEventListener('scroll', () => { if(state.view === 'view') telaSalvar(); }, { passive: true });
   window.addEventListener('pagehide', telaSalvarAgora);
 
+  /* ================= DUAS COLUNAS (celular/tablet deitado) =================
+     Com o aparelho de lado, a cifra pode virar "páginas" de duas colunas que
+     cabem inteiras na tela: em vez de rolar, a pessoa vira a página (toque nas
+     laterais, deslize, setas, pedal ou rolagem automática por tempo).
+     Cada página é [inícioA, fimA, inícioB, fimB] (índices das linhas da música).
+     Na sala ao vivo o regente manda essas páginas e os músicos desenham
+     exatamente as mesmas linhas em cada coluna, só ajustando o tamanho da letra
+     para caber na tela deles. */
+  const COLS_PREF_KEY = 'acervo_2col';
+  const cols = {
+    pref: (() => { try{ return localStorage.getItem(COLS_PREF_KEY) === '1'; }catch(e){ return false; } })(),
+    shown: false,      // a tela atual está desenhada em colunas
+    songId: null,
+    anchorLine: 0,     // primeira linha da página atual (sobrevive a girar a tela, mudar o tom...)
+    pages: [],
+    page: 0,
+    lineAfterRender: null, // ao voltar para 1 coluna, rola até esta linha
+    auto: null,        // rolagem automática por páginas
+    wheelAcc: 0, wheelLast: 0,
+    portraitHintAt: 0
+  };
+  const COLS_MQ = window.matchMedia ? window.matchMedia('(orientation: landscape) and (min-width: 560px)') : null;
+  function colsLandscape(){
+    return COLS_MQ ? COLS_MQ.matches : (window.innerWidth > window.innerHeight && window.innerWidth >= 560);
+  }
+  // Músico na sala segue o modelo do regente (colunas ou rolagem) enquanto estiver na mesma música.
+  function colsGuestMirror(){
+    return live.role === 'guest' && live.hostState && live.hostState.songId && live.hostState.songId === state.currentId;
+  }
+  function colsOn(){
+    if(state.view !== 'view' || !state.currentId) return false;
+    if(colsGuestMirror()) return !!(live.hostState.cols && Array.isArray(live.hostState.pages) && live.hostState.pages.length);
+    return cols.pref && colsLandscape();
+  }
+  function colsButtonHtml(){
+    if(live.role === 'guest') return '';
+    return `<button class="icon-btn cols-btn ${cols.pref ? 'on' : ''}" data-action="toggleCols" title="${cols.pref ? 'Voltar para uma coluna com rolagem' : 'Ver em duas colunas, virando a página'}" aria-pressed="${cols.pref}">
+      <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><rect x="3" y="4" width="7.5" height="16" rx="1.5" fill="none" stroke="currentColor" stroke-width="2"/><rect x="13.5" y="4" width="7.5" height="16" rx="1.5" fill="none" stroke="currentColor" stroke-width="2"/></svg><span class="cols-label"> 2 colunas</span></button>`;
+  }
+  function colsSongViewHtml(song){
+    return `
+      <div class="scroll-container cols-wrap" id="scrollContainer">
+        <main class="container cols-container">
+          <div class="paper sheet cols-sheet ${state.sheetTheme==='dark' ? 'sheet-dark' : ''}" id="colsSheet">
+            <div class="col" id="colA"></div>
+            <div class="col" id="colB"></div>
+            <div class="col cols-measure" id="colsMeasure" aria-hidden="true"></div>
+            <div class="cols-auto-bar" id="colsAutoBar"></div>
+          </div>
+        </main>
+      </div>
+      <div class="cols-pager" id="colsPager">
+        <button class="cols-pg-btn" data-action="colsPrev" aria-label="Página anterior">&#8249;</button>
+        <span class="cols-pg-num" id="colsPgNum">1/1</span>
+        <button class="cols-pg-btn" data-action="colsNext" aria-label="Próxima página">&#8250;</button>
+      </div>`;
+  }
+
+  // Anota em que linha a pessoa está antes de trocar entre 1 e 2 colunas.
+  function colsGuardarLinha(){
+    if(state.view !== 'view') return;
+    if(cols.shown){
+      const p = cols.pages[cols.page];
+      if(p) cols.anchorLine = colsInicioSrc(p);
+      cols.lineAfterRender = cols.anchorLine;
+    } else {
+      cols.anchorLine = liveScrollAnchor().line;
+      cols.songId = state.currentId;
+    }
+  }
+  function toggleCols(){
+    colsGuardarLinha();
+    cols.pref = !cols.pref;
+    try{ localStorage.setItem(COLS_PREF_KEY, cols.pref ? '1' : '0'); }catch(e){}
+    if(state.autoScroll.active) stopAutoScroll();
+    render();
+    if(cols.pref && cols.shown) showToast('Duas colunas: toque nas laterais, deslize ou use as setas para virar a página.');
+  }
+
+  function colsFontVar(px){
+    const sheet = document.getElementById('colsSheet');
+    if(sheet) sheet.style.setProperty('--sheet-font-size', px + 'px');
+  }
+  function colsMaxChars(lines){
+    let maxChars = 1;
+    (lines || []).forEach(l => {
+      maxChars = Math.max(maxChars, (l.text || '').length);
+      (l.chords || []).forEach(c => { maxChars = Math.max(maxChars, c.pos + (c.chord || '').length + 1); });
+    });
+    return maxChars;
+  }
+  // Reserva embaixo para os botões (voltar, páginas, navegação e a barra ao vivo).
+  function colsBottomReserve(){
+    const curto = window.innerHeight < 520;
+    let r = curto ? 58 : 74;
+    if(live.role && !colsLandscape()) r += 52; // em pé, a barra ao vivo fica acima dos botões
+    return r;
+  }
+
+  // Monta (ou remonta) as colunas: tamanho do papel, letra e páginas.
+  function colsLayout(enviar){
+    if(!cols.shown || state.view !== 'view') return;
+    const song = state.songs.find(s => s.id === state.currentId);
+    const sheet = document.getElementById('colsSheet');
+    const colA = document.getElementById('colA');
+    const meas = document.getElementById('colsMeasure');
+    if(!song || !sheet || !colA || !meas) return;
+    if(cols.songId !== song.id){ cols.songId = song.id; cols.anchorLine = 0; cols.page = 0; }
+    if(window.scrollY) window.scrollTo(0, 0);
+
+    // 1) altura do papel: o que sobra da tela entre o cabeçalho e os botões de baixo
+    const topo = sheet.getBoundingClientRect().top;
+    const alturaPapel = Math.max(160, Math.floor(window.innerHeight - topo - colsBottomReserve()));
+    sheet.style.height = alturaPapel + 'px';
+    const cs = getComputedStyle(sheet);
+    const cap = sheet.clientHeight - (parseFloat(cs.paddingTop) || 0) - (parseFloat(cs.paddingBottom) || 0);
+    const larguraCol = colA.clientWidth;
+    meas.style.width = larguraCol + 'px';
+    const porPx = getMonoCharWidthPerPx();
+    const fonteParaLargura = n => Math.max(6, Math.min(16, Math.floor((larguraCol - 4) / (n * porPx))));
+    const steps = state.transposeSteps || 0;
+    const espelho = colsGuardarEspelho();
+    const banda = colsBanda();
+    const minLegivel = window.innerHeight < 520 ? 11 : 12;
+
+    // 2) frases longas demais para a coluna quebram num espaço (os acordes vão junto).
+    //    O regente decide onde quebrar; os músicos quebram igual.
+    let wrap = 0;
+    if(espelho) wrap = Number(live.hostState.wrap) || 0;
+    else {
+      const cabeAqui = Math.floor((larguraCol - 4) / (minLegivel * porPx));
+      const limite = Math.min(cabeAqui, banda.chars);
+      if(colsMaxChars(song.lines) > limite) wrap = Math.max(16, limite);
+    }
+    cols.wrap = wrap;
+    cols.visual = colsQuebrar(song.lines || [], wrap);
+    let fonte = fonteParaLargura(colsMaxChars(cols.visual));
+    colsFontVar(fonte);
+
+    if(espelho){
+      // músico: as linhas de cada coluna vêm do regente; só a letra se ajusta à altura
+      cols.pages = live.hostState.pages.map(p => p.slice(0, 4));
+      cols.hostPagesKey = JSON.stringify(live.hostState.pages) + '|' + wrap;
+      if(live.following) cols.page = Math.max(0, Math.min(live.hostState.page || 0, cols.pages.length - 1));
+      else cols.page = Math.max(0, Math.min(cols.page, cols.pages.length - 1));
+      // a letra é a mesma em todas as páginas: ajusta pela coluna mais cheia da música
+      let maisCheia = [0, 0], maxLinhas = -1;
+      cols.pages.forEach(pg => {
+        if(pg[1] - pg[0] > maxLinhas){ maxLinhas = pg[1] - pg[0]; maisCheia = [pg[0], pg[1]]; }
+        if(pg[3] - pg[2] > maxLinhas){ maxLinhas = pg[3] - pg[2]; maisCheia = [pg[2], pg[3]]; }
+      });
+      meas.innerHTML = cols.visual.slice(maisCheia[0], maisCheia[1]).map(l => lineHtml(l, steps)).join('');
+      let guarda = 0;
+      while(fonte > 6 && meas.scrollHeight > cap + 1 && guarda++ < 40){
+        fonte = Math.max(6, fonte - 0.5);
+        colsFontVar(fonte);
+      }
+      meas.innerHTML = '';
+      colsDraw(song, steps);
+      return;
+    }
+
+    // 3) regente / sozinho: em telas baixas (celular deitado) diminui um pouco a
+    //    letra para caber pelo menos 7 linhas por coluna, sem ficar miúda
+    const minimo = Math.max(minLegivel, Math.floor(fonte * 0.7));
+    const alturaLinha = () => { meas.innerHTML = lineHtml({ text: 'Ag', chords: [{ pos: 0, chord: 'Am' }] }, 0); const h = meas.firstElementChild.getBoundingClientRect().height; meas.innerHTML = ''; return h || 1; };
+    let guarda = 0;
+    while(fonte > minimo && cap / alturaLinha() < 7 && guarda++ < 20){ fonte = Math.max(minimo, fonte - 0.5); colsFontVar(fonte); }
+
+    // 4) na sala, a página não pode ter mais linhas do que cabe na menor tela da banda
+    cols.limiteUsado = banda.lines + 'x' + banda.chars;
+    let capPagina = cap;
+    if(banda.lines !== Infinity) capPagina = Math.min(cap, banda.lines * alturaLinha() + 1);
+
+    // 5) mede cada linha e distribui nas colunas
+    meas.innerHTML = cols.visual.map(l => lineHtml(l, steps)).join('');
+    const alturas = Array.from(meas.children).map(el => el.getBoundingClientRect().height);
+    meas.innerHTML = '';
+    const vazia = cols.visual.map(l => !(l.text || '').trim() && !(l.chords || []).length);
+    cols.pages = colsPaginar(alturas, vazia, capPagina);
+    let idx = cols.pages.findIndex(p => colsFimSrc(p) >= cols.anchorLine);
+    if(idx < 0) idx = cols.pages.length - 1;
+    cols.page = Math.max(0, idx);
+    colsDraw(song, steps);
+    if(enviar && live.role === 'host') liveHostSendState(true);
+  }
+  // Linha original (da música) da última linha visível de uma página.
+  function colsFimSrc(p){
+    const v = cols.visual || [];
+    const fim = Math.max(p[1], p[3]) - 1;
+    return v[fim] ? v[fim].src : -1;
+  }
+  function colsInicioSrc(p){
+    const v = cols.visual || [];
+    return p && v[p[0]] ? v[p[0]].src : cols.anchorLine;
+  }
+  // Quebra as frases maiores que "largura" letras num espaço; os acordes acompanham a palavra.
+  function colsQuebrar(lines, largura){
+    const out = [];
+    lines.forEach((l, src) => {
+      let text = l.text || '';
+      let chords = (l.chords || []).map(c => ({ pos: c.pos, chord: c.chord }));
+      if(!largura){ out.push({ text, chords, src }); return; }
+      let guarda = 0;
+      while(guarda++ < 60){
+        const fimAcordes = chords.reduce((m, c) => Math.max(m, c.pos + (c.chord || '').length + 1), 0);
+        if(Math.max(text.length, fimAcordes) <= largura){ out.push({ text, chords, src }); break; }
+        let k = -1;
+        // último espaço que caiba, sem partir um acorde ao meio
+        for(let i = Math.min(largura, text.length - 1); i > largura * 0.4; i--){
+          if(text[i] === ' ' && !chords.some(c => c.pos < i && c.pos + (c.chord || '').length + 1 > largura)){ k = i; break; }
+        }
+        if(k < 0 && text.length > largura) k = largura;          // palavra enorme: corta seco
+        if(k < 0) k = text.length;                                  // a letra cabe; sobram acordes
+        if(k <= 0){
+          // linha só de acordes: passa para baixo a partir do primeiro que não couber
+          const j = chords.findIndex(c => c.pos + (c.chord || '').length + 1 > largura);
+          if(j <= 0){ out.push({ text, chords, src }); break; }
+          k = chords[j].pos;
+        }
+        const corte = text[k] === ' ' ? k + 1 : k;
+        out.push({ text: text.slice(0, k).replace(/\s+$/, ''), chords: chords.filter(c => c.pos < k), src });
+        text = text.slice(corte);
+        chords = chords.filter(c => c.pos >= k).map(c => ({ pos: Math.max(0, c.pos - corte), chord: c.chord }));
+        if(!text && !chords.length) break;
+      }
+    });
+    return out;
+  }
+  // Músico: quantas linhas e letras cabem numa coluna da tela dele (deitada) com letra de 12px.
+  // Vai junto na presença da sala para o regente dividir as páginas pela menor tela.
+  function colsLinhasQueCabem(){
+    const w = Math.max(window.innerWidth, window.innerHeight), h = Math.min(window.innerWidth, window.innerHeight);
+    if(w < 560) return 60;
+    const curto = h < 520;
+    const util = h - (curto ? 46 : 70) - 10 - (curto ? 58 : 74) - 32;
+    return Math.max(4, Math.min(60, Math.floor(util / (12 * 2.7 + 2))));
+  }
+  function colsLetrasQueCabem(){
+    const w = Math.max(window.innerWidth, window.innerHeight);
+    const colW = (w - 44 - 44 - 28) / 2;
+    return Math.max(16, Math.floor(colW / (12 * 0.6)));
+  }
+  function colsBanda(){
+    if(live.role !== 'host') return { lines: Infinity, chars: Infinity };
+    const ms = liveMusicians().map(([, m]) => m);
+    const ls = ms.map(m => Number(m.lines)).filter(n => n >= 4);
+    const cs = ms.map(m => Number(m.chars)).filter(n => n >= 16);
+    return { lines: ls.length ? Math.min(...ls) : Infinity, chars: cs.length ? Math.min(...cs) : Infinity };
+  }
+  function colsLimiteBanda(){ const b = colsBanda(); return b.lines + 'x' + b.chars; }
+  function colsGuardarEspelho(){ return colsGuestMirror() && live.hostState.cols; }
+
+  function colsPaginar(alt, vazia, cap){
+    const n = alt.length;
+    const soma = (a, b) => { let h = 0; for(let k = a; k < b; k++) h += alt[k]; return h; };
+    const pularVazias = i => { while(i < n && vazia[i]) i++; return i; };
+    const aparar = (s, e) => { while(e > s && vazia[e - 1]) e--; return e; };
+    function coluna(inicio){
+      const s = pularVazias(inicio);
+      if(s >= n) return { s: n, e: n, prox: n };
+      let h = 0, j = s;
+      while(j < n && h + alt[j] <= cap){ h += alt[j]; j++; }
+      if(j === s) j = s + 1; // uma linha maior que a coluna: vai sozinha
+      let fim = j;
+      if(j < n && !vazia[j]){
+        // não corta a estrofe no meio se der para quebrar numa linha em branco
+        let acum = 0;
+        for(let k = s; k < j; k++){
+          acum += alt[k];
+          if(vazia[k] && k > s && acum >= cap * 0.55) fim = k;
+        }
+      }
+      return { s, e: aparar(s, fim), prox: fim };
+    }
+    const paginas = [];
+    let i = 0, guarda = 0;
+    while(guarda++ < 500){
+      const A = coluna(i);
+      if(A.s >= n) break;
+      let B = coluna(A.prox);
+      if(B.prox >= n){
+        // última página: equilibra as duas colunas (de preferência numa linha em branco)
+        const s = A.s, fimTotal = aparar(s, n);
+        let melhor = null;
+        for(let k = s + 1; k < fimTotal; k++){
+          const ini2 = pularVazias(k);
+          const e1 = aparar(s, k);
+          if(e1 <= s || ini2 >= fimTotal) continue;
+          const h1 = soma(s, e1), h2 = soma(ini2, fimTotal);
+          if(h1 > cap || h2 > cap) continue;
+          const nota = Math.abs(h1 - h2) + ((vazia[k] || vazia[k - 1]) ? 0 : cap * 0.18);
+          if(!melhor || nota < melhor.nota) melhor = { nota, e1, ini2 };
+        }
+        if(melhor) paginas.push([s, melhor.e1, melhor.ini2, fimTotal]);
+        else paginas.push([A.s, A.e, B.s, B.e]);
+        break;
+      }
+      paginas.push([A.s, A.e, B.s, B.e]);
+      i = B.prox;
+    }
+    if(!paginas.length) paginas.push([0, 0, 0, 0]);
+    return paginas;
+  }
+
+  function colsDraw(song, steps, direcao){
+    const colA = document.getElementById('colA'), colB = document.getElementById('colB');
+    if(!colA || !colB) return;
+    const p = cols.pages[cols.page] || [0, 0, 0, 0];
+    const linhas = cols.visual || song.lines || [];
+    const html = (a, b) => linhas.slice(a, b).map(l => lineHtml(l, steps)).join('');
+    colA.innerHTML = html(p[0], p[1]);
+    colB.innerHTML = html(p[2], p[3]);
+    if(!colsGuardarEspelho() || live.following) cols.anchorLine = colsInicioSrc(p);
+    if(direcao){
+      const sheet = document.getElementById('colsSheet');
+      if(sheet){
+        sheet.classList.remove('cols-vira-prox', 'cols-vira-ant');
+        void sheet.offsetWidth;
+        sheet.classList.add(direcao > 0 ? 'cols-vira-prox' : 'cols-vira-ant');
+      }
+    }
+    colsPagerUI();
+  }
+  function colsPagerUI(){
+    const num = document.getElementById('colsPgNum');
+    if(num) num.textContent = (cols.page + 1) + '/' + Math.max(1, cols.pages.length);
+    const pager = document.getElementById('colsPager');
+    if(pager){
+      const [ant, prox] = pager.querySelectorAll('.cols-pg-btn');
+      if(ant) ant.disabled = cols.page <= 0;
+      if(prox) prox.disabled = cols.page >= cols.pages.length - 1;
+    }
+  }
+
+  // Vira a página (delta = +1 / -1). Devolve false se já estava no limite.
+  function colsGo(delta, origem){
+    if(!cols.shown) return false;
+    const novo = cols.page + delta;
+    if(novo < 0 || novo >= cols.pages.length) return false;
+    if(live.role === 'guest' && live.following && origem !== 'regente') liveGuestPause('scroll');
+    cols.page = novo;
+    const song = state.songs.find(s => s.id === state.currentId);
+    if(song) colsDraw(song, state.transposeSteps || 0, delta);
+    if(origem !== 'auto' && cols.auto) colsAutoReset();
+    if(live.role === 'host') liveHostSendState(true);
+    telaSalvar();
+    return true;
+  }
+
+  /* ---- rolagem automática em colunas: vira a página no ritmo da velocidade ---- */
+  function colsAutoDuracao(){
+    const a = document.getElementById('colA'), b = document.getElementById('colB');
+    const conteudo = (a ? a.scrollHeight : 0) + (b ? b.scrollHeight : 0);
+    const pxPorSeg = Math.max(0.5, speedToPx(state.autoScroll.speed) * 60);
+    return Math.max(4, conteudo / pxPorSeg);
+  }
+  function colsAutoStart(){
+    colsAutoStop();
+    cols.auto = { t0: performance.now(), feito: 0, timer: null };
+    cols.auto.timer = setInterval(colsAutoTick, 100);
+    document.body.classList.add('cols-auto-on');
+  }
+  function colsAutoReset(){ if(cols.auto){ cols.auto.t0 = performance.now(); cols.auto.feito = 0; } }
+  function colsAutoStop(){
+    if(cols.auto){ clearInterval(cols.auto.timer); cols.auto = null; }
+    document.body.classList.remove('cols-auto-on');
+    const bar = document.getElementById('colsAutoBar');
+    if(bar) bar.style.transform = 'scaleX(0)';
+  }
+  function colsAutoTick(){
+    if(!cols.auto) return;
+    if(!state.autoScroll.active || !cols.shown){ colsAutoStop(); return; }
+    const agora = performance.now();
+    cols.auto.feito += (agora - cols.auto.t0) / 1000 / colsAutoDuracao();
+    cols.auto.t0 = agora;
+    const bar = document.getElementById('colsAutoBar');
+    if(bar) bar.style.transform = 'scaleX(' + Math.min(1, cols.auto.feito).toFixed(3) + ')';
+    if(cols.auto.feito >= 1){
+      if(!colsGo(1, 'auto')){ stopAutoScroll(); return; }
+      cols.auto.feito = 0;
+    }
+  }
+
+  /* ---- gestos: toque nas laterais, deslizar e roda do mouse ---- */
+  let colsToque = null;
+  document.addEventListener('click', e => {
+    if(!cols.shown || state.view !== 'view') return;
+    const sheet = e.target.closest && e.target.closest('#colsSheet');
+    if(!sheet || e.target.closest('.chord') || e.target.closest('button,a')) return;
+    if(Date.now() - (cols.deslizouEm || 0) < 450) return; // o toque que encerrou um deslizar não conta
+    const r = sheet.getBoundingClientRect();
+    const x = (e.clientX - r.left) / r.width;
+    if(x > 0.7) colsGo(1);
+    else if(x < 0.3) colsGo(-1);
+  });
+  document.addEventListener('touchstart', e => {
+    if(!cols.shown || state.view !== 'view' || e.touches.length !== 1) { colsToque = null; return; }
+    const t = e.touches[0];
+    colsToque = { x: t.clientX, y: t.clientY };
+  }, { passive: true });
+  document.addEventListener('touchend', e => {
+    if(!colsToque || !cols.shown) return;
+    const t = e.changedTouches[0];
+    const dx = t.clientX - colsToque.x, dy = t.clientY - colsToque.y;
+    colsToque = null;
+    if(Math.abs(dx) > 45 && Math.abs(dx) > Math.abs(dy) * 1.3){
+      cols.deslizouEm = Date.now();
+      colsGo(dx < 0 ? 1 : -1);
+    } else if(Math.abs(dy) > 60 && Math.abs(dy) > Math.abs(dx) * 1.3){
+      cols.deslizouEm = Date.now();
+      colsGo(dy < 0 ? 1 : -1);
+    }
+  }, { passive: true });
+  window.addEventListener('wheel', e => {
+    if(!cols.shown || state.view !== 'view') return;
+    if(e.target.closest && e.target.closest('.cifra-sidebar-wrap, .reading-popup, .confirm-overlay, .speed-vbar')) return;
+    const agora = Date.now();
+    if(agora - cols.wheelLast > 600) cols.wheelAcc = 0;
+    cols.wheelAcc += e.deltaY;
+    if(Math.abs(cols.wheelAcc) > 60 && agora - cols.wheelLast > 450){
+      cols.wheelLast = agora;
+      colsGo(cols.wheelAcc > 0 ? 1 : -1);
+      cols.wheelAcc = 0;
+    }
+  }, { passive: true });
+
+  // Chamado depois de cada render da tela da cifra.
+  function colsAfterRender(){
+    const eraColunas = cols.shown;
+    cols.shown = state.view === 'view' && !!document.getElementById('colsSheet');
+    document.body.classList.toggle('cols-mode', cols.shown);
+    document.documentElement.classList.toggle('cols-mode', cols.shown);
+    document.body.classList.toggle('cols-sidebar', cols.shown && state.sidebarOpen && window.innerWidth >= 900);
+    if(cols.shown){
+      colsLayout(false);
+      if(live.role === 'guest' && !colsLandscape() && Date.now() - cols.portraitHintAt > 60000){
+        cols.portraitHintAt = Date.now();
+        showToast('O regente está em duas colunas: deite o celular para a letra ficar maior.');
+      }
+    } else {
+      if(eraColunas || cols.lineAfterRender !== null) colsStopAutoIfAny();
+      if(cols.lineAfterRender !== null && state.view === 'view'){
+        const linha = cols.lineAfterRender;
+        cols.lineAfterRender = null;
+        requestAnimationFrame(() => requestAnimationFrame(() => {
+          const y = liveAnchorY({ line: linha, frac: 0, end: false });
+          if(y !== null) window.scrollTo(0, y);
+        }));
+      }
+    }
+  }
+  function colsStopAutoIfAny(){ if(cols.auto) colsAutoStop(); }
+
+  // Girou a tela / mudou o tamanho da janela.
+  function colsOnResize(){
+    if(state.view !== 'view') return false;
+    if(colsOn() !== cols.shown){
+      colsGuardarLinha();
+      if(state.autoScroll.active) stopAutoScroll();
+      render();
+      return true;
+    }
+    if(cols.shown){
+      document.body.classList.toggle('cols-sidebar', state.sidebarOpen && window.innerWidth >= 900);
+      colsLayout(true);
+      return true;
+    }
+    return false;
+  }
+
+
   /* ================= RENDER ROOT ================= */
   function render(){
     const app = document.getElementById('app');
@@ -5918,6 +6483,7 @@
     else if(state.view==='chordBuilder') app.innerHTML = renderChordBuilder();
     else if(state.view==='liveWait') app.innerHTML = renderLiveWait();
     afterRender();
+    colsAfterRender();
     liveAfterRender();
     if(telaAlvo) requestAnimationFrame(telaSegurarLinha);
     telaSalvar();
@@ -6494,7 +7060,10 @@
   function renderSongView(song){
     if(!song) return renderList();
     const transposeSteps = state.transposeSteps || 0;
-    const linesHtml = song.lines.map(l => lineHtml(l, transposeSteps)).join('');
+    // entrando em duas colunas numa tela não muito larga: recolhe o card lateral
+    // (ele ficaria por cima da letra). A pessoa pode abrir de novo se quiser.
+    if(colsOn() && !cols.shown && window.innerWidth < 1100) state.sidebarOpen = false;
+    const linesHtml = colsOn() ? '' : song.lines.map(l => lineHtml(l, transposeSteps)).join('');
 
     const ctx = state.navContext;
     let prevId = null, nextId = null;
@@ -6535,6 +7104,7 @@
           <span>${metaBits.join(' · ')}</span>
         </div>
         <div class="topbar-actions">
+          ${colsButtonHtml()}
           ${liveSongButtonHtml()}
           <button class="icon-btn like-icon-btn ${isFav?'fav-on':''}" data-action="toggleFavorite" data-id="${song.id}" title="${isFav?'Descurtir':'Curtir'}">${heartIconHtml(isFav)} <span>${song.like_count||0}</span></button>
           ${canDeleteSongs() ? `
@@ -6545,12 +7115,13 @@
       ${sidebarCifraHtml(song, toneLabel, prevId, nextId)}
       ${floatingNavHtml(prevId, nextId)}
       ${floatingBackHtml()}
+      ${colsOn() ? colsSongViewHtml(song) : `
       <div class="scroll-container" id="scrollContainer">
         <main class="container">
           <div class="paper sheet ${state.sheetTheme==='dark' ? 'sheet-dark' : ''}">${linesHtml}</div>
           ${linkChips.length ? `<div class="song-links-row">${linkChips.join('')}</div>` : ''}
         </main>
-      </div>
+      </div>`}
       ${brandWatermark()}
     `;
   }
@@ -8680,6 +9251,13 @@ ${escapeHtml(rawText)}</textarea>
     if(scrollRAF){ cancelAnimationFrame(scrollRAF); scrollRAF = null; }
     requestWakeLock();
     state.autoScroll.active = true;
+    if(cols.shown && state.view === 'view'){
+      // em duas colunas a rolagem automática vira a página no ritmo da velocidade
+      colsAutoStart();
+      updatePlayToggleUI();
+      createSpeedVBar();
+      return;
+    }
     let scrollAccumulator = 0; // guarda a fração de pixel entre os quadros
     function step(){
       if(!state.autoScroll.active) return;
@@ -8709,6 +9287,7 @@ ${escapeHtml(rawText)}</textarea>
   }
   function stopAutoScroll(){
     state.autoScroll.active = false;
+    colsAutoStop();
     if(scrollRAF) cancelAnimationFrame(scrollRAF);
     scrollRAF = null;
     releaseWakeLock();
@@ -8774,12 +9353,12 @@ ${escapeHtml(rawText)}</textarea>
       if(ft) ft.addEventListener('change', e=>{ state.filterTheme = e.target.value; render(); });
     }
     if(state.view==='view'){
-      requestAnimationFrame(fitSheetFontSize);
+      if(!document.getElementById('colsSheet')) requestAnimationFrame(fitSheetFontSize);
       // As fontes web (mono) podem carregar depois do primeiro cálculo — a
       // largura por caractere muda quando a fonte real entra, então recalcula
       // assim que o navegador confirmar que as fontes terminaram de carregar.
       if(document.fonts && document.fonts.ready){
-        document.fonts.ready.then(()=>{ _monoCharWidthPerPx = null; fitSheetFontSize(); });
+        document.fonts.ready.then(()=>{ _monoCharWidthPerPx = null; if(cols.shown) colsLayout(true); else fitSheetFontSize(); });
       }
       const speedSidebar = document.getElementById('speedSliderSidebar');
       if(speedSidebar) speedSidebar.addEventListener('input', e=>{
@@ -9003,6 +9582,9 @@ ${escapeHtml(rawText)}</textarea>
     else if(action==='capoUp'){ state.capo = Math.min(CAPO_MAX, (state.capo||0) + 1); render(); }
     else if(action==='capoDown'){ state.capo = Math.max(CAPO_MIN, (state.capo||0) - 1); render(); }
     else if(action==='toggleCifraSidebar') toggleCifraSidebar();
+    else if(action==='toggleCols') toggleCols();
+    else if(action==='colsPrev') colsGo(-1);
+    else if(action==='colsNext') colsGo(1);
     else if(action==='toggleOfflineSave'){ e.stopPropagation(); toggleOfflineSave(id); }
     else if(action==='toggleSheetTheme'){ toggleSheetTheme(); render(); }
 
@@ -9105,6 +9687,13 @@ ${escapeHtml(rawText)}</textarea>
     if(document.querySelector('.confirm-overlay')) return; // tem modal aberto
     const ctx = Array.isArray(state.navContext) ? state.navContext : null;
     const idx = ctx ? ctx.indexOf(state.currentId) : -1;
+    if(cols.shown && ['PageDown','ArrowDown','PageUp','ArrowUp','ArrowRight','ArrowLeft'].includes(e.key)){
+      // duas colunas: setas e pedal viram a página; na última página, a seta
+      // para a direita passa para a próxima música (e a esquerda, na primeira, volta)
+      const prox = e.key==='PageDown' || e.key==='ArrowDown' || e.key==='ArrowRight';
+      if(colsGo(prox ? 1 : -1)){ e.preventDefault(); return; }
+      if(e.key!=='ArrowRight' && e.key!=='ArrowLeft'){ e.preventDefault(); return; }
+    }
     if(e.key===' ' || e.key==='Spacebar'){
       e.preventDefault();
       if(state.autoScroll.active) stopAutoScroll(); else startAutoScroll();
@@ -9218,7 +9807,7 @@ ${escapeHtml(rawText)}</textarea>
   window.addEventListener('resize', function(){
     if(state.view !== 'view') return;
     clearTimeout(resizeDebounce);
-    resizeDebounce = setTimeout(fitSheetFontSize, 120);
+    resizeDebounce = setTimeout(()=>{ if(!colsOnResize()) fitSheetFontSize(); }, 120);
   });
 
   /* ================= APLICATIVO INSTALÁVEL (PWA) ================= */
