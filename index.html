@@ -48,7 +48,7 @@
     --font-mono:'JetBrains Mono', ui-monospace, Menlo, Consolas, monospace;
   }
   *{box-sizing:border-box;}
-  html,body{margin:0;padding:0;overflow-x:hidden;}
+  html,body{margin:0;padding:0;overflow-x:hidden;overscroll-behavior-y:none;}
   body{
     background:
       radial-gradient(1100px 620px at 12% -8%, rgba(255,255,255,0.05), transparent 55%),
@@ -2859,6 +2859,7 @@
     await loadProfile();
     await loadEditorRequestStatus();
     await loadSongs();
+    try{ telaRestaurar(); }catch(e){ telaRestaurando = false; console.warn('Não consegui restaurar a tela:', e); }
     await loadLists();
     await loadFavorites();
     await loadCustomChords();
@@ -5397,11 +5398,11 @@
     return `<button class="icon-btn live-btn" data-action="liveStart" title="Transmitir esta cifra para a banda" aria-label="Transmitir para a banda">&#128225;<span class="live-label"> Transmitir</span></button>`;
   }
 
-  function liveStartHosting(){
-    if(!navigator.onLine){ showToast('Sem internet agora: a transmissão precisa de conexão (até 3G serve).'); return; }
+  function liveStartHosting(codigoExistente, retomando){
+    if(!retomando && !navigator.onLine){ showToast('Sem internet agora: a transmissão precisa de conexão (até 3G serve).'); return; }
     if(live.role === 'guest') liveStop(false);
     live.role = 'host';
-    live.code = liveNewCode();
+    live.code = liveCleanCode(codigoExistente).length === 6 ? liveCleanCode(codigoExistente) : liveNewCode();
     live.peers = {};
     liveConnect();
     requestWakeLock();
@@ -5409,7 +5410,8 @@
     // reenvia o estado de tempos em tempos (quem entrar depois já pega a música certa)
     live.keepTimer = setInterval(() => liveHostSendState(true), 3000);
     render();
-    liveOpenHostModal();
+    if(retomando) showToast('Transmissão retomada na sala ' + liveFmtCode(live.code) + '.');
+    else liveOpenHostModal();
   }
 
   // Linha da cifra que está no topo da tela (logo abaixo do cabeçalho) e quanto dela já passou.
@@ -5584,18 +5586,19 @@
     });
   }
 
-  function liveJoin(code){
+  function liveJoin(code, retomando){
     code = liveCleanCode(code);
     if(code.length !== 6) return;
     if(live.role) liveStop(false);
-    stopAutoScroll();
+    if(!retomando) stopAutoScroll();
     live.role = 'guest'; live.code = code; live.peers = {};
     live.following = true; live.pauseUntil = 0; live.hostState = null; live.lastSeq = 0;
     // no celular, recolhe o painel lateral: quem controla tom, capo e rolagem é o regente
     if(window.innerWidth < 900) state.sidebarOpen = false;
     liveConnect();
     requestWakeLock();
-    state.view = 'liveWait';
+    // voltando de uma atualização com a cifra já aberta: fica nela até o regente mandar o estado
+    if(!(retomando && state.view === 'view')) state.view = 'liveWait';
     render();
   }
 
@@ -5656,9 +5659,10 @@
     liveGuestScrollTo(st, precisaRender);
   }
 
-  function liveGuestScrollTo(st, pular){
+  // Posição (em px) da página que deixa a linha "line" (+ fração) logo abaixo do cabeçalho.
+  function liveAnchorY(st){
     const lines = document.querySelectorAll('#scrollContainer .sheet .line');
-    if(!lines.length) return;
+    if(!lines.length) return null;
     let y;
     if(st.end){
       y = document.documentElement.scrollHeight - window.innerHeight;
@@ -5667,7 +5671,11 @@
       const r = el.getBoundingClientRect();
       y = window.scrollY + r.top + (st.frac || 0) * r.height - liveTopOffset();
     }
-    y = Math.max(0, Math.min(y, document.documentElement.scrollHeight - window.innerHeight));
+    return Math.max(0, Math.min(y, document.documentElement.scrollHeight - window.innerHeight));
+  }
+  function liveGuestScrollTo(st, pular){
+    const y = liveAnchorY(st);
+    if(y === null) return;
     if(pular || Math.abs(y - window.scrollY) > window.innerHeight * 1.5){
       live.targetY = null;
       live.applying = true; window.scrollTo(0, y); live.applying = false;
@@ -5790,6 +5798,78 @@
     if(c && c.length === 6 && !live.role) liveJoin(c);
   }
 
+
+  /* ================= LEMBRAR A TELA AO RECARREGAR =================
+     Se a página recarregar (gesto sem querer, queda do app, atualização), o app
+     volta para a mesma cifra, no mesmo tom, capo e linha da rolagem, e retoma a
+     sala ao vivo (regente com o mesmo código; músico na mesma sala).
+     Fica no sessionStorage: vale para a aba/app aberto, não para sempre. */
+  const TELA_KEY = 'acervo_tela';
+  // O próprio navegador tenta restaurar a rolagem ao recarregar, mas faz isso antes
+  // da cifra existir e acaba jogando a tela para o topo. Quem cuida disso é o app.
+  try{ if('scrollRestoration' in history) history.scrollRestoration = 'manual'; }catch(e){}
+  let telaTimer = null;
+  let telaRestaurando = (() => { try{ return !!sessionStorage.getItem(TELA_KEY); }catch(e){ return false; } })();
+  if(telaRestaurando) setTimeout(() => { telaRestaurando = false; }, 30000); // segurança
+  function telaSalvar(){
+    clearTimeout(telaTimer);
+    telaTimer = setTimeout(telaSalvarAgora, 250);
+  }
+  function telaSalvarAgora(){
+    if(telaRestaurando || telaAlvo || !state.session || !state.loaded) return;
+    try{
+      const d = { view: state.view, t: Date.now() };
+      if(state.view === 'view' && state.currentId){
+        const a = liveScrollAnchor();
+        Object.assign(d, {
+          currentId: state.currentId, transpose: state.transposeSteps || 0, capo: state.capo || 0,
+          line: a.line, frac: a.frac, end: a.end && window.scrollY > 0,
+          nav: Array.isArray(state.navContext) ? state.navContext : null, fromList: state.cameFromListId || null
+        });
+      }
+      if(live.role) d.live = { role: live.role, code: live.code };
+      sessionStorage.setItem(TELA_KEY, JSON.stringify(d));
+    }catch(e){}
+  }
+  function telaRestaurar(){
+    let d = null;
+    try{ d = JSON.parse(sessionStorage.getItem(TELA_KEY) || 'null'); }catch(e){}
+    telaRestaurando = false;
+    if(!d || Date.now() - (d.t || 0) > 12 * 3600 * 1000) return;
+    const song = d.currentId && state.songs.find(s => s.id === d.currentId);
+    if(d.view === 'view' && song){
+      stopAutoScroll();
+      state.view = 'view'; state.currentId = d.currentId;
+      state.navContext = d.nav || null; state.cameFromListId = d.fromList || null;
+      state.transposeSteps = d.transpose || 0; state.capo = d.capo || 0;
+      closeAllMenus();
+      // Durante ~2 s o app "segura" a linha: o carregamento ainda redesenha a tela
+      // (listas, favoritos, ajuste da letra) e isso pode jogar a rolagem para o topo.
+      telaAlvo = { songId: d.currentId, line: d.line || 0, frac: d.frac || 0, end: !!d.end, ate: Date.now() + 2000 };
+      render();
+      [0, 120, 300, 600, 1000, 1500, 2000].forEach(ms => setTimeout(telaSegurarLinha, ms));
+      setTimeout(() => { telaAlvo = null; telaSalvar(); }, 2100);
+    }
+    if(d.live && d.live.code && !live.role){
+      if(d.live.role === 'host' && state.view === 'view') liveStartHosting(d.live.code, true);
+      else if(d.live.role === 'guest') liveJoin(d.live.code, true);
+    }
+  }
+  let telaAlvo = null;
+  function telaSegurarLinha(){
+    const a = telaAlvo;
+    if(!a) return;
+    if(Date.now() > a.ate || state.view !== 'view' || state.currentId !== a.songId){ telaAlvo = null; return; }
+    const y = liveAnchorY(a);
+    if(y !== null && Math.abs(window.scrollY - y) > 3) window.scrollTo(0, y);
+  }
+  // se a pessoa mexer na tela, o app para de segurar a linha
+  ['touchstart', 'wheel', 'keydown', 'mousedown'].forEach(ev => window.addEventListener(ev, () => {
+    if(telaAlvo){ telaAlvo = null; telaSalvar(); }
+  }, { passive: true, capture: true }));
+  window.addEventListener('scroll', () => { if(state.view === 'view') telaSalvar(); }, { passive: true });
+  window.addEventListener('pagehide', telaSalvarAgora);
+
   /* ================= RENDER ROOT ================= */
   function render(){
     const app = document.getElementById('app');
@@ -5813,6 +5893,8 @@
     else if(state.view==='liveWait') app.innerHTML = renderLiveWait();
     afterRender();
     liveAfterRender();
+    if(telaAlvo) requestAnimationFrame(telaSegurarLinha);
+    telaSalvar();
   }
 
   /* ================= FOTO DO ARTISTA (busca automática, por nome, com cache) =================
