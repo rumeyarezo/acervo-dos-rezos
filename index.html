@@ -1171,6 +1171,76 @@
   }
 
 
+
+  /* ---- Abas da tela inicial ---- */
+  .home-tabs{
+    display:flex; gap:6px; padding:5px; margin:0 0 16px;
+    background:rgba(0,0,0,0.18); border:1px solid rgba(255,255,255,0.10); border-radius:16px;
+    overflow-x:auto; scrollbar-width:none; -webkit-overflow-scrolling:touch;
+    position:sticky; top:calc(var(--topbar-h, 64px) + var(--offline-bar-h, 0px) + 6px); z-index:19;
+    backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px);
+  }
+  .home-tabs::-webkit-scrollbar{display:none;}
+  .home-tab{
+    flex:1 0 auto; display:flex; align-items:center; justify-content:center; gap:7px;
+    min-height:44px; padding:8px 14px; border:none; border-radius:12px;
+    background:transparent; color:var(--muted-on-dark); font-size:14px; font-weight:600;
+    cursor:pointer; white-space:nowrap; transition:background .18s, color .18s;
+    -webkit-tap-highlight-color:transparent;
+  }
+  .home-tab:hover{color:var(--on-dark); background:rgba(255,255,255,0.06);}
+  .home-tab.active{background:var(--surface); color:var(--ink); box-shadow:0 4px 14px rgba(0,0,0,.22);}
+  .home-tab-icon{font-size:15px; line-height:1;}
+  .home-tab-count{font-size:11px; font-weight:700; padding:2px 7px; border-radius:999px; background:rgba(255,255,255,0.12); color:inherit; font-variant-numeric:tabular-nums;}
+  .home-tab.active .home-tab-count{background:var(--gold-soft); color:var(--gold-strong);}
+  @media (max-width:600px){
+    .home-tabs{gap:3px; padding:4px;}
+    .home-tab{flex:1 1 0; min-width:0; flex-direction:column; gap:3px; padding:7px 4px; font-size:12px; min-height:52px;}
+    .home-tab-icon{font-size:17px;}
+    .home-tab-label{overflow:hidden; text-overflow:ellipsis; max-width:100%;}
+    .home-tab-count{display:none;}
+  }
+  .tab-panel{animation:tabIn .2s ease-out;}
+  @keyframes tabIn{from{opacity:0; transform:translateY(6px);} to{opacity:1; transform:none;}}
+  .group-grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(220px,1fr)); gap:12px;}
+  .group-tile{
+    display:flex; align-items:center; gap:14px; width:100%; text-align:left;
+    padding:12px 14px; min-height:72px; border-radius:var(--radius-card);
+    background:var(--surface); border:1px solid var(--border); color:var(--ink);
+    cursor:pointer; transition:transform .15s, box-shadow .15s, border-color .15s;
+  }
+  .group-tile:hover{transform:translateY(-2px); box-shadow:0 8px 22px rgba(0,0,0,.18); border-color:var(--gold-light);}
+  .group-tile:active{transform:none;}
+  .artist-avatar{
+    flex:none; width:48px; height:48px; border-radius:50%;
+    display:flex; align-items:center; justify-content:center;
+    background:var(--leaf-soft) center/cover no-repeat; color:var(--leaf);
+    font-weight:800; font-size:16px; letter-spacing:.5px; border:2px solid var(--gold-soft);
+  }
+  .theme-icon{flex:none; width:48px; height:48px; border-radius:14px; display:flex; align-items:center; justify-content:center; font-size:22px; background:var(--gold-soft);}
+  .theme-tile.is-empty{opacity:.75;}
+  .theme-tile.is-empty .theme-icon{background:rgba(0,0,0,.05); color:var(--muted);}
+  .group-tile-text{display:flex; flex-direction:column; min-width:0;}
+  .group-tile-name{font-family:var(--font-serif); font-size:16px; font-weight:700; line-height:1.25; overflow:hidden; text-overflow:ellipsis; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical;}
+  .group-tile-count{font-size:12px; color:var(--muted); margin-top:2px;}
+  .group-head{display:flex; align-items:center; gap:12px; flex-wrap:wrap; margin:0 0 14px;}
+  .group-back{
+    border:1px solid var(--border-on-dark); background:rgba(255,255,255,0.08); color:var(--on-dark);
+    border-radius:999px; padding:8px 14px; font-size:14px; cursor:pointer; min-height:40px;
+  }
+  .group-back:hover{border-color:var(--gold-light); color:var(--gold-light);}
+  .group-title{color:var(--on-dark); font-family:var(--font-serif); font-size:20px; font-weight:700;}
+  .group-title span{font-family:inherit; font-size:13px; font-weight:400; opacity:.7; margin-left:6px;}
+  .rank-badge{
+    position:absolute; top:-8px; left:-6px; z-index:2;
+    min-width:30px; height:30px; padding:0 8px; border-radius:999px;
+    display:flex; align-items:center; justify-content:center;
+    background:var(--bg-deep); color:var(--on-dark); font-size:13px; font-weight:800;
+    border:2px solid var(--surface); box-shadow:0 3px 10px rgba(0,0,0,.25); font-variant-numeric:tabular-nums;
+  }
+  .rank-badge.top{background:var(--gold); color:#1f1a0b;}
+  .song-grid.ranking{padding-top:6px;}
+
   /* ---- Duas colunas (aparelho deitado) ---- */
   .cols-btn{display:inline-flex;align-items:center;gap:6px;}
   .cols-btn svg{flex:none;}
@@ -1207,39 +1277,81 @@
     transform:scaleX(0); transform-origin:left; opacity:0; transition:opacity .2s;
   }
   body.cols-auto-on .cols-auto-bar{opacity:.9;}
-  .cols-pager{
-    position:fixed; left:50%; transform:translateX(-50%); z-index:47;
-    bottom:max(10px, env(safe-area-inset-bottom));
-    display:flex; align-items:center; gap:4px; padding:3px;
-    background:rgba(20,35,24,0.72); backdrop-filter:blur(6px);
-    border:1px solid rgba(255,255,255,0.14); border-radius:999px; color:var(--on-dark);
-    box-shadow:0 6px 18px rgba(0,0,0,.3);
-  }
-  .cols-pg-btn{
-    width:44px; height:40px; border:none; border-radius:999px; background:transparent;
-    color:var(--gold-light); font-size:24px; line-height:1; cursor:pointer;
-    -webkit-tap-highlight-color:transparent;
-  }
-  .cols-pg-btn:hover:not(:disabled){background:rgba(255,255,255,0.1);}
-  .cols-pg-btn:disabled{opacity:.3; cursor:default;}
-  .cols-pg-num{min-width:44px; text-align:center; font-size:13px; font-weight:700; font-variant-numeric:tabular-nums;}
-  body.cols-mode .cifra-float-nav{bottom:max(10px, env(safe-area-inset-bottom)); gap:8px;}
-  body.cols-mode .cifra-float-back{bottom:max(10px, env(safe-area-inset-bottom));}
-  body.cols-mode .cifra-float-btn{width:44px; height:44px; font-size:16px;}
-  body.cols-mode .cifra-float-btn.cifra-float-btn-main{width:48px; height:48px;}
-  body.cols-mode .live-bar{
-    left:calc(max(14px, env(safe-area-inset-left)) + 56px); transform:none;
-    bottom:max(12px, env(safe-area-inset-bottom)); max-width:calc(50vw - 150px);
-  }
-  @media (orientation: portrait){
-    body.cols-mode .live-bar{left:50%; transform:translateX(-50%); bottom:calc(max(10px, env(safe-area-inset-bottom)) + 54px); max-width:calc(100vw - 24px);}
-  }
   @media (max-height: 520px){
     body.cols-mode .topbar{padding-top:calc(6px + env(safe-area-inset-top)); padding-bottom:6px;}
     body.cols-mode .topbar .song-title-block span{display:none;}
     body.cols-mode .topbar .song-title-block h1{font-size:16px;}
     body.cols-mode .topbar .icon-btn, body.cols-mode .topbar .topbar-back{padding-top:5px; padding-bottom:5px;}
     body.cols-mode .cifra-sidebar-wrap{top:56px;}
+  }
+
+
+  /* ---- Rodapé de comandos da cifra ---- */
+  .cifra-footer{
+    position:fixed; left:0; right:0; bottom:0; z-index:55;
+    background:rgba(20,36,25,0.94); backdrop-filter:blur(12px); -webkit-backdrop-filter:blur(12px);
+    border-top:1px solid rgba(255,255,255,0.12); box-shadow:0 -8px 24px rgba(0,0,0,.25);
+    padding-bottom:env(safe-area-inset-bottom);
+    color:var(--on-dark);
+  }
+  .cf-scroll{
+    display:flex; align-items:stretch; gap:8px; overflow-x:auto; overflow-y:hidden;
+    padding:7px max(10px, env(safe-area-inset-right)) 7px max(10px, env(safe-area-inset-left));
+    scrollbar-width:none; -webkit-overflow-scrolling:touch; scroll-snap-type:x proximity;
+    overscroll-behavior-x:contain;
+  }
+  .cf-scroll::-webkit-scrollbar{display:none;}
+  .cf-scroll > :first-child{margin-left:auto;}
+  .cf-scroll > :last-child{margin-right:auto;}
+  /* sombrinha nas pontas avisando que tem mais comandos de lado */
+  .cf-scroll.more-right{-webkit-mask-image:linear-gradient(to right, #000 calc(100% - 28px), transparent); mask-image:linear-gradient(to right, #000 calc(100% - 28px), transparent);}
+  .cf-scroll.more-left{-webkit-mask-image:linear-gradient(to right, transparent, #000 28px); mask-image:linear-gradient(to right, transparent, #000 28px);}
+  .cf-scroll.more-left.more-right{-webkit-mask-image:linear-gradient(to right, transparent, #000 28px, #000 calc(100% - 28px), transparent); mask-image:linear-gradient(to right, transparent, #000 28px, #000 calc(100% - 28px), transparent);}
+  .cf-group{
+    flex:none; display:flex; flex-direction:column; align-items:center; gap:3px;
+    padding:4px 6px 5px; border-radius:14px; background:rgba(255,255,255,0.06);
+    scroll-snap-align:start;
+  }
+  .cf-label{font-size:9.5px; font-weight:700; letter-spacing:.7px; text-transform:uppercase; color:var(--muted-on-dark); opacity:.8; line-height:1;}
+  .cf-row{display:flex; align-items:center; gap:3px;}
+  .cf-btn{
+    width:38px; height:38px; border-radius:11px; border:none; flex:none;
+    background:rgba(255,255,255,0.10); color:var(--on-dark);
+    font-size:20px; line-height:1; font-weight:600; cursor:pointer;
+    display:flex; align-items:center; justify-content:center;
+    -webkit-tap-highlight-color:transparent; touch-action:manipulation;
+    transition:background .15s, transform .08s;
+  }
+  .cf-btn:hover:not(:disabled){background:rgba(255,255,255,0.18);}
+  .cf-btn:active:not(:disabled){transform:scale(.92);}
+  .cf-btn:disabled{opacity:.3; cursor:default;}
+  .cf-btn.on{color:var(--leaf-light);}
+  .cf-btn.cf-play{background:var(--gold); color:#241505; font-size:15px;}
+  .cf-btn.cf-play.active{background:var(--gold-light);}
+  .cf-a{font-family:var(--font-serif); font-weight:700; line-height:1;}
+  .cf-a.small{font-size:14px;} .cf-a.big{font-size:22px;}
+  .cf-value{
+    min-width:42px; height:38px; padding:0 4px; border:none; background:transparent;
+    display:flex; align-items:center; justify-content:center;
+    color:var(--on-dark); font-size:15px; font-weight:800; font-variant-numeric:tabular-nums; white-space:nowrap;
+  }
+  .cf-value-btn{cursor:pointer; border-radius:10px; -webkit-tap-highlight-color:transparent; touch-action:manipulation;}
+  .cf-value-btn:hover{background:rgba(255,255,255,0.08);}
+  .cf-value-btn.changed{color:var(--gold-light);}
+  body.has-cf .scroll-container{padding-bottom:calc(84px + env(safe-area-inset-bottom));}
+  body.has-cf.live-on .scroll-container{padding-bottom:calc(140px + env(safe-area-inset-bottom));}
+  body.has-cf .live-bar{bottom:calc(70px + env(safe-area-inset-bottom));}
+  body.has-cf .toast{bottom:calc(84px + env(safe-area-inset-bottom));}
+  body.has-cf.live-on .toast{bottom:calc(134px + env(safe-area-inset-bottom));}
+  body.has-cf .cifra-float-nav, body.has-cf .cifra-float-back{display:none;}
+  body.has-cf .cifra-sidebar-wrap{bottom:calc(72px + env(safe-area-inset-bottom));}
+  @media (max-height:520px){
+    .cf-scroll{padding-top:5px; padding-bottom:5px; gap:6px;}
+    .cf-label{display:none;}
+    .cf-group{padding:4px 5px;}
+    .cf-btn{width:36px; height:36px;}
+    .cf-value{height:36px;}
+    body.has-cf .live-bar{bottom:calc(56px + env(safe-area-inset-bottom));}
   }
 
   /* ---- Acordes por áudio (fila de análise) ---- */
@@ -5496,11 +5608,11 @@
     if(cols.shown && state.view === 'view'){
       return { line: colsInicioSrc(cols.pages[cols.page]), frac: 0, end: false };
     }
-    const lines = document.querySelectorAll('#scrollContainer .sheet .line');
+    const lines = sheetLineBoxes();
     if(!lines.length) return { line: 0, frac: 0, end: false };
     const topo = liveTopOffset();
     for(let i = 0; i < lines.length; i++){
-      const r = lines[i].getBoundingClientRect();
+      const r = lines[i];
       if(r.bottom > topo){
         const frac = r.height ? Math.max(0, Math.min(1, (topo - r.top) / r.height)) : 0;
         return { line: i, frac: Math.round(frac * 1000) / 1000, end: (window.innerHeight + window.scrollY) >= document.documentElement.scrollHeight - 4 };
@@ -5756,14 +5868,13 @@
   // Posição (em px) da página que deixa a linha "line" (+ fração) logo abaixo do cabeçalho.
   function liveAnchorY(st){
     if(cols.shown) return null; // em colunas não há rolagem: quem manda é a página
-    const lines = document.querySelectorAll('#scrollContainer .sheet .line');
+    const lines = sheetLineBoxes();
     if(!lines.length) return null;
     let y;
     if(st.end){
       y = document.documentElement.scrollHeight - window.innerHeight;
     } else {
-      const el = lines[Math.min(st.line || 0, lines.length - 1)];
-      const r = el.getBoundingClientRect();
+      const r = lines[Math.min(st.line || 0, lines.length - 1)];
       y = window.scrollY + r.top + (st.frac || 0) * r.height - liveTopOffset();
     }
     return Math.max(0, Math.min(y, document.documentElement.scrollHeight - window.innerHeight));
@@ -6039,11 +6150,6 @@
             <div class="cols-auto-bar" id="colsAutoBar"></div>
           </div>
         </main>
-      </div>
-      <div class="cols-pager" id="colsPager">
-        <button class="cols-pg-btn" data-action="colsPrev" aria-label="Página anterior">&#8249;</button>
-        <span class="cols-pg-num" id="colsPgNum">1/1</span>
-        <button class="cols-pg-btn" data-action="colsNext" aria-label="Próxima página">&#8250;</button>
       </div>`;
   }
 
@@ -6082,9 +6188,9 @@
   }
   // Reserva embaixo para os botões (voltar, páginas, navegação e a barra ao vivo).
   function colsBottomReserve(){
-    const curto = window.innerHeight < 520;
-    let r = curto ? 58 : 74;
-    if(live.role && !colsLandscape()) r += 52; // em pé, a barra ao vivo fica acima dos botões
+    const f = document.getElementById('cifraFooter');
+    let r = (f ? f.offsetHeight : 64) + 8;
+    if(live.role) r += 50; // a barra da sala fica logo acima do rodapé
     return r;
   }
 
@@ -6119,13 +6225,14 @@
     let wrap = 0;
     if(espelho) wrap = Number(live.hostState.wrap) || 0;
     else {
-      const cabeAqui = Math.floor((larguraCol - 4) / (minLegivel * porPx));
+      const cabeAqui = Math.floor((larguraCol - 4) / ((state.fontPref || minLegivel) * porPx));
       const limite = Math.min(cabeAqui, banda.chars);
       if(colsMaxChars(song.lines) > limite) wrap = Math.max(16, limite);
     }
     cols.wrap = wrap;
     cols.visual = colsQuebrar(song.lines || [], wrap);
-    let fonte = fonteParaLargura(colsMaxChars(cols.visual));
+    const fixa = !espelho && state.fontPref ? state.fontPref : 0; // tamanho escolhido no rodapé
+    let fonte = fixa || fonteParaLargura(colsMaxChars(cols.visual));
     colsFontVar(fonte);
 
     if(espelho){
@@ -6156,7 +6263,7 @@
     const minimo = Math.max(minLegivel, Math.floor(fonte * 0.7));
     const alturaLinha = () => { meas.innerHTML = lineHtml({ text: 'Ag', chords: [{ pos: 0, chord: 'Am' }] }, 0); const h = meas.firstElementChild.getBoundingClientRect().height; meas.innerHTML = ''; return h || 1; };
     let guarda = 0;
-    while(fonte > minimo && cap / alturaLinha() < 7 && guarda++ < 20){ fonte = Math.max(minimo, fonte - 0.5); colsFontVar(fonte); }
+    while(!fixa && fonte > minimo && cap / alturaLinha() < 7 && guarda++ < 20){ fonte = Math.max(minimo, fonte - 0.5); colsFontVar(fonte); }
 
     // 4) na sala, a página não pode ter mais linhas do que cabe na menor tela da banda
     cols.limiteUsado = banda.lines + 'x' + banda.chars;
@@ -6224,7 +6331,7 @@
     const w = Math.max(window.innerWidth, window.innerHeight), h = Math.min(window.innerWidth, window.innerHeight);
     if(w < 560) return 60;
     const curto = h < 520;
-    const util = h - (curto ? 46 : 70) - 10 - (curto ? 58 : 74) - 32;
+    const util = h - (curto ? 46 : 70) - 10 - (curto ? 66 : 72) - 50 - 32;
     return Math.max(4, Math.min(60, Math.floor(util / (12 * 2.7 + 2))));
   }
   function colsLetrasQueCabem(){
@@ -6422,7 +6529,7 @@
     cols.shown = state.view === 'view' && !!document.getElementById('colsSheet');
     document.body.classList.toggle('cols-mode', cols.shown);
     document.documentElement.classList.toggle('cols-mode', cols.shown);
-    document.body.classList.toggle('cols-sidebar', cols.shown && state.sidebarOpen && window.innerWidth >= 900);
+    document.body.classList.remove('cols-sidebar');
     if(cols.shown){
       colsLayout(false);
       if(live.role === 'guest' && !colsLandscape() && Date.now() - cols.portraitHintAt > 60000){
@@ -6453,7 +6560,6 @@
       return true;
     }
     if(cols.shown){
-      document.body.classList.toggle('cols-sidebar', state.sidebarOpen && window.innerWidth >= 900);
       colsLayout(true);
       return true;
     }
@@ -6483,6 +6589,7 @@
     else if(state.view==='chordBuilder') app.innerHTML = renderChordBuilder();
     else if(state.view==='liveWait') app.innerHTML = renderLiveWait();
     afterRender();
+    cifraFooterAfterRender();
     colsAfterRender();
     liveAfterRender();
     if(telaAlvo) requestAnimationFrame(telaSegurarLinha);
@@ -6680,7 +6787,7 @@
   }
 
   /* ================= LIST VIEW (ACERVO) ================= */
-  function songCardHtml(s){
+  function songCardHtml(s, rank){
     const isFav = state.favoriteIds.has(s.id);
     const menuOpen = state.openMenuId === s.id;
     const canEdit = isEditor();
@@ -6702,6 +6809,7 @@
             </div>` : ''}
           </div>
         </div>
+        ${rank ? `<span class="rank-badge ${rank <= 3 ? 'top' : ''}">${rank}º</span>` : ''}
         <h3>${escapeHtml(s.title) || 'Sem título'}</h3>
         <div class="artist">${escapeHtml(s.artist) || 'Artista não informado'}</div>
         ${s.theme ? `<div class="theme-tag">${escapeHtml(s.theme)}</div>` : ''}
@@ -6716,37 +6824,155 @@
     return `<button class="btn-secondary" data-action="becomeContributor">Quero contribuir com as cifras!</button>`;
   }
 
-  function renderList(){
-    const q = normalizeText(state.search);
-    let songs = state.songs.filter(s => {
-      if(q){
-        const alvo = normalizeText(s.title) + ' ' + normalizeText(s.artist) + ' ' + normalizeText(s.theme);
-        // cada palavra digitada precisa aparecer em algum lugar (título, artista ou tema)
-        if(!q.split(/\s+/).every(termo => alvo.includes(termo))) return false;
-      }
-      if(state.filterArtist && s.artist !== state.filterArtist) return false;
-      if(state.filterTheme && s.theme !== state.filterTheme) return false;
-      if(state.filterFavOnly && !state.favoriteIds.has(s.id)) return false;
-      return true;
+  /* ---- Abas da tela inicial: Músicas · Artistas · Mais curtidas · Temas ---- */
+  const HOME_TAB_KEY = 'acervo_aba';
+  const HOME_TABS = [
+    { id: 'musicas',  label: 'Músicas',       icon: '&#9835;' },
+    { id: 'artistas', label: 'Artistas',      icon: '&#127908;' },
+    { id: 'curtidas', label: 'Mais curtidas', icon: '&#10084;' },
+    { id: 'temas',    label: 'Temas',         icon: '&#127807;' }
+  ];
+  const SEM_TEMA = 'Sem tema';
+  function homeTab(){
+    if(!state.homeTab){
+      let t = '';
+      try{ t = localStorage.getItem(HOME_TAB_KEY) || ''; }catch(e){}
+      state.homeTab = HOME_TABS.some(x => x.id === t) ? t : 'musicas';
+    }
+    return state.homeTab;
+  }
+  function setHomeTab(t){
+    if(!HOME_TABS.some(x => x.id === t)) return;
+    state.homeTab = t;
+    state.filterArtist = ''; state.filterTheme = '';
+    try{ localStorage.setItem(HOME_TAB_KEY, t); }catch(e){}
+    render();
+    window.scrollTo(0, 0);
+  }
+  function songTheme(s){ return (s.theme || '').trim() || SEM_TEMA; }
+  function songMatchesSearch(s, q){
+    if(!q) return true;
+    const alvo = normalizeText(s.title) + ' ' + normalizeText(s.artist) + ' ' + normalizeText(s.theme);
+    // cada palavra digitada precisa aparecer em algum lugar (título, artista ou tema)
+    return q.split(/\s+/).every(termo => alvo.includes(termo));
+  }
+  const porTitulo = (a, b) => (a.title || '').localeCompare(b.title || '', 'pt-BR');
+  // Agrupa as músicas por um campo e devolve [{ nome, total, curtidas }] em ordem alfabética.
+  function homeGroups(campo){
+    const mapa = new Map();
+    state.songs.forEach(s => {
+      const nome = campo === 'theme' ? songTheme(s) : ((s.artist || '').trim() || 'Artista não informado');
+      const g = mapa.get(nome) || { nome, total: 0, curtidas: 0 };
+      g.total++; g.curtidas += s.like_count || 0;
+      mapa.set(nome, g);
     });
-    state._lastListIds = songs.map(s=>s.id);
+    return [...mapa.values()].sort((a, b) => {
+      // "Sem tema" e "Artista não informado" vão para o fim
+      const fa = a.nome === SEM_TEMA || a.nome === 'Artista não informado', fb = b.nome === SEM_TEMA || b.nome === 'Artista não informado';
+      if(fa !== fb) return fa ? 1 : -1;
+      return a.nome.localeCompare(b.nome, 'pt-BR');
+    });
+  }
+  function artistInitials(nome){
+    const p = nome.replace(/[^\p{L}\p{N} ]/gu, ' ').trim().split(/\s+/).filter(Boolean);
+    return ((p[0] || '?')[0] + (p.length > 1 ? p[p.length - 1][0] : '')).toUpperCase();
+  }
+  function artistTileHtml(g){
+    const key = normalizeText(g.nome);
+    const foto = state.artistPhotos[key];
+    return `
+      <button class="group-tile artist-tile" data-action="openArtistTab" data-artist="${escapeHtml(g.nome)}">
+        <span class="artist-avatar"${foto ? ` style="background-image:url('${escapeHtml(foto)}')"` : ''}>${foto ? '' : escapeHtml(artistInitials(g.nome))}</span>
+        <span class="group-tile-text">
+          <span class="group-tile-name">${escapeHtml(g.nome)}</span>
+          <span class="group-tile-count">${g.total} ${g.total === 1 ? 'música' : 'músicas'}</span>
+        </span>
+      </button>`;
+  }
+  const THEME_ICONS = { 'cura': '&#127807;', 'abertura': '&#127749;', 'festa': '&#127881;', 'forca': '&#9889;', 'chamando a forca': '&#128293;', 'encerramento': '&#127769;', 'louvor': '&#128591;', 'orixas': '&#127754;', 'natureza': '&#127795;' };
+  function themeTileHtml(g){
+    const icon = THEME_ICONS[normalizeText(g.nome)] || (g.nome === SEM_TEMA ? '&#9675;' : '&#10022;');
+    return `
+      <button class="group-tile theme-tile ${g.nome === SEM_TEMA ? 'is-empty' : ''}" data-action="openThemeTab" data-theme="${escapeHtml(g.nome)}">
+        <span class="theme-icon">${icon}</span>
+        <span class="group-tile-text">
+          <span class="group-tile-name">${escapeHtml(g.nome)}</span>
+          <span class="group-tile-count">${g.total} ${g.total === 1 ? 'música' : 'músicas'}</span>
+        </span>
+      </button>`;
+  }
+  function homeTabsHtml(){
+    const t = homeTab();
+    const conta = { musicas: state.songs.length, artistas: homeGroups('artist').length, curtidas: null, temas: homeGroups('theme').filter(g => g.nome !== SEM_TEMA).length };
+    return `
+      <nav class="home-tabs" role="tablist" aria-label="Organizar o acervo">
+        ${HOME_TABS.map(x => `
+          <button class="home-tab ${t === x.id ? 'active' : ''}" role="tab" aria-selected="${t === x.id}" data-action="setHomeTab" data-tab="${x.id}">
+            <span class="home-tab-icon" aria-hidden="true">${x.icon}</span>
+            <span class="home-tab-label">${x.label}</span>
+            ${conta[x.id] != null ? `<span class="home-tab-count">${conta[x.id]}</span>` : ''}
+          </button>`).join('')}
+      </nav>`;
+  }
+  // Conteúdo da aba atual. Também define a ordem que o "anterior/próxima" da cifra segue.
+  function homeTabContentHtml(){
+    const t = homeTab();
+    const q = normalizeText(state.search);
+    const favOnly = s => !state.filterFavOnly || state.favoriteIds.has(s.id);
+    const vazio = (titulo, sub) => `<div class="empty-state"><div class="big">${titulo}</div><div>${sub}</div></div>`;
+    const grade = (songs, ranking) => {
+      state._lastListIds = songs.map(s => s.id);
+      if(!songs.length) return state.songs.length ? vazio('Nenhuma música encontrada.', 'Tente ajustar a busca.') : vazio('Nenhuma música por aqui ainda.', 'Adicione a primeira letra e cifra para começar seu repertório.');
+      return `<div class="song-grid ${ranking ? 'ranking' : ''}">${songs.map((s, i) => songCardHtml(s, ranking ? i + 1 : 0)).join('')}</div>`;
+    };
+    const voltar = (acao, rotulo, nome, total) => `
+      <div class="group-head">
+        <button class="group-back" data-action="${acao}">&#8249; ${rotulo}</button>
+        <div class="group-title">${escapeHtml(nome)} <span>${total} ${total === 1 ? 'música' : 'músicas'}</span></div>
+      </div>`;
 
-    const artists = uniqueSorted(state.songs.map(s=>s.artist));
-    const themes = uniqueSorted(state.songs.map(s=>s.theme));
+    if(t === 'artistas'){
+      if(state.filterArtist){
+        const nome = state.filterArtist;
+        const songs = state.songs.filter(s => ((s.artist || '').trim() || 'Artista não informado') === nome && songMatchesSearch(s, q) && favOnly(s)).sort(porTitulo);
+        return voltar('closeArtistTab', 'Artistas', nome, songs.length) + grade(songs);
+      }
+      const grupos = homeGroups('artist').filter(g => !q || normalizeText(g.nome).includes(q));
+      state._lastListIds = [];
+      return grupos.length ? `<div class="group-grid">${grupos.map(artistTileHtml).join('')}</div>` : vazio('Nenhum artista encontrado.', 'Tente outro nome.');
+    }
+    if(t === 'temas'){
+      if(state.filterTheme){
+        const nome = state.filterTheme;
+        const songs = state.songs.filter(s => songTheme(s) === nome && songMatchesSearch(s, q) && favOnly(s)).sort(porTitulo);
+        return voltar('closeThemeTab', 'Temas', nome, songs.length) + grade(songs);
+      }
+      const grupos = homeGroups('theme').filter(g => !q || normalizeText(g.nome).includes(q));
+      state._lastListIds = [];
+      return grupos.length ? `<div class="group-grid theme-grid">${grupos.map(themeTileHtml).join('')}</div>` : vazio('Nenhum tema encontrado.', 'Tente outra palavra.');
+    }
+    if(t === 'curtidas'){
+      const songs = state.songs.filter(s => songMatchesSearch(s, q) && favOnly(s))
+        .sort((a, b) => (b.like_count || 0) - (a.like_count || 0) || porTitulo(a, b));
+      return grade(songs, true);
+    }
+    return grade(state.songs.filter(s => songMatchesSearch(s, q) && favOnly(s)).sort(porTitulo));
+  }
+  function homeSearchPlaceholder(){
+    const t = homeTab();
+    if(t === 'artistas' && !state.filterArtist) return 'Buscar artista';
+    if(t === 'temas' && !state.filterTheme) return 'Buscar tema';
+    return 'Buscar por título, artista ou tema';
+  }
+
+  function renderList(){
     const { level, progress, target } = levelInfo(state.profile ? state.profile.exp : 0);
     const levelCategory = levelCategoryLabel(level);
     const canEdit = isEditor();
 
-    const cards = songs.map(songCardHtml).join('');
     ensureArtistPhotos(state.songs); // busca em segundo plano; não atrasa este render
     if(!uploadedArtistPhotosLoaded){ uploadedArtistPhotosLoaded = true; loadUploadedArtistPhotos(); }
-    const empty = state.songs.length === 0 ? `<div class="empty-state">
-        <div class="big">Nenhuma música por aqui ainda.</div>
-        <div>Adicione a primeira letra e cifra para começar seu repertório.</div>
-      </div>` : `<div class="empty-state">
-        <div class="big">Nenhuma música encontrada.</div>
-        <div>Tente ajustar a busca ou os filtros.</div>
-      </div>`;
+    const conteudo = homeTabContentHtml();
 
     return `
       <header class="topbar">
@@ -6770,8 +6996,9 @@
           <div class="app-hero-sub">Cifras, letras e listas de rezos para tocar e cantar</div>
         </div>
         ${isAdmin() ? `<div id="adminNotice">${adminNoticeHtml()}</div>` : ''}
+        ${homeTabsHtml()}
         <div class="list-head">
-          <input id="searchInput" class="search" placeholder="Buscar por título, artista ou tema" value="${escapeHtml(state.search)}">
+          <input id="searchInput" class="search" placeholder="${homeSearchPlaceholder()}" value="${escapeHtml(state.search)}">
           <div class="list-head-actions">
             <button class="btn-secondary" data-action="saveAllOffline" title="Baixa todas as cifras do acervo para ler sem internet, mesmo sem conexão">&#8595; Salvar tudo offline</button>
             ${canEdit ? `
@@ -6789,17 +7016,9 @@
           </div>
         </div>
         <div class="filters-row">
-          <select id="filterArtist">
-            <option value="">Todos os artistas</option>
-            ${artists.map(a=>`<option value="${escapeHtml(a)}" ${state.filterArtist===a?'selected':''}>${escapeHtml(a)}</option>`).join('')}
-          </select>
-          <select id="filterTheme">
-            <option value="">Todos os temas</option>
-            ${themes.map(t=>`<option value="${escapeHtml(t)}" ${state.filterTheme===t?'selected':''}>${escapeHtml(t)}</option>`).join('')}
-          </select>
-          <button class="fav-filter-btn ${state.filterFavOnly?'active':''}" data-action="toggleFavFilter">${heartIconHtml(state.filterFavOnly)} Cifras Curtidas</button>
+          <button class="fav-filter-btn ${state.filterFavOnly?'active':''}" data-action="toggleFavFilter" title="Mostrar só as que você curtiu">${heartIconHtml(state.filterFavOnly)} Só as que curti</button>
         </div>
-        <div class="song-grid">${cards || empty}</div>
+        <div class="tab-panel" role="tabpanel">${conteudo}</div>
       </main>
       ${brandWatermark()}
     `;
@@ -7020,31 +7239,6 @@
               <span>Corrigir</span>
             </button>
           </div>` : ''}
-          <div class="cifra-sidebar-section">
-            <div class="cifra-sidebar-label">Rolagem automática</div>
-            <div class="cifra-sidebar-row">
-              <button class="play-toggle ${state.autoScroll.active?'active':''}" id="playToggleSidebar" data-action="toggleScroll" title="Rolagem automática">
-                <span id="playIconSidebar">${state.autoScroll.active?'&#10074;&#10074;':'&#9654;'}</span>
-              </button>
-              <input type="range" id="speedSliderSidebar" class="speed-slider" min="1" max="100" step="1" value="${state.autoScroll.speed}">
-            </div>
-          </div>
-          <div class="cifra-sidebar-section">
-            <div class="cifra-sidebar-label">Capotraste</div>
-            <div class="cifra-sidebar-row cifra-sidebar-stepper">
-              <button class="cifra-sidebar-step-btn" data-action="capoDown" ${capo<=CAPO_MIN?'disabled':''} title="Diminuir capotraste">&#8722;</button>
-              <div class="cifra-sidebar-step-value">${capoLabel(capo)}</div>
-              <button class="cifra-sidebar-step-btn" data-action="capoUp" ${capo>=CAPO_MAX?'disabled':''} title="Aumentar capotraste">&#43;</button>
-            </div>
-          </div>
-          <div class="cifra-sidebar-section">
-            <div class="cifra-sidebar-label">Tom</div>
-            <div class="cifra-sidebar-row cifra-sidebar-stepper">
-              <button class="cifra-sidebar-step-btn" data-action="transposeDown" title="Descer meio tom">&#8722;</button>
-              <div class="cifra-sidebar-step-value">${escapeHtml(toneLabel)}</div>
-              <button class="cifra-sidebar-step-btn" data-action="transposeUp" title="Subir meio tom">&#43;</button>
-            </div>
-          </div>
           <div class="cifra-sidebar-section cifra-sidebar-extra">
             <div class="cifra-sidebar-extra-row">
               <button class="btn-secondary" data-action="navPrev" ${!prevId?'disabled':''}>&#8249; Anterior</button>
@@ -7062,7 +7256,6 @@
     const transposeSteps = state.transposeSteps || 0;
     // entrando em duas colunas numa tela não muito larga: recolhe o card lateral
     // (ele ficaria por cima da letra). A pessoa pode abrir de novo se quiser.
-    if(colsOn() && !cols.shown && window.innerWidth < 1100) state.sidebarOpen = false;
     const linesHtml = colsOn() ? '' : song.lines.map(l => lineHtml(l, transposeSteps)).join('');
 
     const ctx = state.navContext;
@@ -7112,9 +7305,6 @@
           ` : ''}
         </div>
       </header>
-      ${sidebarCifraHtml(song, toneLabel, prevId, nextId)}
-      ${floatingNavHtml(prevId, nextId)}
-      ${floatingBackHtml()}
       ${colsOn() ? colsSongViewHtml(song) : `
       <div class="scroll-container" id="scrollContainer">
         <main class="container">
@@ -7122,9 +7312,150 @@
           ${linkChips.length ? `<div class="song-links-row">${linkChips.join('')}</div>` : ''}
         </main>
       </div>`}
+      ${cifraFooterHtml(song, prevId, nextId)}
       ${brandWatermark()}
     `;
   }
+
+  /* ================= RODAPÉ DE COMANDOS DA CIFRA =================
+     Tudo o que a pessoa ajusta enquanto toca, a um toque: rolagem (0 a 10),
+     tom, capotraste, tamanho da letra (de 2 em 2 px), página (em duas colunas)
+     e música anterior/próxima. Se não couber na tela, o rodapé rola de lado. */
+  const FONT_PREF_KEY = 'acervo_fonte', SPEED_PREF_KEY = 'acervo_rolagem';
+  const FONT_MIN = 10, FONT_MAX = 30, FONT_STEP = 2;
+  state.fontPref = (() => { try{ const n = parseInt(localStorage.getItem(FONT_PREF_KEY), 10); return n >= FONT_MIN && n <= FONT_MAX ? n : 0; }catch(e){ return 0; } })();
+  (() => { try{ const n = parseInt(localStorage.getItem(SPEED_PREF_KEY), 10); if(n >= 1 && n <= 100) state.autoScroll.speed = n; }catch(e){} })();
+  let cfScrollX = 0;
+
+  // Rolagem em níveis de 0 a 10: 0 = parada; 1 bem devagar; 5 = velocidade padrão; 10 = rápida.
+  function speedLevelOf(speed){ return Math.max(1, Math.min(10, Math.round((speed - 10) / 9))); }
+  function speedLevelShown(){ return state.autoScroll.active ? speedLevelOf(state.autoScroll.speed) : 0; }
+  function setSpeedLevel(n){
+    n = Math.max(0, Math.min(10, n));
+    if(n === 0){ if(state.autoScroll.active) stopAutoScroll(); cifraFooterUI(); return; }
+    state.autoScroll.speed = 10 + 9 * n;
+    try{ localStorage.setItem(SPEED_PREF_KEY, String(state.autoScroll.speed)); }catch(e){}
+    if(!state.autoScroll.active) startAutoScroll();
+    if(typeof updateSpeedVBarUI === 'function') updateSpeedVBarUI();
+    cifraFooterUI();
+  }
+  // Tamanho da letra que está na tela agora (automático ou escolhido).
+  function sheetFontNow(){
+    if(state.fontPref) return state.fontPref;
+    const sh = document.getElementById('colsSheet') || document.querySelector('#scrollContainer .sheet');
+    const v = sh ? parseFloat(getComputedStyle(sh).getPropertyValue('--sheet-font-size')) : 0;
+    return v || 16;
+  }
+  function setFontPref(n){
+    const ancora = cols.shown ? null : liveScrollAnchor();
+    state.fontPref = n ? Math.max(FONT_MIN, Math.min(FONT_MAX, n)) : 0;
+    try{ localStorage.setItem(FONT_PREF_KEY, String(state.fontPref)); }catch(e){}
+    if(cols.shown) colsLayout(true);
+    else {
+      fitSheetFontSize();
+      const y = liveAnchorY(ancora);
+      if(y !== null) window.scrollTo(0, y);
+    }
+    cifraFooterUI();
+  }
+  function fontStep(dir){
+    let atual = sheetFontNow();
+    // do tamanho automático vai para o par mais próximo na direção pedida
+    let n = dir > 0 ? Math.floor(atual / 2) * 2 + FONT_STEP : Math.ceil(atual / 2) * 2 - FONT_STEP;
+    if(state.fontPref) n = state.fontPref + dir * FONT_STEP;
+    setFontPref(Math.max(FONT_MIN, Math.min(FONT_MAX, n)));
+  }
+  function capoShort(c){ return c ? c + 'ª' : 'Sem'; }
+  function toneShort(song){
+    const steps = state.transposeSteps || 0;
+    // o campo de tom às vezes traz texto junto ("G (forma de...)"): mostra só o acorde
+    const m = song && song.tone ? String(song.tone).match(/^\s*([A-G][#b♯♭]?(?:m(?!aj))?)/) : null;
+    if(m) return transposeChordName(m[1], steps);
+    return steps ? (steps > 0 ? '+' : '') + steps : '—';
+  }
+
+  function cifraFooterHtml(song, prevId, nextId){
+    const capo = state.capo || 0;
+    const nivel = speedLevelShown();
+    const fonte = state.fontPref;
+    const grupo = (rotulo, corpo, extra) => `<div class="cf-group ${extra || ''}"><span class="cf-label">${rotulo}</span><div class="cf-row">${corpo}</div></div>`;
+    const btn = (acao, txt, titulo, off, cls) => `<button class="cf-btn ${cls || ''}" data-action="${acao}" title="${titulo}" aria-label="${titulo}" ${off ? 'disabled' : ''}>${txt}</button>`;
+    return `
+      <nav class="cifra-footer" id="cifraFooter" aria-label="Comandos da cifra">
+        <div class="cf-scroll" id="cfScroll">
+          ${grupo('Rolagem', `
+            <button class="cf-btn cf-play ${state.autoScroll.active ? 'active' : ''}" id="cfPlay" data-action="toggleScroll" title="Começar ou pausar a rolagem automática" aria-label="Rolagem automática"><span id="cfPlayIcon">${state.autoScroll.active ? '&#10074;&#10074;' : '&#9654;'}</span></button>
+            ${btn('speedDown', '&#8722;', 'Rolagem mais devagar', nivel <= 0)}
+            <span class="cf-value" id="cfSpeedVal" title="0 = parada · 10 = mais rápida">${nivel}</span>
+            ${btn('speedUp', '&#43;', 'Rolagem mais rápida', nivel >= 10)}`)}
+          ${grupo('Tom', `
+            ${btn('transposeDown', '&#8722;', 'Descer meio tom')}
+            <button class="cf-value cf-value-btn ${state.transposeSteps ? 'changed' : ''}" data-action="transposeReset" title="${state.transposeSteps ? 'Voltar ao tom original' : 'Tom original'}">${escapeHtml(toneShort(song))}</button>
+            ${btn('transposeUp', '&#43;', 'Subir meio tom')}`)}
+          ${grupo('Capotraste', `
+            ${btn('capoDown', '&#8722;', 'Diminuir capotraste', capo <= CAPO_MIN)}
+            <span class="cf-value" title="${escapeHtml(capoLabel(capo))}">${capoShort(capo)}</span>
+            ${btn('capoUp', '&#43;', 'Aumentar capotraste', capo >= CAPO_MAX)}`)}
+          ${grupo('Letra', `
+            ${btn('fontDown', '<span class="cf-a small">A</span>', 'Letra menor', fonte && fonte <= FONT_MIN)}
+            <button class="cf-value cf-value-btn ${fonte ? 'changed' : ''}" id="cfFontVal" data-action="fontAuto" title="${fonte ? 'Voltar ao tamanho automático' : 'Tamanho automático (cabe na tela)'}">${fonte ? fonte : 'Auto'}</button>
+            ${btn('fontUp', '<span class="cf-a big">A</span>', 'Letra maior', fonte >= FONT_MAX)}`)}
+          ${cols.shown || colsOn() ? grupo('Página', `
+            <button class="cf-btn cols-pg-btn" data-action="colsPrev" aria-label="Página anterior" title="Página anterior">&#8249;</button>
+            <span class="cf-value" id="colsPgNum">1/1</span>
+            <button class="cf-btn cols-pg-btn" data-action="colsNext" aria-label="Próxima página" title="Próxima página">&#8250;</button>`, 'cf-pages" id="colsPager') : ''}
+          ${grupo('Música', `
+            ${btn('navPrev', '&#8249;', 'Música anterior', !prevId)}
+            ${btn('navNext', '&#8250;', 'Próxima música', !nextId)}`)}
+          ${grupo('Mais', `
+            ${btn('toggleSheetTheme', state.sheetTheme === 'dark' ? '&#9728;' : '&#9790;', state.sheetTheme === 'dark' ? 'Papel claro' : 'Papel escuro')}
+            <button class="cf-btn ${isSongOfflineSaved(song.id) ? 'on' : ''}" data-action="toggleOfflineSave" data-id="${song.id}" title="${isSongOfflineSaved(song.id) ? 'Salva para ler sem internet' : 'Salvar para ler sem internet'}" aria-label="Salvar offline">${isSongOfflineSaved(song.id) ? '&#10003;' : '&#8595;'}</button>
+            ${isEditor() ? btn('editSong" data-id="' + song.id, '&#9998;', 'Corrigir a cifra') : ''}`)}
+        </div>
+      </nav>`;
+  }
+  // Atualiza só os números do rodapé (sem redesenhar a cifra).
+  function cifraFooterUI(){
+    const nivel = speedLevelShown();
+    const sv = document.getElementById('cfSpeedVal'); if(sv) sv.textContent = nivel;
+    const f = document.getElementById('cifraFooter');
+    if(f){
+      const dn = f.querySelector('[data-action="speedDown"]'); if(dn) dn.disabled = nivel <= 0;
+      const up = f.querySelector('[data-action="speedUp"]'); if(up) up.disabled = nivel >= 10;
+      const fv = document.getElementById('cfFontVal');
+      if(fv){ fv.textContent = state.fontPref ? state.fontPref : 'Auto'; fv.classList.toggle('changed', !!state.fontPref); }
+      const fd = f.querySelector('[data-action="fontDown"]'); if(fd) fd.disabled = !!state.fontPref && state.fontPref <= FONT_MIN;
+      const fu = f.querySelector('[data-action="fontUp"]'); if(fu) fu.disabled = state.fontPref >= FONT_MAX;
+    }
+    const pb = document.getElementById('cfPlay');
+    if(pb){
+      pb.classList.toggle('active', state.autoScroll.active);
+      const ic = document.getElementById('cfPlayIcon'); if(ic) ic.innerHTML = state.autoScroll.active ? '&#10074;&#10074;' : '&#9654;';
+    }
+  }
+  function cifraFooterAfterRender(){
+    const naCifra = state.view === 'view' && !!document.getElementById('cifraFooter');
+    document.body.classList.toggle('has-cf', naCifra);
+    if(!naCifra) return;
+    const sc = document.getElementById('cfScroll');
+    if(sc){
+      sc.scrollLeft = cfScrollX;
+      const marcar = () => {
+        cfScrollX = sc.scrollLeft;
+        sc.classList.toggle('more-left', sc.scrollLeft > 4);
+        sc.classList.toggle('more-right', sc.scrollLeft + sc.clientWidth < sc.scrollWidth - 4);
+      };
+      sc.addEventListener('scroll', marcar, { passive: true });
+      marcar();
+    }
+  }
+  window.addEventListener('resize', () => {
+    const sc = document.getElementById('cfScroll');
+    if(sc){
+      sc.classList.toggle('more-left', sc.scrollLeft > 4);
+      sc.classList.toggle('more-right', sc.scrollLeft + sc.clientWidth < sc.scrollWidth - 4);
+    }
+  });
 
   /* ================= POPUP: CONTROLES DE LEITURA ================= */
   let readingPopupOutsideHandler = null;
@@ -7267,9 +7598,43 @@
     const availableWidth = paper.clientWidth - padL - padR - 2; // -2px de folga de segurança
     if(availableWidth <= 0) return;
     const charWidthPerPx = getMonoCharWidthPerPx();
+    if(state.fontPref){
+      // tamanho escolhido no rodapé: frases que não cabem quebram num espaço
+      // (os acordes vão junto), em vez de a pessoa ter que rolar de lado
+      sheet.style.setProperty('--sheet-font-size', state.fontPref + 'px');
+      const cabem = Math.floor(availableWidth / (state.fontPref * charWidthPerPx));
+      const largura = maxChars + 1 > cabem ? Math.max(12, cabem) : 0;
+      sheetSetWrap(sheet, song, largura);
+      return;
+    }
+    sheetSetWrap(sheet, song, 0);
     let fontSize = Math.floor(availableWidth / (maxChars * charWidthPerPx));
     fontSize = Math.max(1, Math.min(16, fontSize));
     sheet.style.setProperty('--sheet-font-size', fontSize + 'px');
+  }
+  // Redesenha as linhas da cifra quebradas em "largura" letras (0 = sem quebrar).
+  // Cada linha da tela guarda em data-src a linha original da música, para a
+  // sala ao vivo e o "voltar onde parei" continuarem apontando a linha certa.
+  function sheetSetWrap(sheet, song, largura){
+    const atual = Number(sheet.dataset.wrap || 0);
+    if(atual === largura) return;
+    sheet.dataset.wrap = String(largura);
+    const steps = state.transposeSteps || 0;
+    const linhas = largura ? colsQuebrar(song.lines || [], largura) : (song.lines || []).map((l, src) => ({ text: l.text || '', chords: l.chords || [], src }));
+    sheet.innerHTML = linhas.map(l => lineHtml(l, steps).replace('<div class="line"', `<div data-src="${l.src}" class="line"`)).join('');
+  }
+  // Retângulo (na tela) de cada linha original da música, juntando as partes quebradas.
+  function sheetLineBoxes(){
+    const els = document.querySelectorAll('#scrollContainer .sheet .line');
+    const caixas = [];
+    els.forEach((el, i) => {
+      const src = el.dataset.src !== undefined ? Number(el.dataset.src) : i;
+      const r = el.getBoundingClientRect();
+      if(!caixas[src]) caixas[src] = { top: r.top, bottom: r.bottom, height: r.height };
+      else { caixas[src].bottom = r.bottom; caixas[src].height = caixas[src].bottom - caixas[src].top; }
+    });
+    for(let i = 0; i < caixas.length; i++) if(!caixas[i]) caixas[i] = i ? { ...caixas[i - 1], top: caixas[i - 1].bottom, height: 0 } : { top: 0, bottom: 0, height: 0 };
+    return caixas;
   }
 
   /* ================= EDITOR: LIMITES DE POSICIONAMENTO DE CIFRA =================
@@ -9255,7 +9620,6 @@ ${escapeHtml(rawText)}</textarea>
       // em duas colunas a rolagem automática vira a página no ritmo da velocidade
       colsAutoStart();
       updatePlayToggleUI();
-      createSpeedVBar();
       return;
     }
     let scrollAccumulator = 0; // guarda a fração de pixel entre os quadros
@@ -9283,7 +9647,6 @@ ${escapeHtml(rawText)}</textarea>
     }
     scrollRAF = requestAnimationFrame(step);
     updatePlayToggleUI();
-    createSpeedVBar();
   }
   function stopAutoScroll(){
     state.autoScroll.active = false;
@@ -9295,6 +9658,7 @@ ${escapeHtml(rawText)}</textarea>
     removeSpeedVBar();
   }
   function updatePlayToggleUI(){
+    cifraFooterUI();
     const fab = document.querySelector('.autoscroll-fab');
     if(fab){
       fab.classList.toggle('active', state.autoScroll.active);
@@ -9322,6 +9686,8 @@ ${escapeHtml(rawText)}</textarea>
 
   /* ================= EVENT WIRING ================= */
   function afterRender(){
+    const tbAltura = document.querySelector('#app .topbar');
+    if(tbAltura) document.documentElement.style.setProperty('--topbar-h', tbAltura.offsetHeight + 'px');
     if(state.view==='login' || state.view==='signup' || state.view==='forgot'){
       const submitMap = { login: signIn, signup: signUp, forgot: requestPasswordReset };
       const emailEl = document.getElementById('authEmail');
@@ -9550,6 +9916,11 @@ ${escapeHtml(rawText)}</textarea>
       state.filterFavOnly = !state.filterFavOnly;
       render();
     }
+    else if(action==='setHomeTab') setHomeTab(el.dataset.tab);
+    else if(action==='openArtistTab'){ state.filterArtist = el.dataset.artist; state.search = ''; render(); window.scrollTo(0, 0); }
+    else if(action==='openThemeTab'){ state.filterTheme = el.dataset.theme; state.search = ''; render(); window.scrollTo(0, 0); }
+    else if(action==='closeArtistTab'){ state.filterArtist = ''; render(); }
+    else if(action==='closeThemeTab'){ state.filterTheme = ''; render(); }
     else if(action==='navPrev'){
       const ctx = state.navContext;
       if(!ctx) return;
@@ -9563,6 +9934,12 @@ ${escapeHtml(rawText)}</textarea>
       if(idx>=0 && idx<ctx.length-1) goView(ctx[idx+1]);
     }
     else if(action==='openReadingControls') openReadingControlsModal();
+    else if(action==='speedUp') setSpeedLevel(speedLevelShown() + 1);
+    else if(action==='speedDown') setSpeedLevel(speedLevelShown() - 1);
+    else if(action==='fontUp') fontStep(1);
+    else if(action==='fontDown') fontStep(-1);
+    else if(action==='fontAuto'){ if(state.fontPref) setFontPref(0); else showToast('A letra já está no tamanho automático, que cabe na tela.'); }
+    else if(action==='transposeReset'){ if(state.transposeSteps){ state.transposeSteps = 0; render(); } }
     else if(action==='transposeUp'){ state.transposeSteps = (state.transposeSteps||0) + 1; render(); }
     else if(action==='transposeDown'){ state.transposeSteps = (state.transposeSteps||0) - 1; render(); }
     else if(action==='liveStart'){ liveStartHosting(); }
