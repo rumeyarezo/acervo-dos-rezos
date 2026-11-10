@@ -1782,7 +1782,14 @@
     background:var(--surface-soft);
   }
   .admin-row-photo-btn:disabled{opacity:0.55;cursor:default;}
-  .admin-photos-hint{color:var(--muted);font-size:13.5px;margin:0 0 12px;}
+  .admin-photos-hint{color:var(--muted-on-dark);font-size:13.5px;margin:0 0 12px;}
+  .admin-row-songs{font-size:12.5px;color:var(--muted);margin-top:3px;line-height:1.4;overflow-wrap:anywhere;}
+  .admin-row-songs span{font-weight:700;}
+  .admin-row-songs em{font-style:normal;opacity:.8;}
+  .admin-row-match{font-size:12.5px;color:var(--leaf);margin-top:2px;}
+  .admin-row-thumb{flex:none;width:42px;height:42px;border-radius:50%;background:#ddd center/cover no-repeat;border:2px solid var(--gold-soft);}
+  .admin-photos-sub{margin:26px 0 6px;font-size:17px;font-family:var(--font-serif);color:var(--on-dark);}
+  .admin-photos-default{display:flex;align-items:center;gap:12px;margin-top:22px;padding:12px 14px;border-radius:12px;background:var(--surface);border:1px solid var(--border);font-size:13.5px;color:var(--ink);}
   .admin-photos-selected{
     display:flex;
     align-items:center;
@@ -4475,33 +4482,60 @@
   // seletor de imagem e envia direto para o bucket "artist-photos" do
   // Supabase Storage (ver uploadArtistPhoto) — sem passar por código/GitHub.
   function renderAdminPhotos(){
-    const seen = {};
+    // agrupa os rezos por artista (nome normalizado), guardando os títulos
+    const grupos = {};
+    let semArtista = 0;
     (state.songs || []).forEach(s => {
       const raw = (s.artist || '').trim();
-      if(!raw) return;
+      if(artistIsMissing(raw)){ semArtista++; return; }
       const key = normalizeText(raw);
-      if(!seen[key]) seen[key] = raw;
+      if(!grupos[key]) grupos[key] = { nome: raw, titulos: [] };
+      grupos[key].titulos.push(s.title || 'Sem título');
     });
-    const uploadedKeys = state.uploadedArtistPhotoKeys || new Set();
-    const missing = Object.keys(seen)
-      .filter(key => !ARTIST_PHOTO_OVERRIDES[key] && !uploadedKeys.has(key))
-      .map(key => seen[key])
-      .sort((a,b) => a.localeCompare(b, 'pt-BR'));
+    const todos = Object.values(grupos).sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'));
+    const semFoto = [], parecidos = [];
+    todos.forEach(g => {
+      const m = artistPhotoMatch(g.nome);
+      if(!m) semFoto.push(g);
+      else if(m.key !== normalizeText(g.nome)) parecidos.push({ ...g, m });
+    });
     const selected = state.selectedArtistForPhoto || '';
     const uploading = !!state.uploadingArtistPhoto;
-    return `
-      <p class="admin-photos-hint">${missing.length} artista${missing.length===1?'':'s'} sem foto cadastrada. Toque em <strong>Enviar foto</strong> ao lado do nome e escolha a imagem na galeria ou tire na hora.</p>
-      ${missing.length ? `<div class="admin-list">` + missing.map(name => {
-        const isThis = uploading && name === selected;
-        return `
-        <div class="admin-row admin-row-photo ${isThis?'active':''}">
+    const titulosHtml = g => {
+      const lista = [...g.titulos].sort((a, b) => a.localeCompare(b, 'pt-BR'));
+      const mostra = lista.slice(0, 4).map(escapeHtml).join(' · ');
+      return `<div class="admin-row-songs"><span>${lista.length === 1 ? 'Rezo' : lista.length + ' rezos'}:</span> ${mostra}${lista.length > 4 ? ` <em>e mais ${lista.length - 4}</em>` : ''}</div>`;
+    };
+    const linha = (g, extra, rotulo) => {
+      const isThis = uploading && g.nome === selected;
+      return `
+        <div class="admin-row admin-row-photo ${isThis ? 'active' : ''}">
+          ${extra || ''}
           <div class="admin-row-info">
-            <div class="admin-row-title">${escapeHtml(name)}</div>
+            <div class="admin-row-title">${escapeHtml(g.nome)}</div>
+            ${g.m ? `<div class="admin-row-match">Usando a foto de <strong>${escapeHtml(nomeDaFoto(g.m.key))}</strong> · ${g.m.score >= 1 ? 'só muda espaço, acento ou pontuação' : Math.round(g.m.score * 100) + '% parecido'}</div>` : ''}
+            ${titulosHtml(g)}
           </div>
-          <button class="btn-secondary admin-row-photo-btn" data-action="uploadPhotoForArtist" data-artist="${escapeHtml(name)}" ${uploading?'disabled':''}>${isThis ? 'Enviando...' : '&#128247; Enviar foto'}</button>
+          <button class="btn-secondary admin-row-photo-btn" data-action="uploadPhotoForArtist" data-artist="${escapeHtml(g.nome)}" ${uploading ? 'disabled' : ''}>${isThis ? 'Enviando...' : (rotulo || '&#128247; Enviar foto')}</button>
         </div>`;
-      }).join('') + `</div>` : `<div class="empty-state"><div class="big">Todos os artistas já têm foto cadastrada!</div></div>`}
+    };
+    return `
+      <p class="admin-photos-hint">${semFoto.length} artista${semFoto.length === 1 ? '' : 's'} sem foto. Toque em <strong>Enviar foto</strong> ao lado do nome e escolha a imagem na galeria ou tire na hora.</p>
+      ${semFoto.length ? `<div class="admin-list">${semFoto.map(g => linha(g)).join('')}</div>` : `<div class="empty-state"><div class="big">Todos os artistas já têm foto!</div></div>`}
+      ${parecidos.length ? `
+        <h3 class="admin-photos-sub">Reconhecidos como o mesmo artista (${parecidos.length})</h3>
+        <p class="admin-photos-hint">O nome está escrito um pouco diferente de um artista que já tem foto, então o app usa a mesma foto. Se não for a mesma pessoa, envie a foto certa: ela passa a valer só para esse nome.</p>
+        <div class="admin-list">${parecidos.map(g => linha(g, `<span class="admin-row-thumb" style="background-image:url('${escapeHtml(state.artistPhotos[g.m.key])}')"></span>`, 'Enviar outra')).join('')}</div>` : ''}
+      <div class="admin-photos-default">
+        <span class="admin-row-thumb" style="background-image:url('${DEFAULT_ARTIST_PHOTO}')"></span>
+        <div><strong>${semArtista} rezo${semArtista === 1 ? '' : 's'} sem artista</strong> usam a foto padrão. Quando alguém colocar o nome do artista na cifra, ele aparece na lista acima para receber foto.</div>
+      </div>
     `;
+  }
+  // Nome "bonito" do artista dono de uma foto (como aparece nas cifras).
+  function nomeDaFoto(key){
+    const s = (state.songs || []).find(x => normalizeText(x.artist || '') === key);
+    return s ? s.artist.trim() : key;
   }
 
   /* ================= AUTENTICAÇÃO: TELAS ================= */
@@ -6907,6 +6941,84 @@
     render();
   }
 
+  /* ---- Foto do artista: padrão, igual ou parecida ----
+     1) Rezo sem artista (ou com "não informado", "desconhecido"...) usa a foto padrão.
+     2) Artista com foto cadastrada (manual ou enviada pelo admin) usa a dele.
+     3) Senão, procura um artista com foto cujo nome seja pelo menos 70% parecido
+        (erros de digitação como "Rosana Bjaflor" x "Rosana Beija Flor") e usa a foto dele.
+     Uma foto enviada para o nome exato sempre tem prioridade sobre a parecida. */
+  const DEFAULT_ARTIST_PHOTO = 'fotos-artistas/sem-artista.jpg';
+  const ARTIST_MATCH_MIN = 0.7;
+  const ARTIST_PLACEHOLDERS = new Set(['', '-', '--', '?', 'n/a', 'na', 'artista nao informado', 'nao informado', 'desconhecido', 'artista desconhecido', 'sem artista', 'autor desconhecido', 'nao sei']);
+  const ARTIST_STOP = new Set(['de', 'da', 'do', 'dos', 'das', 'e', 'y', 'and', 'part', 'feat', 'ft']);
+  function artistIsMissing(nome){ return ARTIST_PLACEHOLDERS.has(normalizeText(nome).replace(/\s+/g, ' ')); }
+  function artistTokens(nome){
+    return normalizeText(nome).replace(/[^a-z0-9]+/g, ' ').trim().split(' ').filter(t => t && !ARTIST_STOP.has(t));
+  }
+  function levenshtein(a, b){
+    if(a === b) return 0;
+    const m = a.length, n = b.length;
+    if(!m) return n; if(!n) return m;
+    let prev = Array.from({ length: n + 1 }, (_, j) => j), cur = new Array(n + 1);
+    for(let i = 1; i <= m; i++){
+      cur[0] = i;
+      for(let j = 1; j <= n; j++) cur[j] = Math.min(prev[j] + 1, cur[j - 1] + 1, prev[j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1));
+      [prev, cur] = [cur, prev];
+    }
+    return prev[n];
+  }
+  const nameSim = (a, b) => 1 - levenshtein(a, b) / Math.max(a.length, b.length, 1);
+  // 0 a 1: quão parecidos são dois nomes de artista
+  function artistSimilarity(a, b){
+    const ta = artistTokens(a), tb = artistTokens(b);
+    const ca = ta.join(''), cb = tb.join('');
+    if(!ca || !cb) return 0;
+    if(ca === cb) return 1;                                   // só mudou acento, espaço ou pontuação
+    if(Math.min(ca.length, cb.length) < 5) return 0;          // nome muito curto: só se for igual
+    const total = nameSim(ca, cb);
+    const [S, L] = ta.length <= tb.length ? [ta, tb] : [tb, ta];
+    if(total < ARTIST_MATCH_MIN){
+      // uma palavra a menos no fim: "Max Mello e Suzan" = "Max Mello & Suzan Flores"
+      if(S.length >= 2 && S.length / L.length >= 0.6 && S.every((t, i) => nameSim(t, L[i]) >= 0.85)) return 0.75;
+      return total;
+    }
+    // nome de uma palavra só ("Gustavito" x "Gustavinho") pede mais certeza
+    if(ta.length === 1 && tb.length === 1 && total < 0.85) return Math.min(total, 0.69);
+    // cada palavra do nome menor precisa ter par no outro ("Bjaflor" ~ "Beija Flor")
+    const candidatos = [...L];
+    for(let i = 0; i + 1 < L.length; i++) candidatos.push(L[i] + L[i + 1]);
+    const melhor = t => Math.max(...candidatos.map(c => ((c.startsWith(t) || t.startsWith(c)) && Math.min(c.length, t.length) >= 3) ? Math.max(0.9, nameSim(t, c)) : nameSim(t, c)));
+    if(S.some(t => melhor(t) < 0.6)) return Math.min(total, 0.69);
+    // e o primeiro nome tem que bater (Rosana Alves ≠ Rosana Beija Flor; Nayara ≠ Thiago Favaretto)
+    const primeiro = Math.max(nameSim(S[0], L[0]), L[1] ? nameSim(S[0], L[0] + L[1]) : 0);
+    if(primeiro < 0.75) return Math.min(total, 0.69);
+    return total;
+  }
+  let artistMatchMemo = { assinatura: '', mapa: new Map() };
+  // Qual artista com foto corresponde a este nome. Devolve { key, score } ou null.
+  function artistPhotoMatch(nome){
+    const key = normalizeText(nome);
+    if(!key) return null;
+    if(state.artistPhotos[key]) return { key, score: 1 };
+    const comFoto = Object.keys(state.artistPhotos).filter(k => state.artistPhotos[k]);
+    const assinatura = comFoto.length + '|' + comFoto.join('').length;
+    if(artistMatchMemo.assinatura !== assinatura) artistMatchMemo = { assinatura, mapa: new Map() };
+    if(artistMatchMemo.mapa.has(key)) return artistMatchMemo.mapa.get(key);
+    let melhor = null;
+    comFoto.forEach(k => {
+      const s = artistSimilarity(nome, k);
+      if(s >= ARTIST_MATCH_MIN && (!melhor || s > melhor.score)) melhor = { key: k, score: s };
+    });
+    artistMatchMemo.mapa.set(key, melhor);
+    return melhor;
+  }
+  // URL da foto a mostrar para este artista (ou null).
+  function artistPhotoFor(nome){
+    if(artistIsMissing(nome)) return DEFAULT_ARTIST_PHOTO;
+    const m = artistPhotoMatch(nome);
+    return m ? state.artistPhotos[m.key] : null;
+  }
+
   function ensureArtistPhotos(songs){
     const vistos = new Set();
     let overrideAplicado = false;
@@ -6935,8 +7047,7 @@
     const menuOpen = state.openMenuId === s.id;
     const canEdit = isEditor();
     const linkTitle = 'Adicionar links da música (YouTube, Spotify, Deezer, etc.)';
-    const artistKey = normalizeText(s.artist || '');
-    const artistPhoto = artistKey ? state.artistPhotos[artistKey] : null;
+    const artistPhoto = artistPhotoFor(s.artist || '');
     const photoStyle = artistPhoto ? ` style="--artist-photo:url('${escapeHtml(artistPhoto)}')"` : '';
     return `
       <div class="song-card ${menuOpen?'menu-open':''} ${artistPhoto?'has-artist-photo':''}" data-action="openSong" data-id="${s.id}"${photoStyle}>
@@ -6992,6 +7103,7 @@
     render();
     window.scrollTo(0, 0);
   }
+  function songArtistName(s){ return artistIsMissing(s.artist) ? 'Artista não informado' : s.artist.trim(); }
   function songTheme(s){ return (s.theme || '').trim() || SEM_TEMA; }
   function songMatchesSearch(s, q){
     if(!q) return true;
@@ -7004,7 +7116,7 @@
   function homeGroups(campo){
     const mapa = new Map();
     state.songs.forEach(s => {
-      const nome = campo === 'theme' ? songTheme(s) : ((s.artist || '').trim() || 'Artista não informado');
+      const nome = campo === 'theme' ? songTheme(s) : songArtistName(s);
       const g = mapa.get(nome) || { nome, total: 0, curtidas: 0 };
       g.total++; g.curtidas += s.like_count || 0;
       mapa.set(nome, g);
@@ -7021,8 +7133,7 @@
     return ((p[0] || '?')[0] + (p.length > 1 ? p[p.length - 1][0] : '')).toUpperCase();
   }
   function artistTileHtml(g){
-    const key = normalizeText(g.nome);
-    const foto = state.artistPhotos[key];
+    const foto = artistPhotoFor(g.nome === 'Artista não informado' ? '' : g.nome);
     return `
       <button class="group-tile artist-tile" data-action="openArtistTab" data-artist="${escapeHtml(g.nome)}">
         <span class="artist-avatar"${foto ? ` style="background-image:url('${escapeHtml(foto)}')"` : ''}>${foto ? '' : escapeHtml(artistInitials(g.nome))}</span>
@@ -7077,7 +7188,7 @@
     if(t === 'artistas'){
       if(state.filterArtist){
         const nome = state.filterArtist;
-        const songs = state.songs.filter(s => ((s.artist || '').trim() || 'Artista não informado') === nome && songMatchesSearch(s, q) && favOnly(s)).sort(porTitulo);
+        const songs = state.songs.filter(s => songArtistName(s) === nome && songMatchesSearch(s, q) && favOnly(s)).sort(porTitulo);
         return voltar('closeArtistTab', 'Artistas', nome, songs.length) + grade(songs);
       }
       const grupos = homeGroups('artist').filter(g => !q || normalizeText(g.nome).includes(q));

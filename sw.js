@@ -10,7 +10,7 @@
    Se você esquecer, as pessoas continuam vendo a versão antiga.
    ============================================================ */
 
-const CACHE_VERSION = 'v18';
+const CACHE_VERSION = 'v19';
 const SHELL_CACHE = `acervo-shell-${CACHE_VERSION}`;
 const RUNTIME_CACHE = `acervo-runtime-${CACHE_VERSION}`;
 
@@ -22,7 +22,8 @@ const SHELL_FILES = [
   './icon-192.png',
   './icon-512.png',
   './icon-maskable-512.png',
-  './apple-touch-icon.png'
+  './apple-touch-icon.png',
+  './fotos-artistas/sem-artista.jpg'
 ];
 
 /* ---------- INSTALAÇÃO ---------- */
