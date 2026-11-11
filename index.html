@@ -1183,6 +1183,26 @@
 
 
 
+
+  /* ---- Convite: notificações + instalar ---- */
+  .install-app-btn{
+    margin:14px 0 0 8px; display:inline-flex; align-items:center; gap:6px;
+    padding:10px 18px; min-height:44px; border-radius:999px; cursor:pointer;
+    background:transparent; color:var(--on-dark); border:1px solid var(--border-on-dark); font-size:15px; font-weight:600;
+  }
+  .install-app-btn:hover{border-color:var(--gold-light); color:var(--gold-light);}
+  .install-app-btn[hidden]{display:none;}
+  .conv-box{max-width:400px; text-align:center;}
+  .conv-icone{width:64px; height:64px; border-radius:16px; display:block; margin:0 auto 10px; box-shadow:0 6px 16px rgba(0,0,0,.2);}
+  .conv-box h3{margin:0 0 8px;}
+  .conv-texto{margin:0 0 16px; color:var(--muted); font-size:14.5px; line-height:1.5;}
+  .conv-btn{width:100%; min-height:48px; font-size:16px;}
+  .conv-depois{margin-top:10px; border:none; background:none; color:var(--muted); font-size:14px; cursor:pointer; padding:8px 12px;}
+  .conv-passos{text-align:left; margin:0 0 6px; padding-left:22px; font-size:14.5px; line-height:1.5; color:var(--ink);}
+  .conv-passos li{margin:6px 0;}
+  .conv-ico{display:inline-flex; width:22px; height:22px; align-items:center; justify-content:center; border-radius:6px; background:rgba(0,0,0,.07); font-weight:700;}
+  .conv-nota{font-size:13px; color:var(--muted); margin:8px 0 0; line-height:1.45;}
+
   /* ---- Compartilhar o app ---- */
   .share-app-btn{
     margin:14px auto 0; display:inline-flex; align-items:center; gap:8px;
@@ -3099,6 +3119,7 @@
       state._pendingConfirmType = null;
     }
     liveCheckPendingJoin(); // abriu pelo link/QR de uma sala? entra nela
+    installInviteCheck();   // primeiro acesso: convite para notificações e instalar
   }
 
   async function init(){
@@ -6744,6 +6765,177 @@
     });
   }
 
+  /* ================= BOAS-VINDAS: NOTIFICAÇÃO + INSTALAR O APP =================
+     No primeiro acesso aparece um convite. O toque em "Ativar notificações"
+     é o que permite pedir a permissão em todos os navegadores (Firefox e Safari
+     só deixam pedir a partir de um toque). Com a permissão, chega uma notificação
+     "Instale o Acervo"; tocar nela abre o app direto no botão de instalar.
+     No iPhone/iPad, site aberto no Safari não pode notificar: o convite já mostra
+     o passo a passo para pôr o app na tela inicial. */
+  const INSTALL_INVITE_KEY = 'acervo_convite_instalar';
+  let installPromptEvent = null;
+  const inst = {
+    standalone(){ return (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) || window.navigator.standalone === true; },
+    ios(){ return /iphone|ipad|ipod/i.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1); },
+    android(){ return /android/i.test(navigator.userAgent); },
+    safariMac(){ return /^((?!chrome|android|crios|fxios|edg).)*safari/i.test(navigator.userAgent) && !inst.ios(); },
+    firefox(){ return /firefox|fxios/i.test(navigator.userAgent); },
+    podeNotificar(){ return 'Notification' in window && 'serviceWorker' in navigator; }
+  };
+  // Chrome/Edge/Android avisam quando o app pode ser instalado: guardamos para usar no botão.
+  window.addEventListener('beforeinstallprompt', e => {
+    e.preventDefault();
+    installPromptEvent = e;
+    instalarAtualizarUI();
+  });
+  window.addEventListener('appinstalled', () => {
+    installPromptEvent = null;
+    try{ localStorage.setItem(INSTALL_INVITE_KEY, 'instalado'); }catch(err){}
+    fecharConvite();
+    instalarAtualizarUI();
+    showToast('Pronto! O Acervo está na sua tela inicial.');
+  });
+  // Abriu pela notificação ("?instalar=1"): guarda o pedido e limpa o endereço.
+  (() => {
+    try{
+      const u = new URL(location.href);
+      if(u.searchParams.get('instalar') === '1'){
+        sessionStorage.setItem('acervo_abrir_instalar', '1');
+        u.searchParams.delete('instalar');
+        history.replaceState(history.state, '', u.pathname + (u.search ? u.search : '') + u.hash);
+      }
+    }catch(e){}
+  })();
+  // A notificação foi tocada com o app já aberto: o service worker avisa por mensagem.
+  if('serviceWorker' in navigator){
+    navigator.serviceWorker.addEventListener('message', e => {
+      if(e.data && e.data.type === 'ABRIR_INSTALAR') abrirConviteInstalar('instalar');
+    });
+  }
+
+  function instalarDisponivel(){ return !inst.standalone() && (installPromptEvent || inst.ios() || inst.android() || inst.safariMac()); }
+  function instalarAtualizarUI(){
+    const b = document.querySelector('.install-app-btn');
+    if(b) b.hidden = !instalarDisponivel();
+    const acao = document.getElementById('convInstalarAcao');
+    if(acao && installPromptEvent) acao.innerHTML = conviteBotaoInstalarHtml();
+  }
+
+  // Chamado ao entrar no app: convite só na primeira vez, e nunca por cima de uma sala ao vivo.
+  function installInviteCheck(){
+    let pedidoPelaNotificacao = false;
+    try{ pedidoPelaNotificacao = sessionStorage.getItem('acervo_abrir_instalar') === '1'; sessionStorage.removeItem('acervo_abrir_instalar'); }catch(e){}
+    if(inst.standalone()) return; // já está instalado
+    if(pedidoPelaNotificacao){ setTimeout(() => abrirConviteInstalar('instalar'), 500); return; }
+    let visto = null;
+    try{ visto = localStorage.getItem(INSTALL_INVITE_KEY); }catch(e){}
+    if(visto) return;
+    if(live.role) return;
+    setTimeout(() => {
+      if(live.role || state.view !== 'list' || document.querySelector('.confirm-overlay')) return;
+      abrirConviteInstalar('boas-vindas');
+    }, 1200);
+  }
+
+  function passoAPassoHtml(){
+    if(inst.ios()) return `
+      <ol class="conv-passos">
+        <li>Toque em <strong>Compartilhar</strong> <span class="conv-ico" aria-hidden="true">&#8679;</span> na barra do Safari (embaixo ou em cima).</li>
+        <li>Role e toque em <strong>Adicionar à Tela de Início</strong>.</li>
+        <li>Toque em <strong>Adicionar</strong>. O Acervo aparece como um app no seu iPhone.</li>
+      </ol>
+      <p class="conv-nota">No iPhone o aviso de notificação só funciona depois que o app está na tela de início.</p>`;
+    if(inst.android()) return `
+      <ol class="conv-passos">
+        <li>Toque no menu <strong>&#8942;</strong> do navegador.</li>
+        <li>Toque em <strong>Instalar app</strong> ou <strong>Adicionar à tela inicial</strong>.</li>
+      </ol>`;
+    if(inst.safariMac()) return `<ol class="conv-passos"><li>No menu <strong>Arquivo</strong>, escolha <strong>Adicionar ao Dock</strong>.</li></ol>`;
+    if(inst.firefox()) return `<p class="conv-nota">O Firefox de computador não instala apps. Abra o Acervo no Chrome ou no Edge para instalar, ou salve nos favoritos.</p>`;
+    return `<ol class="conv-passos"><li>Clique no ícone de instalar <strong>&#8862;</strong> na barra de endereço do navegador.</li></ol>`;
+  }
+  function conviteBotaoInstalarHtml(){
+    return installPromptEvent
+      ? `<button class="btn-primary conv-btn" data-conv="instalar">&#11015; Instalar o Acervo</button>`
+      : passoAPassoHtml();
+  }
+  function fecharConvite(){ const o = document.querySelector('.conv-overlay'); if(o) o.remove(); }
+
+  // modo 'boas-vindas' = primeiro acesso; 'instalar' = veio da notificação ou do botão
+  function abrirConviteInstalar(modo){
+    fecharConvite();
+    if(inst.standalone()){ showToast('O Acervo já está instalado neste aparelho.'); return; }
+    try{ if(modo === 'boas-vindas') localStorage.setItem(INSTALL_INVITE_KEY, 'visto'); }catch(e){}
+    const notificarAgora = modo === 'boas-vindas' && inst.podeNotificar() && Notification.permission === 'default';
+    const overlay = document.createElement('div');
+    overlay.className = 'confirm-overlay conv-overlay';
+    overlay.innerHTML = `
+      <div class="confirm-box conv-box" role="dialog" aria-modal="true" aria-labelledby="convTitulo">
+        <img class="conv-icone" src="icon-192.png" alt="" width="64" height="64">
+        <h3 id="convTitulo">${modo === 'boas-vindas' ? 'Que bom ter você no Acervo!' : 'Instale o Acervo dos Rezos'}</h3>
+        <p class="conv-texto">${notificarAgora
+          ? 'Ative as notificações e a gente te manda o atalho para instalar o app. Assim ele abre direto da tela inicial, mais rápido e até sem internet.'
+          : 'Com o app na tela inicial ele abre mais rápido, em tela cheia e até sem internet.'}</p>
+        <div class="conv-acao" id="convInstalarAcao">
+          ${notificarAgora ? `<button class="btn-primary conv-btn" data-conv="notificar">&#128276; Ativar notificações</button>` : conviteBotaoInstalarHtml()}
+        </div>
+        <button class="conv-depois" data-conv="depois">Agora não</button>
+      </div>`;
+    document.body.appendChild(overlay);
+    overlay.addEventListener('click', async e => {
+      if(e.target === overlay){ fecharConvite(); return; }
+      const b = e.target.closest('[data-conv]');
+      if(!b) return;
+      const acao = b.dataset.conv;
+      if(acao === 'depois'){ fecharConvite(); return; }
+      if(acao === 'instalar'){ await instalarAgora(); return; }
+      if(acao === 'notificar'){
+        b.disabled = true;
+        const ok = await pedirNotificacaoEAvisar();
+        const box = overlay.querySelector('.conv-acao');
+        if(ok){
+          overlay.querySelector('.conv-texto').textContent = 'Notificação enviada! Toque nela quando quiser instalar, ou instale agora mesmo:';
+        } else {
+          overlay.querySelector('.conv-texto').textContent = 'Tudo bem, sem notificações. Você pode instalar o app agora mesmo:';
+        }
+        if(box) box.innerHTML = conviteBotaoInstalarHtml();
+      }
+    });
+  }
+
+  async function pedirNotificacaoEAvisar(){
+    if(!inst.podeNotificar()) return false;
+    let perm = Notification.permission;
+    try{ if(perm === 'default') perm = await Notification.requestPermission(); }catch(e){ return false; }
+    if(perm !== 'granted') return false;
+    try{
+      const reg = await Promise.race([navigator.serviceWorker.ready, new Promise((_, rej) => setTimeout(() => rej(new Error('sem service worker')), 4000))]);
+      await reg.showNotification('Instale o Acervo dos Rezos 🌿', {
+        body: 'Toque aqui para colocar o Acervo na sua tela inicial. Ele abre mais rápido e funciona até sem internet.',
+        icon: 'icon-192.png',
+        badge: 'icon-192.png',
+        tag: 'acervo-instalar',
+        data: { url: new URL('./?instalar=1', location.href).href }
+      });
+      return true;
+    }catch(e){
+      console.warn('Não consegui mostrar a notificação:', e);
+      return false;
+    }
+  }
+
+  async function instalarAgora(){
+    if(!installPromptEvent){ abrirConviteInstalar('instalar'); return; }
+    const ev = installPromptEvent;
+    installPromptEvent = null;
+    try{
+      await ev.prompt();
+      const escolha = await ev.userChoice;
+      if(escolha && escolha.outcome === 'accepted') fecharConvite();
+    }catch(e){ console.warn(e); }
+    instalarAtualizarUI();
+  }
+
   /* ================= RENDER ROOT ================= */
   function render(){
     const app = document.getElementById('app');
@@ -7252,6 +7444,7 @@
             <svg viewBox="0 0 24 24" width="17" height="17" aria-hidden="true"><circle cx="18" cy="5" r="2.6" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="6" cy="12" r="2.6" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="18" cy="19" r="2.6" fill="none" stroke="currentColor" stroke-width="2"/><path d="M8.3 10.8l7.4-4.4M8.3 13.2l7.4 4.4" stroke="currentColor" stroke-width="2" fill="none"/></svg>
             Compartilhar o app
           </button>
+          <button class="install-app-btn" data-action="installApp" ${instalarDisponivel() ? '' : 'hidden'}>&#11015; Instalar o app</button>
         </div>
         ${isAdmin() ? `<div id="adminNotice">${adminNoticeHtml()}</div>` : ''}
         ${homeTabsHtml()}
@@ -10176,6 +10369,7 @@ ${escapeHtml(rawText)}</textarea>
     }
     else if(action==='setHomeTab') setHomeTab(el.dataset.tab);
     else if(action==='shareApp') openShareAppModal();
+    else if(action==='installApp'){ if(installPromptEvent) instalarAgora(); else abrirConviteInstalar('instalar'); }
     else if(action==='openArtistTab'){ state.filterArtist = el.dataset.artist; state.search = ''; render(); window.scrollTo(0, 0); }
     else if(action==='openThemeTab'){ state.filterTheme = el.dataset.theme; state.search = ''; render(); window.scrollTo(0, 0); }
     else if(action==='closeArtistTab'){ state.filterArtist = ''; render(); }

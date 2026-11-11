@@ -10,7 +10,7 @@
    Se você esquecer, as pessoas continuam vendo a versão antiga.
    ============================================================ */
 
-const CACHE_VERSION = 'v19';
+const CACHE_VERSION = 'v20';
 const SHELL_CACHE = `acervo-shell-${CACHE_VERSION}`;
 const RUNTIME_CACHE = `acervo-runtime-${CACHE_VERSION}`;
 
@@ -64,6 +64,23 @@ self.addEventListener('activate', event => {
 /* ---------- Mensagem vinda da página ---------- */
 self.addEventListener('message', event => {
   if (event.data && event.data.type === 'SKIP_WAITING') self.skipWaiting();
+});
+
+/* ---------- Toque na notificação "Instale o Acervo" ---------- */
+self.addEventListener('notificationclick', event => {
+  event.notification.close();
+  const alvo = (event.notification.data && event.notification.data.url) || self.registration.scope;
+  event.waitUntil((async () => {
+    const janelas = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
+    const aberta = janelas.find(c => c.url.startsWith(self.registration.scope));
+    if (aberta) {
+      // app já aberto: traz para frente e pede para mostrar o botão de instalar
+      try { await aberta.focus(); } catch (e) {}
+      aberta.postMessage({ type: 'ABRIR_INSTALAR' });
+      return;
+    }
+    await self.clients.openWindow(alvo);
+  })());
 });
 
 /* ---------- Estratégias ---------- */
